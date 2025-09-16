@@ -1,0 +1,10 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+// Standardized error frame for REST via grpc-gateway
+message Error {
+  string code = 1;      // STABLE_CODE like PLAYER_DUPLICATE_SUSPECTED
+  string message = 2;   // localized message
+  map<string,string> args = 3; // interpolation args
+}

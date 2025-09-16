@@ -1,0 +1,203 @@
+{
+  "common": {
+    "loading": "Laddar...",
+    "save": "Spara",
+    "saving": "Sparar...",
+    "cancel": "Avbryt",
+    "delete": "Ta bort",
+    "edit": "Redigera",
+    "create": "Skapa",
+    "created": "Skapad",
+    "search": "Sök",
+    "yes": "Ja",
+    "no": "Nej",
+    "confirm": "Bekräfta",
+    "back": "Tillbaka",
+    "next": "Nästa",
+    "showMore": "Visa mer",
+    "close": "Stäng",
+    "success": "Framgång"
+  },
+  "nav": {
+    "series": "Serier",
+    "clubs": "Klubbar",
+    "players": "Spelare",
+    "leaderboard": "Resultattabell",
+    "settings": "Inställningar",
+    "language": "Språk"
+  },
+  "series": {
+    "title": "Turneringsserier",
+    "subtitle": "Hantera bordstennisturneringar och ligor",
+    "createNew": "Skapa ny serie",
+    "name": "Serienamn",
+    "name_placeholder": "Ange serienamn",
+    "clubName": "Klubbnamn",
+    "seriesTitle": "Serietitel",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum",
+    "starts_at": "Startar",
+    "ends_at": "Slutar",
+    "visibility": "Synlighet",
+    "visibility.open": "Öppen",
+    "visibility.open_description": "Öppen för alla spelare",
+    "visibility.club_only": "Endast klubb",
+    "visibility.club_only_description": "Endast klubbmedlemmar",
+    "noSeries": "Inga serier hittades",
+    "createFirst": "Skapa din första turneringsserie för att komma igång",
+    "searchAdjust": "Försök justera dina söktermer",
+    "viewDetails": "Visa detaljer",
+    "reportMatch": "Rapportera match",
+    "report": {
+      "match": "Rapportera match"
+    },
+    "leaderboard": "Resultattabell",
+    "viewLeaderboard": "Visa resultattabell",
+    "matches": "Matcher",
+    "created": "Serie skapad framgångsrikt",
+    "validation": {
+      "start_before_end": "Startdatum måste vara före slutdatum",
+      "club_required": "Klubb krävs för klubbexklusiva serier"
+    }
+  },
+  "players": {
+    "title": "Spelare",
+    "subtitle": "Hantera bordstennisspelare från alla klubbar",
+    "name": "Spelarnamn",
+    "namePlaceholder": "Ange spelarens namn",
+    "club": "Klubb",
+    "selectClub": "Välj klubb",
+    "addPlayer": "Lägg till spelare",
+    "create": "Skapa spelare",
+    "created": "Spelare skapad framgångsrikt",
+    "createDescription": "Skapa en ny spelare för den valda klubben",
+    "selectPlayer": "Välj spelare",
+    "searchPlayers": "Sök spelare...",
+    "noPlayers": "Inga spelare hittades",
+    "empty": "Inga spelare hittades",
+    "searchAdjust": "Försök justera din sökning eller filter",
+    "getStarted": "Kom igång genom att lägga till din första spelare",
+    "similarFound": "Liknande spelare hittade",
+    "similarMessage": "Vi hittade liknande spelare. Vill du använda en befintlig spelare eller skapa en ny?",
+    "useExisting": "Använd befintlig",
+    "createNew": "Skapa ny",
+    "noManageableClubs": "Du har inga klubbar du kan hantera",
+    "needClubAdmin": "Du måste vara klubbadministratör eller plattformsägare för att skapa spelare",
+    "validation": {
+      "nameRequired": "Spelarnamn krävs",
+      "clubRequired": "Klubb måste väljas"
+    },
+    "select": {
+      "club": "Alla klubbar"
+    }
+  },
+  "matches": {
+    "title": "Matchresultat",
+    "reportNew": "Rapportera match",
+    "player_a": "Spelare A",
+    "player_b": "Spelare B",
+    "played_at": "Matchdatum",
+    "playerA": "Spelare A",
+    "playerB": "Spelare B",
+    "scoreA": "Spelare A poäng",
+    "scoreB": "Spelare B poäng",
+    "playedAt": "Matchdatum",
+    "noMatches": "Inga matcher rapporterade än",
+    "reportFirst": "Rapportera din första match för att börja spåra rankningar",
+    "score": "Resultat",
+    "winner": "Vinnare",
+    "reported": "Match rapporterad framgångsrikt",
+    "empty": "Inga matcher rapporterade än",
+    "validation": {
+      "noTies": "En match kan inte sluta oavgjort",
+      "bestOfFive": "Vinnaren måste nå 3 set (bäst av fem)",
+      "samePlayer": "En spelare kan inte möta sig själv",
+      "invalidScore": "Poäng måste vara mellan 0 och 5",
+      "seriesWindow": "Matchdatum måste ligga inom seriens period"
+    }
+  },
+  "leaderboard": {
+    "title": "Resultattabell",
+    "rank": "Placering",
+    "player": "Spelare",
+    "rating": "Ranking",
+    "games": "Matcher",
+    "wins": "Vinster",
+    "losses": "Förluster",
+    "winRate": "Vinstprocent",
+    "winrate": "Vinstprocent",
+    "noData": "Inga rankningar tillgängliga än",
+    "playMatches": "Rapportera några matcher för att se rankningar",
+    "select": {
+      "series": "Välj serie"
+    }
+  },
+  "clubs": {
+    "title": "Klubbar",
+    "subtitle": "Hantera bordstennisklubbar i din organisation",
+    "createNew": "Skapa ny klubb",
+    "name": "Klubbnamn",
+    "description": "Beskrivning",
+    "searchClubs": "Sök klubbar...",
+    "noClubs": "Inga klubbar hittades",
+    "createFirst": "Skapa din första klubb för att komma igång",
+    "edit": "Redigera klubb",
+    "delete": "Ta bort klubb",
+    "deleteConfirm": "Är du säker på att du vill ta bort denna klubb?",
+    "deleteWarning": "Denna åtgärd kan inte ångras och kommer att påverka alla spelare och serier associerade med denna klubb.",
+    "created": "Klubb skapad framgångsrikt",
+    "updated": "Klubb uppdaterad framgångsrikt",
+    "deleted": "Klubb borttagen framgångsrikt",
+    "playersInClub": "Spelare i denna klubb",
+    "validation": {
+      "nameRequired": "Klubbnamn krävs",
+      "nameMinLength": "Klubbnamn måste vara minst 2 tecken",
+      "nameMaxLength": "Klubbnamn får vara högst 80 tecken"
+    }
+  },
+  "errors": {
+    "notFound": "Den begärda resursen kunde inte hittas",
+    "invalidInput": "Vänligen kontrollera din inmatning och försök igen",
+    "networkError": "Nätverksfel. Vänligen kontrollera din anslutning",
+    "unexpectedError": "Ett oväntat fel inträffade",
+    "generic": "Ett fel inträffade",
+    "invalidDates": "Ogiltiga datum",
+    "clubAdminRequired": "Du måste vara klubbadministratör eller plattformsägare",
+    "clubIdRequired": "Klubb måste anges för icke-plattformsägare"
+  },
+  "form": {
+    "validation": {
+      "error": "Vänligen fyll i alla obligatoriska fält"
+    }
+  },
+  "settings": {
+    "title": "Inställningar",
+    "language": "Språk",
+    "language.description": "Välj ditt föredragna språk för gränssnittet",
+    "profile": "Profil",
+    "profile.description": "Ange ditt namn så att andra kan se vem du är i klubben",
+    "profile.required": "Obligatorisk",
+    "profile.completion.required": "Förnamn och efternamn krävs för att kunna skapa klubbar och delta i aktiviteter",
+    "profile.firstName": "Förnamn",
+    "profile.firstName.placeholder": "Ange ditt förnamn",
+    "profile.lastName": "Efternamn",
+    "profile.lastName.placeholder": "Ange ditt efternamn",
+    "profile.updated": "Profilen har uppdaterats",
+    "profile.update.failed": "Kunde inte uppdatera profilen",
+    "profile.validation.required": "Både förnamn och efternamn är obligatoriska",
+    "language.sv": "Svenska",
+    "language.en": "English"
+  },
+  "auth": {
+    "loginRequired": "Du måste logga in för att skapa klubbar"
+  },
+  "profile": {
+    "completion": {
+      "modal": {
+        "title": "Komplettera din profil",
+        "description": "För att kunna skapa klubbar och delta i aktiviteter behöver du ange ditt för- och efternamn.",
+        "email": "E-post"
+      }
+    }
+  }
+}

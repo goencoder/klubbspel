@@ -1,0 +1,20 @@
+{
+  "VALIDATION_SCORE_TIE": "A match cannot end in a tie.",
+  "VALIDATION_BEST_OF_FIVE": "Winner must reach 3 games (best of five).",
+  "VALIDATION_SAME_PLAYER": "A player cannot play against themselves.",
+  "PLAYER_DUPLICATE_SUSPECTED": "We found similar players. Is this the right one?",
+  "SERIES_WINDOW": "Match date must be within the series period.",
+  "NOT_FOUND": "The requested resource was not found.",
+  "INTERNAL_ERROR": "An unexpected error occurred.",
+  "VALIDATION_REQUIRED": "Required fields are missing.",
+  "CLUB_UPSERT_FAILED": "Failed to create or update club.",
+  "CLUB_LIST_FAILED": "Failed to list clubs.",
+  "PLAYER_CREATE_FAILED": "Failed to create player.",
+  "PLAYER_LIST_FAILED": "Failed to list players.",
+  "SERIES_CREATE_FAILED": "Failed to create series.",
+  "SERIES_LIST_FAILED": "Failed to list series.",
+  "SERIES_INVALID_TIME_RANGE": "Series end date must be after start date.",
+  "MATCH_CREATE_FAILED": "Failed to create match.",
+  "MATCH_LIST_FAILED": "Failed to list matches.",
+  "LEADERBOARD_FETCH_FAILED": "Failed to fetch leaderboard."
+}

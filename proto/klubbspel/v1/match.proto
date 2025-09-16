@@ -1,0 +1,127 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "buf/validate/validate.proto";
+
+// Request to report the result of a table tennis match
+message ReportMatchRequest {
+  // ID of the tournament series this match belongs to
+  string series_id = 1 [(buf.validate.field).string.min_len = 1];
+  // ID of the first player
+  string player_a_id = 2 [(buf.validate.field).string.min_len = 1];
+  // ID of the second player
+  string player_b_id = 3 [(buf.validate.field).string.min_len = 1];
+  // Number of games won by player A (0-5 in best-of-5 format)
+  int32 score_a = 4 [(buf.validate.field).int32 = {gte: 0, lte: 5}];
+  // Number of games won by player B (0-5 in best-of-5 format)
+  int32 score_b = 5 [(buf.validate.field).int32 = {gte: 0, lte: 5}];
+  // When the match was played (must be within series time boundaries)
+  google.protobuf.Timestamp played_at = 6 [(buf.validate.field).required = true];
+  
+  // Business rule validations using CEL
+  option (buf.validate.message).cel = {
+    id: "match_no_tie"
+    expression: "this.score_a != this.score_b"
+    message: "A match cannot end in a tie"
+  };
+  option (buf.validate.message).cel = {
+    id: "match_best_of_five"
+    expression: "int(this.score_a) > int(this.score_b) ? this.score_a >= 3 : this.score_b >= 3"
+    message: "Winner must reach at least 3 games (best of five)"
+  };
+  option (buf.validate.message).cel = {
+    id: "match_different_players"
+    expression: "this.player_a_id != this.player_b_id"
+    message: "A player cannot play against themselves"
+  };
+}
+
+// Response after successfully reporting a match
+message ReportMatchResponse { 
+  // ID of the created match record
+  string match_id = 1; 
+}
+
+// Request to list matches in a tournament series with cursor-based pagination
+message ListMatchesRequest { 
+  // ID of the tournament series to get matches for
+  string series_id = 1; 
+  // Maximum number of matches to return (default: 20, max: 100)
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}]; 
+  
+  // Cursor-based pagination (use one of the following):
+  // ID to start listing after (for forward pagination)
+  string cursor_after = 3;
+  // ID to start listing before (for backward pagination)
+  string cursor_before = 4;
+}
+
+// View of a match with player names resolved for display
+message MatchView {
+  // Unique identifier for this match
+  string id = 1; 
+  // ID of the tournament series this match belongs to
+  string series_id = 2; 
+  // Display name of the first player
+  string player_a_name = 3; 
+  // Display name of the second player
+  string player_b_name = 4;
+  // Number of games won by player A
+  int32 score_a = 5; 
+  // Number of games won by player B
+  int32 score_b = 6; 
+  // When the match was played
+  google.protobuf.Timestamp played_at = 7;
+}
+
+// Response containing list of matches and cursor pagination info
+message ListMatchesResponse { 
+  // List of matches in the series (ordered by played_at desc, then by ID)
+  repeated MatchView items = 1; 
+  
+  // Cursor pagination tokens
+  // ID of the first item in this page (for backward pagination)
+  string start_cursor = 2;
+  // ID of the last item in this page (for forward pagination)
+  string end_cursor = 3;
+  // Whether there are more items after end_cursor
+  bool has_next_page = 4;
+  // Whether there are more items before start_cursor
+  bool has_previous_page = 5;
+}
+
+// Service for managing table tennis matches
+service MatchService {
+  // Report the result of a completed match with automatic ELO rating updates
+  //
+  // AUTHORIZATION: No explicit authentication check in service code
+  //
+  // PURPOSE: Records match results in tournament series with strict validation rules
+  //
+  // DATA MODEL CHANGES:
+  // - Creates new Match document in MongoDB
+  // - Validates match is within series time boundaries (TODO: not implemented)
+  // - Validates best-of-5 scoring (winner must reach 3 games minimum)
+  // - Prevents ties and self-play
+  //
+  // TODO: Should require authentication and verify player eligibility for series
+  // TODO: Add CEL validation for series time window (currently only server-side comment)
+  // TODO: Add ELO rating calculation (currently only server-side comment)
+  rpc ReportMatch(ReportMatchRequest) returns (ReportMatchResponse) {
+    option (google.api.http) = { post: "/v1/matches:report" body: "*" };
+  }
+  
+  // List all matches in a tournament series with player names resolved
+  //
+  // AUTHORIZATION: No authentication required (public endpoint)
+  //
+  // PURPOSE: Display match history and results for tournament leaderboards
+  //
+  // DATA MODEL CHANGES: None (read-only operation with player name joins)
+  rpc ListMatches(ListMatchesRequest) returns (ListMatchesResponse) {
+    option (google.api.http) = { get: "/v1/series/{series_id}/matches" };
+  }
+}

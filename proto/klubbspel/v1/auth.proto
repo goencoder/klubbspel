@@ -1,0 +1,186 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "buf/validate/validate.proto";
+
+// AuthService handles magic link authentication
+service AuthService {
+  // Send a magic link to the provided email address
+  //
+  // AUTHORIZATION: None required (public endpoint for initial authentication)
+  //
+  // PURPOSE: Initiates passwordless authentication flow by sending magic link via email
+  //
+  // DATA MODEL CHANGES:
+  // - Creates MagicLinkToken document in MongoDB with 15-minute expiration
+  // - Triggers email service to send magic link to specified address
+  //
+  rpc SendMagicLink(SendMagicLinkRequest) returns (SendMagicLinkResponse) {
+    option (google.api.http) = { post: "/v1/auth/magic-link" body: "*" };
+  }
+  
+  // Validate a magic link token and return API token
+  //
+  // AUTHORIZATION: None required (validates magic link token instead)
+  //
+  // PURPOSE: Completes authentication flow by validating magic link and issuing API token
+  //
+  // DATA MODEL CHANGES:
+  // - Consumes (marks as used) MagicLinkToken document
+  // - Creates new APIToken document for subsequent requests
+  // - Creates Player document if user doesn't exist (auto-registration)
+  // - First user automatically becomes platform owner
+  // - Updates Player.last_login_at timestamp
+  //
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+    option (google.api.http) = { post: "/v1/auth/validate" body: "*" };
+  }
+  
+  // Get current user information (requires authentication)
+  //
+  // AUTHORIZATION: Requires valid API token in Authorization header
+  //
+  // PURPOSE: Retrieve authenticated user's profile and club memberships
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  //
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse) {
+    option (google.api.http) = { get: "/v1/auth/me" };
+  }
+  
+  // Update current user's profile (requires authentication)
+  //
+  // AUTHORIZATION: Requires valid API token in Authorization header
+  //
+  // PURPOSE: Update authenticated user's first and last name for profile completion
+  //
+  // DATA MODEL CHANGES:
+  // - Updates Player.first_name and Player.last_name fields
+  // - Profile completion required for club creation
+  //
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {
+    option (google.api.http) = { patch: "/v1/auth/profile" body: "*" };
+  }
+  
+  // Revoke current API token (logout)
+  //
+  // AUTHORIZATION: Requires valid API token in Authorization header
+  //
+  // PURPOSE: Invalidate current session by revoking API token
+  //
+  // DATA MODEL CHANGES:
+  // - Marks APIToken document as revoked
+  // - Token becomes invalid for future requests
+  //
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse) {
+    option (google.api.http) = { post: "/v1/auth/revoke" body: "*" };
+  }
+}
+
+// Request to send a magic link to an email address
+message SendMagicLinkRequest {
+  // Email address to send the magic link to
+  string email = 1 [(buf.validate.field).string.email = true];
+  // Optional return URL to redirect to after successful authentication
+  string return_url = 2;
+}
+
+// Response after sending a magic link
+message SendMagicLinkResponse {
+  // Confirmation that the email was sent
+  bool sent = 1;
+  // How long the magic link will be valid (in seconds)
+  int32 expires_in_seconds = 2;
+}
+
+// Request to validate a magic link token
+message ValidateTokenRequest {
+  // The token from the magic link (UUID format)
+  string token = 1 [(buf.validate.field).string = {min_len: 36, max_len: 36}];
+}
+
+// Response containing the API token for authenticated requests
+message ValidateTokenResponse {
+  // Long-lived API token for subsequent requests
+  string api_token = 1;
+  // User information
+  AuthUser user = 2;
+  // Token expiration time
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+// Request to get current user information
+message GetCurrentUserRequest {
+  // Empty - user is identified by Authorization header
+}
+
+// Response with current user information
+message GetCurrentUserResponse {
+  // Current user information
+  AuthUser user = 1;
+}
+
+// Request to revoke the current API token
+message RevokeTokenRequest {
+  // Empty - token is identified by Authorization header
+}
+
+// Response after revoking a token
+message RevokeTokenResponse {
+  // Confirmation that the token was revoked
+  bool revoked = 1;
+}
+
+// User information for authentication responses
+message AuthUser {
+  // Unique identifier for the player (MongoDB ObjectID as hex string)
+  string id = 1;
+  // User's email address
+  string email = 2;
+  // User's first name (optional)
+  string first_name = 3;
+  // User's last name (optional)
+  string last_name = 4;
+  // User's club memberships
+  repeated ClubMembership club_memberships = 5;
+  // Whether the user is a platform owner (can create clubs)
+  bool is_platform_owner = 6;
+  // When the user last logged in
+  google.protobuf.Timestamp last_login_at = 7;
+}
+
+// Club membership information for a user
+message ClubMembership {
+  // ID of the club
+  string club_id = 1;
+  // User's role in this club
+  MembershipRole role = 2;
+  // When the user joined this club
+  google.protobuf.Timestamp joined_at = 3;
+}
+
+// Roles a user can have within a club
+enum MembershipRole {
+  MEMBERSHIP_ROLE_UNSPECIFIED = 0;
+  // Regular club member
+  MEMBERSHIP_ROLE_MEMBER = 1;
+  // Club administrator (can manage club and members)
+  MEMBERSHIP_ROLE_ADMIN = 2;
+}
+
+// Request to update current user's profile
+message UpdateProfileRequest {
+  // User's first name
+  string first_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 50}];
+  // User's last name
+  string last_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 50}];
+}
+
+// Response after updating profile
+message UpdateProfileResponse {
+  // Updated user information
+  AuthUser user = 1;
+}

@@ -1,0 +1,83 @@
+# Gosec configuration file
+# This configuration helps control security scanning behavior
+
+# Global settings
+global:
+  # Audit mode will still report issues but with different severity
+  audit: false
+  
+  # Show ignored issues in the report  
+  show-ignored: false
+  
+  # Report format: json, yaml, csv, junit-xml, html, sonarqube, golint, sarif, text
+  fmt: text
+
+# Rules configuration
+rules:
+  # Include all rules by default
+  include:
+    - G101  # Hardcoded credentials
+    - G102  # Network bindings
+    - G103  # Unsafe defer
+    - G104  # Unhandled errors
+    - G105  # Blacklisted import md5
+    - G106  # Blacklisted import des
+    - G107  # Potential HTTP request made with variable URL
+    - G108  # Profiling endpoint
+    - G109  # Potential integer overflow
+    - G110  # Potential DoS vulnerability via decompression bomb
+    - G201  # SQL query construction using format string
+    - G202  # SQL query construction using string concatenation
+    - G203  # Use of unescaped data in HTML templates
+    - G204  # Audit use of command execution
+    - G301  # Poor file permissions used when creating a directory
+    - G302  # Poor file permissions used with chmod
+    - G303  # Creating tempfile using a predictable path
+    - G304  # File path provided as taint input
+    - G305  # File traversal when extracting zip/tar archive
+    - G306  # Poor file permissions used when writing to a file
+    - G307  # Deferring a method which returns an error
+    - G401  # Detect the usage of DES, RC4, MD5 or SHA1
+    - G402  # Look for bad TLS connection settings
+    - G403  # Ensure minimum RSA key length of 2048 bits
+    - G404  # Insecure random number source (rand)
+    - G501  # Import blocklist: crypto/md5
+    - G502  # Import blocklist: crypto/des
+    - G503  # Import blocklist: crypto/rc4
+    - G504  # Import blocklist: net/http/cgi
+    - G505  # Import blocklist: crypto/sha1
+    - G601  # Implicit memory aliasing of items from a range statement
+
+# Exclusions for specific cases where warnings are acceptable
+exclude:
+  # G104: The following are acceptable unhandled errors in specific contexts
+  - "Error return value of `fmt.Printf` is not checked"
+  - "Error return value of `fmt.Fprintf` is not checked"
+  - "Error return value of `w.Write` is not checked" # HTTP response writes
+  
+  # G501: Allow insecure credentials in development/testing contexts
+  # This is now handled environment-conditionally in the code
+
+# Severity levels: HIGH, MEDIUM, LOW
+severity:
+  # Override default severities for specific rules if needed
+  G104: MEDIUM  # Unhandled errors - medium severity as many are acceptable
+  G501: HIGH    # Insecure credentials - high severity (now fixed)
+  G101: HIGH    # Hardcoded credentials - high severity (now fixed)
+
+# Confidence levels: HIGH, MEDIUM, LOW  
+confidence:
+  # Only report issues with medium or higher confidence
+  level: MEDIUM
+
+# File exclusions
+exclude-dir:
+  - vendor/
+  - proto/gen/
+  - api/
+  - node_modules/
+  
+exclude-file:
+  - "*_test.go"      # Exclude test files where some patterns may be acceptable
+  - "mock_*.go"      # Exclude mock files
+  - "*.pb.go"        # Exclude protobuf generated files

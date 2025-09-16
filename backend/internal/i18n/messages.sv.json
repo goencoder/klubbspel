@@ -1,0 +1,20 @@
+{
+  "VALIDATION_SCORE_TIE": "En match kan inte sluta oavgjort.",
+  "VALIDATION_BEST_OF_FIVE": "Vinnaren måste nå 3 set (bäst av fem).",
+  "VALIDATION_SAME_PLAYER": "En spelare kan inte möta sig själv.",
+  "PLAYER_DUPLICATE_SUSPECTED": "Vi hittade liknande spelare. Är detta rätt?",
+  "SERIES_WINDOW": "Matchdatum måste ligga inom seriens period.",
+  "NOT_FOUND": "Resursen kunde inte hittas.",
+  "INTERNAL_ERROR": "Ett oväntat fel inträffade.",
+  "VALIDATION_REQUIRED": "Obligatoriska fält saknas.",
+  "CLUB_UPSERT_FAILED": "Misslyckades med att skapa eller uppdatera klubb.",
+  "CLUB_LIST_FAILED": "Misslyckades med att lista klubbar.",
+  "PLAYER_CREATE_FAILED": "Misslyckades med att skapa spelare.",
+  "PLAYER_LIST_FAILED": "Misslyckades med att lista spelare.",
+  "SERIES_CREATE_FAILED": "Misslyckades med att skapa serie.",
+  "SERIES_LIST_FAILED": "Misslyckades med att lista serier.",
+  "SERIES_INVALID_TIME_RANGE": "Seriens slutdatum måste vara efter startdatum.",
+  "MATCH_CREATE_FAILED": "Misslyckades med att skapa match.",
+  "MATCH_LIST_FAILED": "Misslyckades med att lista matcher.",
+  "LEADERBOARD_FETCH_FAILED": "Misslyckades med att hämta resultattabell."
+}

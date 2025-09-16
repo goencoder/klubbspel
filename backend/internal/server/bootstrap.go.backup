@@ -1,0 +1,160 @@
+package server
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/goencoder/klubbspel/backend/internal/auth"
+	"github.com/goencoder/klubbspel/backend/internal/config"
+	"github.com/goencoder/klubbspel/backend/internal/email"
+	"github.com/goencoder/klubbspel/backend/internal/mongo"
+	"github.com/goencoder/klubbspel/backend/internal/repo"
+	"github.com/goencoder/klubbspel/backend/internal/service"
+	pb "github.com/goencoder/klubbspel/backend/proto/gen/go/pingis/v1"
+)
+
+// Bootstrap wires gRPC, gateway, and an extra site mux for /healthz and serving swagger
+func Bootstrap(ctx context.Context, cfg config.Config, mc *mongo.Client) (*GRPCServer, *Gateway, *http.Server) {
+	// Repositories
+	clubRepo := repo.NewClubRepo(mc.DB)
+	playerRepo := repo.NewPlayerRepo(mc.DB)
+	seriesRepo := repo.NewSeriesRepo(mc.DB)
+	matchRepo := repo.NewMatchRepo(mc.DB, playerRepo)
+	tokenRepo := repo.NewTokenRepo(mc.DB)
+
+	// Email service with adapter pattern
+	emailConfig := email.EmailConfig{
+		Provider:     email.EmailProvider(getEnvOrDefault("EMAIL_PROVIDER", "mock")),
+		FromName:     getEnvOrDefault("EMAIL_FROM_NAME", "Klubbspel"),
+		FromEmail:    getEnvOrDefault("EMAIL_FROM_EMAIL", "noreply@klubbspel.se"),
+		BaseURL:      getEnvOrDefault("EMAIL_BASE_URL", "http://localhost:5000"),
+		SMTPHost:     getEnvOrDefault("SMTP_HOST", ""),
+		SMTPPort:     getIntEnvOrDefault("SMTP_PORT", 1025),
+		SMTPUsername: getEnvOrDefault("SMTP_USERNAME", ""),
+		SMTPPassword: getEnvOrDefault("SMTP_PASSWORD", ""),
+		SMTPTLSMode:  getEnvOrDefault("SMTP_TLS_MODE", ""),
+	}
+	
+	emailAdapter, err := email.NewEmailAdapter(emailConfig)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create email adapter: %v", err))
+	}
+
+	// Services
+	clubSvc := &service.ClubService{Clubs: clubRepo}
+	playerSvc := &service.PlayerService{Players: playerRepo}
+	seriesSvc := &service.SeriesService{Series: seriesRepo}
+	matchSvc := &service.MatchService{Matches: matchRepo, Players: playerRepo, Series: seriesRepo}
+	leaderboardSvc := &service.LeaderboardService{Matches: matchRepo, Players: playerRepo}
+	authSvc := &service.AuthService{TokenRepo: tokenRepo, PlayerRepo: playerRepo, EmailSvc: emailAdapter}
+	clubMembershipSvc := &service.ClubMembershipService{PlayerRepo: playerRepo, ClubRepo: clubRepo}
+
+	// Authentication interceptor
+	authInterceptor := auth.NewAuthInterceptor(tokenRepo, playerRepo)
+
+	// gRPC Server with authentication interceptor
+	lis, err := net.Listen("tcp", cfg.GRPCAddr)
+	if err != nil {
+		panic(err)
+	}
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(authInterceptor.UnaryInterceptor),
+	)
+	pb.RegisterClubServiceServer(grpcServer, clubSvc)
+	pb.RegisterPlayerServiceServer(grpcServer, playerSvc)
+	pb.RegisterSeriesServiceServer(grpcServer, seriesSvc)
+	pb.RegisterMatchServiceServer(grpcServer, matchSvc)
+	pb.RegisterLeaderboardServiceServer(grpcServer, leaderboardSvc)
+	pb.RegisterAuthServiceServer(grpcServer, authSvc)
+	pb.RegisterClubMembershipServiceServer(grpcServer, clubMembershipSvc)
+
+	gs := &GRPCServer{s: grpcServer, lis: lis}
+
+	// gRPC Gateway
+	mux := runtime.NewServeMux(
+		runtime.WithErrorHandler(LocalizedErrorHandler()),
+		runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
+			return key, true
+		}),
+	)
+
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	pb.RegisterClubServiceHandlerFromEndpoint(ctx, mux, cfg.GRPCAddr, opts)
+	pb.RegisterPlayerServiceHandlerFromEndpoint(ctx, mux, cfg.GRPCAddr, opts)
+	pb.RegisterSeriesServiceHandlerFromEndpoint(ctx, mux, cfg.GRPCAddr, opts)
+	pb.RegisterMatchServiceHandlerFromEndpoint(ctx, mux, cfg.GRPCAddr, opts)
+	pb.RegisterLeaderboardServiceHandlerFromEndpoint(ctx, mux, cfg.GRPCAddr, opts)
+	pb.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, cfg.GRPCAddr, opts)
+	pb.RegisterClubMembershipServiceHandlerFromEndpoint(ctx, mux, cfg.GRPCAddr, opts)
+
+	gateway := &Gateway{
+		http: &http.Server{
+			Addr:    cfg.HTTPAddr,
+			Handler: allowCORS(withActor(mux)),
+		},
+	}
+
+	// Chi router for healthz and swagger
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	r.Get("/openapi/pingis.swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		swaggerPath := "backend/openapi/pingis.swagger.json"
+		if _, err := os.Stat(swaggerPath); os.IsNotExist(err) {
+			http.Error(w, "Swagger file not found. Run 'make generate' first.", http.StatusNotFound)
+			return
+		}
+
+		data, err := os.ReadFile(swaggerPath)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to read swagger file: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
+	})
+
+	httpSrv := &http.Server{
+		Addr:    cfg.SiteAddr,
+		Handler: r,
+	}
+
+	return gs, gateway, httpSrv
+}
+
+// getEnvOrDefault returns the value of the environment variable or a default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getIntEnvOrDefault returns the integer value of the environment variable or a default value
+func getIntEnvOrDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}

@@ -1,0 +1,203 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "created": "Created",
+    "search": "Search",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "showMore": "Show More",
+    "close": "Close",
+    "success": "Success"
+  },
+  "nav": {
+    "series": "Series",
+    "clubs": "Clubs",
+    "players": "Players",
+    "leaderboard": "Leaderboard",
+    "settings": "Settings",
+    "language": "Language"
+  },
+  "series": {
+    "title": "Tournament Series",
+    "subtitle": "Manage table tennis tournaments and leagues",
+    "createNew": "Create New Series",
+    "name": "Series Name",
+    "name_placeholder": "Enter series name",
+    "clubName": "Club Name",
+    "seriesTitle": "Series Title",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "starts_at": "Starts",
+    "ends_at": "Ends",
+    "visibility": "Visibility",
+    "visibility.open": "Open",
+    "visibility.open_description": "Open to all players",
+    "visibility.club_only": "Club Only",
+    "visibility.club_only_description": "Club members only",
+    "noSeries": "No series found",
+    "createFirst": "Create your first tournament series to get started",
+    "searchAdjust": "Try adjusting your search terms",
+    "viewDetails": "View Details",
+    "reportMatch": "Report Match",
+    "report": {
+      "match": "Report Match"
+    },
+    "leaderboard": "Leaderboard",
+    "viewLeaderboard": "View Leaderboard",
+    "matches": "Matches",
+    "created": "Series created successfully",
+    "validation": {
+      "start_before_end": "Start date must be before end date",
+      "club_required": "Club is required for club-only series"
+    }
+  },
+  "players": {
+    "title": "Players",
+    "subtitle": "Manage table tennis players across all clubs",
+    "name": "Player Name",
+    "namePlaceholder": "Enter player's name",
+    "club": "Club",
+    "selectClub": "Select club",
+    "addPlayer": "Add Player",
+    "create": "Create Player",
+    "created": "Player created successfully",
+    "createDescription": "Create a new player for the selected club",
+    "selectPlayer": "Select Player",
+    "searchPlayers": "Search players...",
+    "noPlayers": "No players found",
+    "empty": "No players found",
+    "searchAdjust": "Try adjusting your search or filter",
+    "getStarted": "Get started by adding your first player",
+    "similarFound": "Similar players found",
+    "similarMessage": "We found similar players. Do you want to use an existing player or create a new one?",
+    "useExisting": "Use Existing",
+    "createNew": "Create New",
+    "noManageableClubs": "You have no clubs you can manage",
+    "needClubAdmin": "You must be a club administrator or platform owner to create players",
+    "validation": {
+      "nameRequired": "Player name is required",
+      "clubRequired": "Club must be selected"
+    },
+    "select": {
+      "club": "All clubs"
+    }
+  },
+  "matches": {
+    "title": "Match Results",
+    "reportNew": "Report Match",
+    "player_a": "Player A",
+    "player_b": "Player B",
+    "played_at": "Match Date",
+    "playerA": "Player A",
+    "playerB": "Player B",
+    "scoreA": "Player A Score",
+    "scoreB": "Player B Score",
+    "playedAt": "Match Date",
+    "noMatches": "No matches reported yet",
+    "reportFirst": "Report your first match to start tracking rankings",
+    "score": "Score",
+    "winner": "Winner",
+    "reported": "Match reported successfully",
+    "empty": "No matches reported yet",
+    "validation": {
+      "noTies": "A match cannot end in a tie",
+      "bestOfFive": "Winner must reach 3 games (best of five)",
+      "samePlayer": "A player cannot play against themselves",
+      "invalidScore": "Scores must be between 0 and 5",
+      "seriesWindow": "Match date must be within the series period"
+    }
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "rank": "Rank",
+    "player": "Player",
+    "rating": "Rating",
+    "games": "Games",
+    "wins": "Wins",
+    "losses": "Losses",
+    "winRate": "Win Rate",
+    "winrate": "Win Rate",
+    "noData": "No rankings available yet",
+    "playMatches": "Report some matches to see rankings",
+    "select": {
+      "series": "Select series"
+    }
+  },
+  "clubs": {
+    "title": "Clubs",
+    "subtitle": "Manage table tennis clubs in your organization",
+    "createNew": "Create New Club",
+    "name": "Club Name",
+    "description": "Description",
+    "searchClubs": "Search clubs...",
+    "noClubs": "No clubs found",
+    "createFirst": "Create your first club to get started",
+    "edit": "Edit Club",
+    "delete": "Delete Club",
+    "deleteConfirm": "Are you sure you want to delete this club?",
+    "deleteWarning": "This action cannot be undone and will affect all players and series associated with this club.",
+    "created": "Club created successfully",
+    "updated": "Club updated successfully",
+    "deleted": "Club deleted successfully",
+    "playersInClub": "Players in this club",
+    "validation": {
+      "nameRequired": "Club name is required",
+      "nameMinLength": "Club name must be at least 2 characters",
+      "nameMaxLength": "Club name must be no more than 80 characters"
+    }
+  },
+  "errors": {
+    "notFound": "The requested resource was not found",
+    "invalidInput": "Please check your input and try again",
+    "networkError": "Network error. Please check your connection",
+    "unexpectedError": "An unexpected error occurred",
+    "generic": "An error occurred",
+    "invalidDates": "Invalid dates",
+    "clubAdminRequired": "You must be a club administrator or platform owner",
+    "clubIdRequired": "Club must be specified for non-platform owners"
+  },
+  "form": {
+    "validation": {
+      "error": "Please fill in all required fields"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "language.description": "Choose your preferred language for the interface",
+    "profile": "Profile",
+    "profile.description": "Enter your name so others can see who you are in the club",
+    "profile.required": "Required",
+    "profile.completion.required": "First and last name are required to create clubs and participate in activities",
+    "profile.firstName": "First Name",
+    "profile.firstName.placeholder": "Enter your first name",
+    "profile.lastName": "Last Name",
+    "profile.lastName.placeholder": "Enter your last name",
+    "profile.updated": "Profile has been updated",
+    "profile.update.failed": "Failed to update profile",
+    "profile.validation.required": "Both first and last name are required",
+    "language.sv": "Svenska",
+    "language.en": "English"
+  },
+  "auth": {
+    "loginRequired": "You must be logged in to create clubs"
+  },
+  "profile": {
+    "completion": {
+      "modal": {
+        "title": "Complete your profile",
+        "description": "To create clubs and participate in activities, you need to enter your first and last name.",
+        "email": "Email"
+      }
+    }
+  }
+}

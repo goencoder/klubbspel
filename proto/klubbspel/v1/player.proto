@@ -1,0 +1,317 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "klubbspel/v1/auth.proto";
+
+// Player represents a table tennis player belonging to one or more clubs
+message Player {
+  // Unique identifier for the player (MongoDB ObjectID as hex string)
+  string id = 1;
+  // Player's display name as shown in matches and leaderboards
+  string display_name = 2 [(buf.validate.field).string = {
+    min_len: 2
+    max_len: 60
+  }];
+  // Server-computed normalized version of display_name for duplicate detection
+  string normalized_key = 3;
+  // Whether the player is active (inactive players don't appear in new matches)
+  bool active = 4;
+
+  // Multi-club support
+  // Player's email address (unique identifier for authentication)
+  // Optional - only present for authenticated users who can log in
+  // When provided, must be a valid email format
+  string email = 5 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string.email = true
+  ];
+  // Player's first name (optional)
+  string first_name = 6;
+  // Player's last name (optional)
+  string last_name = 7;
+  // Player's club memberships (supports multiple clubs)
+  repeated ClubMembership club_memberships = 8;
+  // Whether this player is a platform owner (can create new clubs)
+  bool is_platform_owner = 9;
+  // When the player last logged in
+  google.protobuf.Timestamp last_login_at = 10;
+}
+
+// Request to create a new player with duplicate detection
+message CreatePlayerRequest {
+  // Player's display name (will be checked for similar existing names)
+  string display_name = 1 [(buf.validate.field).string = {
+    min_len: 2
+    max_len: 60
+  }];
+  // ID of the club this player should initially belong to (optional)
+  string initial_club_id = 2;
+}
+
+// Response containing the created player and any similar existing players
+message CreatePlayerResponse {
+  // The newly created player
+  Player player = 1;
+  // List of existing players with similar names (for duplicate prevention)
+  repeated Player similar = 2;
+}
+
+// Request to get a specific player by ID
+message GetPlayerRequest {
+  // ID of the player to retrieve
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response containing the requested player
+message GetPlayerResponse {
+  // The requested player
+  Player player = 1;
+}
+
+// Request to update a player with field mask for partial updates
+message UpdatePlayerRequest {
+  // ID of the player to update
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  // The player data to update (only fields specified in field_mask will be updated)
+  Player player = 2 [(buf.validate.field).required = true];
+  // Field mask specifying which fields to update
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// Response containing the updated player
+message UpdatePlayerResponse {
+  // The updated player
+  Player player = 1;
+}
+
+// Request to delete a player (soft delete - sets active = false)
+message DeletePlayerRequest {
+  // ID of the player to delete
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response after deleting a player
+message DeletePlayerResponse {
+  // Success confirmation
+  bool success = 1;
+}
+
+// Request to merge two players (source player into target player)
+message MergePlayerRequest {
+  // ID of the target player (keep this one - usually the authenticated player)
+  string target_player_id = 1 [(buf.validate.field).string.min_len = 1];
+  // ID of the source player (merge from this one - usually the non-authenticated player)
+  string source_player_id = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response after merging players
+message MergePlayerResponse {
+  // The resulting merged player
+  Player player = 1;
+  // Number of matches that were updated
+  int32 matches_updated = 2;
+  // Number of tokens that were updated
+  int32 tokens_updated = 3;
+}
+
+// Request to list players with filtering and cursor-based pagination
+message ListPlayersRequest {
+  // Search query to filter players by display name (case-insensitive partial match)
+  string search_query = 1;
+  // Filter players by club ID (empty means all clubs)
+  string club_id = 2;
+  // Maximum number of players to return (default: 20, max: 100)
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+
+  // Cursor-based pagination (use one of the following):
+  // ID to start listing after (for forward pagination)
+  string cursor_after = 4;
+  // ID to start listing before (for backward pagination)
+  string cursor_before = 5;
+}
+
+// Response containing list of players and cursor pagination info
+message ListPlayersResponse {
+  // List of players matching the search criteria (ordered by ID)
+  repeated Player items = 1;
+
+  // Cursor pagination tokens
+  // ID of the first item in this page (for backward pagination)
+  string start_cursor = 2;
+  // ID of the last item in this page (for forward pagination)
+  string end_cursor = 3;
+  // Whether there are more items after end_cursor
+  bool has_next_page = 4;
+  // Whether there are more items before start_cursor
+  bool has_previous_page = 5;
+}
+
+// Request to find email-less players that could be merge candidates
+message FindMergeCandidatesRequest {
+  // Optional club ID to limit search to specific club
+  string club_id = 1;
+  // Optional name pattern to search for (if not provided, uses authenticated user's name)
+  string name_pattern = 2;
+}
+
+// Response containing potential merge candidates
+message FindMergeCandidatesResponse {
+  // List of email-less players that could be merged with the authenticated user
+  repeated MergeCandidate candidates = 1;
+}
+
+// A merge candidate with similarity scoring
+message MergeCandidate {
+  // The email-less player that could be merged
+  Player player = 1;
+  // Similarity score between the candidate and authenticated user (0.0 to 1.0)
+  double similarity_score = 2;
+}
+
+// Service for managing table tennis players
+service PlayerService {
+  // Create a new player with automatic duplicate detection
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Creates a new player in specified club with automatic duplicate detection to prevent similar names.
+  //
+  // DATA MODEL CHANGES:
+  // - Creates new Player document in MongoDB
+  // - Automatically generates normalized_key for duplicate detection
+  // - Sets player as active by default
+  // - Does NOT create club membership (legacy design)
+  //
+  // TODO: Should create club membership automatically like CreateClub does
+  rpc CreatePlayer(CreatePlayerRequest) returns (CreatePlayerResponse) {
+    option (google.api.http) = {
+      post: "/v1/players"
+      body: "*"
+    };
+  }
+
+  // Get a specific player by ID
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Retrieve detailed player information
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc GetPlayer(GetPlayerRequest) returns (GetPlayerResponse) {
+    option (google.api.http) = {get: "/v1/players/{id}"};
+  }
+
+  // Update a player using field mask for partial updates
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Update player information with field mask support
+  //
+  // DATA MODEL CHANGES: Modifies Player document fields
+  // TODO: Should require player ownership or admin membership
+  rpc UpdatePlayer(UpdatePlayerRequest) returns (UpdatePlayerResponse) {
+    option (google.api.http) = {
+      patch: "/v1/players/{id}"
+      body: "player"
+    };
+  }
+
+  // Soft delete a player (sets active = false)
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Deactivate player without losing historical data
+  //
+  // DATA MODEL CHANGES: Sets Player.active = false
+  // TODO: Should require player ownership or admin membership
+  rpc DeletePlayer(DeletePlayerRequest) returns (DeletePlayerResponse) {
+    option (google.api.http) = {delete: "/v1/players/{id}"};
+  }
+
+  // List players with optional filtering by name and club, with pagination
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Browse and search players across clubs with pagination
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc ListPlayers(ListPlayersRequest) returns (ListPlayersResponse) {
+    option (google.api.http) = {get: "/v1/players"};
+  }
+
+  // Merge two players (source -> target), updating all references
+  //
+  // AUTHORIZATION: No explicit check in service code
+  //
+  // PURPOSE: Combine duplicate players by intelligently merging data from source to target player
+  //
+  // MERGE BEHAVIOR (detailed field-by-field rules):
+  //
+  // SCALAR FIELDS (string, bool, int, float, etc.):
+  // - If target field is empty/zero and source field has value -> use source value
+  // - If both fields have values -> keep target value (target wins)
+  // - If target has value and source is empty/zero -> keep target value
+  //
+  // Examples:
+  // - target.first_name = "", source.first_name = "John" -> result.first_name = "John"
+  // - target.first_name = "Jane", source.first_name = "John" -> result.first_name = "Jane"
+  // - target.is_platform_owner = false, source.is_platform_owner = true -> result.is_platform_owner = false
+  // - target.email = "", source.email = "john@example.com" -> result.email = "john@example.com"
+  //
+  // ARRAY FIELDS (repeated fields like club_memberships):
+  // - Merge arrays by combining unique values: [A,B] + [C] = [A,B,C]
+  // - Duplicates are avoided by comparing key fields (e.g., club_id for memberships)
+  // - Target array items are preserved, source items are added if not already present
+  //
+  // Examples:
+  // - target.club_memberships = [Club1(admin), Club2(member)], source.club_memberships = [Club1(member), Club3(admin)]
+  //   -> result.club_memberships = [Club1(admin), Club2(member), Club3(admin)]
+  //   (Club1 from target wins, Club3 from source is added)
+  //
+  // SYSTEM FIELDS:
+  // - id: Always uses target.id (source player is deleted)
+  // - normalized_key: Regenerated based on final display_name
+  // - created_at: Uses target.created_at (earlier creation date)
+  // - last_login_at: Uses most recent of target/source last_login_at
+  //
+  // DATA MODEL CHANGES:
+  // - Updates all Match documents referencing source player to target player
+  // - Updates all Token documents referencing source player to target player
+  // - Merges club memberships intelligently (no duplicates, target precedence)
+  // - Deletes source Player document after successful merge
+  // - Returns counts of updated documents for verification
+  //
+  // TODO: Should require authentication and ownership/admin rights for both players
+  rpc MergePlayer(MergePlayerRequest) returns (MergePlayerResponse) {
+    option (google.api.http) = {
+      post: "/v1/players/{target_player_id}/merge"
+      body: "*"
+    };
+  }
+
+  // Find email-less players that could be merge candidates for the authenticated user
+  //
+  // AUTHORIZATION: Requires valid authentication (authenticated user is the target for merging)
+  //
+  // PURPOSE: Find players without real email addresses that have similar names to the authenticated user,
+  // allowing users to merge their existing club registrations with their authenticated account.
+  //
+  // COMMON USE CASE:
+  // 1. Club admin adds "John Smith" as player without email
+  // 2. John Smith later signs up with email john@example.com
+  // 3. John uses this endpoint to find his email-less registration
+  // 4. John merges the email-less player into his authenticated account
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc FindMergeCandidates(FindMergeCandidatesRequest) returns (FindMergeCandidatesResponse) {
+    option (google.api.http) = {get: "/v1/players/merge-candidates"};
+  }
+}
