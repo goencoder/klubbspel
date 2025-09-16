@@ -16,7 +16,8 @@
     "next": "Nästa",
     "showMore": "Visa mer",
     "close": "Stäng",
-    "success": "Framgång"
+    "success": "Framgång",
+    "viewDetails": "Visa detaljer"
   },
   "nav": {
     "series": "Serier",
@@ -108,6 +109,9 @@
     "winner": "Vinnare",
     "reported": "Match rapporterad framgångsrikt",
     "empty": "Inga matcher rapporterade än",
+    "report": "Rapportera match",
+    "score_a": "Spelare A poäng",
+    "score_b": "Spelare B poäng",
     "validation": {
       "noTies": "En match kan inte sluta oavgjort",
       "bestOfFive": "Vinnaren måste nå 3 set (bäst av fem)",
@@ -128,6 +132,7 @@
     "winrate": "Vinstprocent",
     "noData": "Inga rankningar tillgängliga än",
     "playMatches": "Rapportera några matcher för att se rankningar",
+    "empty": "Inga rankningar tillgängliga än",
     "select": {
       "series": "Välj serie"
     }
@@ -165,6 +170,9 @@
     "clubAdminRequired": "Du måste vara klubbadministratör eller plattformsägare",
     "clubIdRequired": "Klubb måste anges för icke-plattformsägare"
   },
+  "error": {
+    "generic": "Ett fel inträffade"
+  },
   "form": {
     "validation": {
       "error": "Vänligen fyll i alla obligatoriska fält"
@@ -186,10 +194,12 @@
     "profile.update.failed": "Kunde inte uppdatera profilen",
     "profile.validation.required": "Både förnamn och efternamn är obligatoriska",
     "language.sv": "Svenska",
-    "language.en": "English"
+    "language.en": "English",
+    "actor.description": "Hantera dina kontoinställningar och preferenser"
   },
   "auth": {
-    "loginRequired": "Du måste logga in för att skapa klubbar"
+    "loginRequired": "Du måste logga in för att skapa klubbar",
+    "signOut": "Logga ut"
   },
   "profile": {
     "completion": {

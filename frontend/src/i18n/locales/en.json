@@ -16,7 +16,8 @@
     "next": "Next",
     "showMore": "Show More",
     "close": "Close",
-    "success": "Success"
+    "success": "Success",
+    "viewDetails": "View Details"
   },
   "nav": {
     "series": "Series",
@@ -108,6 +109,9 @@
     "winner": "Winner",
     "reported": "Match reported successfully",
     "empty": "No matches reported yet",
+    "report": "Report Match",
+    "score_a": "Player A Score",
+    "score_b": "Player B Score",
     "validation": {
       "noTies": "A match cannot end in a tie",
       "bestOfFive": "Winner must reach 3 games (best of five)",
@@ -128,6 +132,7 @@
     "winrate": "Win Rate",
     "noData": "No rankings available yet",
     "playMatches": "Report some matches to see rankings",
+    "empty": "No rankings available yet",
     "select": {
       "series": "Select series"
     }
@@ -165,6 +170,9 @@
     "clubAdminRequired": "You must be a club administrator or platform owner",
     "clubIdRequired": "Club must be specified for non-platform owners"
   },
+  "error": {
+    "generic": "An error occurred"
+  },
   "form": {
     "validation": {
       "error": "Please fill in all required fields"
@@ -186,10 +194,12 @@
     "profile.update.failed": "Failed to update profile",
     "profile.validation.required": "Both first and last name are required",
     "language.sv": "Svenska",
-    "language.en": "English"
+    "language.en": "English",
+    "actor.description": "Manage your account settings and preferences"
   },
   "auth": {
-    "loginRequired": "You must be logged in to create clubs"
+    "loginRequired": "You must be logged in to create clubs",
+    "signOut": "Sign Out"
   },
   "profile": {
     "completion": {
