@@ -41,7 +41,9 @@ func NewPlayerRepo(db *mongo.Database) *PlayerRepo {
 	repo := &PlayerRepo{c: db.Collection("players")}
 
 	// Create indexes for efficient lookups
-	repo.createIndexes(context.Background())
+	if err := repo.createIndexes(context.Background()); err != nil {
+		fmt.Printf("Failed to create player indexes: %v\n", err)
+	}
 
 	return repo
 }
@@ -50,17 +52,17 @@ func NewPlayerRepo(db *mongo.Database) *PlayerRepo {
 func (r *PlayerRepo) createIndexes(ctx context.Context) error {
 	_, err := r.c.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
-			Keys:    bson.D{{"email", 1}},
+			Keys:    bson.D{{Key: "email", Value: 1}},
 			Options: options.Index().SetUnique(true).SetSparse(true), // Unique but allow missing
 		},
 		{
-			Keys: bson.D{{"club_memberships.club_id", 1}},
+			Keys: bson.D{{Key: "club_memberships.club_id", Value: 1}},
 		},
 		{
-			Keys: bson.D{{"club_memberships.role", 1}},
+			Keys: bson.D{{Key: "club_memberships.role", Value: 1}},
 		},
 		{
-			Keys: bson.D{{"display_name", 1}}, // Index for name searches
+			Keys: bson.D{{Key: "display_name", Value: 1}}, // Index for name searches
 		},
 	})
 	return err
@@ -120,7 +122,9 @@ func (r *PlayerRepo) FindSimilar(ctx context.Context, name, clubID string) ([]*P
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var players []*Player
 	for cursor.Next(ctx) {
@@ -155,7 +159,9 @@ func (r *PlayerRepo) List(ctx context.Context, query, clubID string, pageSize in
 	if err != nil {
 		return nil, "", err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var players []*Player
 	for cursor.Next(ctx) {
@@ -213,14 +219,16 @@ func (r *PlayerRepo) ListWithCursor(ctx context.Context, searchQuery, clubID str
 
 	// Create find options with limit and sorting
 	opts := options.Find().
-		SetLimit(int64(pageSize + 1)). // +1 to check if there are more results
-		SetSort(bson.D{{"_id", 1}})    // Sort by ID for consistent ordering
+		SetLimit(int64(pageSize + 1)).          // +1 to check if there are more results
+		SetSort(bson.D{{Key: "_id", Value: 1}}) // Sort by ID for consistent ordering
 
 	cursor, err := r.c.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, "", "", false, false, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var players []*Player
 	for cursor.Next(ctx) {
@@ -314,7 +322,9 @@ func (r *PlayerRepo) FindByIDs(ctx context.Context, ids []string) (map[string]*P
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	// Build map of ID -> Player for quick lookup
 	result := make(map[string]*Player)
@@ -390,14 +400,15 @@ func (r *PlayerRepo) SetPlatformOwner(ctx context.Context, email string, isPlatf
 // AddClubMembership adds a club membership to a player
 func (r *PlayerRepo) AddClubMembership(ctx context.Context, email string, membership *ClubMembership) error {
 	// First, remove any existing membership for this club (to prevent duplicates)
-	_, err := r.c.UpdateOne(ctx,
+	if _, err := r.c.UpdateOne(ctx,
 		bson.M{"email": email},
 		bson.M{"$pull": bson.M{"club_memberships": bson.M{"club_id": membership.ClubID}}},
-	)
-	// Ignore error if no existing membership found
+	); err != nil {
+		return err
+	}
 
 	// Add the new membership
-	_, err = r.c.UpdateOne(ctx,
+	_, err := r.c.UpdateOne(ctx,
 		bson.M{"email": email},
 		bson.M{"$push": bson.M{"club_memberships": membership}},
 		options.Update().SetUpsert(false),
@@ -495,7 +506,9 @@ func (r *PlayerRepo) ListClubMembers(ctx context.Context, clubID string, activeO
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var players []*Player
 	for cursor.Next(ctx) {
@@ -798,7 +811,9 @@ func (r *PlayerRepo) FindEmaillessPlayersByName(ctx context.Context, displayName
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var players []*Player
 	if err = cursor.All(ctx, &players); err != nil {
@@ -843,14 +858,19 @@ func (r *PlayerRepo) FindAllEmaillessPlayersInClub(ctx context.Context, clubID s
 		}
 		debugCursor, err := r.c.Find(ctx, debugFilter)
 		if err == nil {
+			defer func() {
+				_ = debugCursor.Close(ctx)
+			}()
 			var allPlayers []*Player
-			debugCursor.All(ctx, &allPlayers)
-			fmt.Printf("DEBUG: Found %d total players in club %s\n", len(allPlayers), clubID)
-			for _, p := range allPlayers {
-				fmt.Printf("DEBUG: Player %s (%s) email: '%s', synthetic: %v, empty: %v\n",
-					p.DisplayName, p.ID.Hex(), p.Email, IsSyntheticEmail(p.Email), p.Email == "")
+			if err := debugCursor.All(ctx, &allPlayers); err != nil {
+				fmt.Printf("DEBUG: Failed to read players in club %s: %v\n", clubID, err)
+			} else {
+				fmt.Printf("DEBUG: Found %d total players in club %s\n", len(allPlayers), clubID)
+				for _, p := range allPlayers {
+					fmt.Printf("DEBUG: Player %s (%s) email: '%s', synthetic: %v, empty: %v\n",
+						p.DisplayName, p.ID.Hex(), p.Email, IsSyntheticEmail(p.Email), p.Email == "")
+				}
 			}
-			debugCursor.Close(ctx)
 		}
 	}
 
@@ -859,7 +879,9 @@ func (r *PlayerRepo) FindAllEmaillessPlayersInClub(ctx context.Context, clubID s
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var players []*Player
 	if err = cursor.All(ctx, &players); err != nil {

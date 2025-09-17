@@ -37,7 +37,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
-	defer client.Close(ctx)
+	defer func() {
+		if err := client.Close(context.Background()); err != nil {
+			log.Printf("Failed to close MongoDB client: %v", err)
+		}
+	}()
 
 	migration := &Migration{db: client.DB}
 
@@ -78,7 +82,9 @@ func (m *Migration) SingleToMultiClub(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to find players for migration: %w", err)
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var processed, updated int
 
@@ -105,8 +111,7 @@ func (m *Migration) SingleToMultiClub(ctx context.Context) error {
 		// Create club membership
 		membership := repo.ClubMembership{
 			ClubID:   clubObjectID,
-			Role:     "member", // Default role for migrated players
-			Active:   true,
+			Role:     "member",   // Default role for migrated players
 			JoinedAt: time.Now(), // Use current time since we don't have historical data
 		}
 
@@ -156,7 +161,6 @@ func (m *Migration) AddMultiClubIndexes(ctx context.Context) error {
 	clubMembershipIndex := md.IndexModel{
 		Keys: bson.D{
 			{Key: "club_memberships.club_id", Value: 1},
-			{Key: "club_memberships.active", Value: 1},
 			{Key: "club_memberships.role", Value: 1},
 		},
 	}
