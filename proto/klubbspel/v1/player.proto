@@ -124,7 +124,12 @@ message ListPlayersRequest {
   // Search query to filter players by display name (case-insensitive partial match)
   string search_query = 1;
   // Filter players by club ID (empty means all clubs)
+  // DEPRECATED: Use club_filter instead for multiple club support
   string club_id = 2;
+  // Filter players by multiple club IDs (supports special value "OPEN" for club-less players)
+  // If empty, returns players from all clubs
+  // If contains "OPEN", includes players not associated with any club
+  repeated string club_filter = 6;
   // Maximum number of players to return (default: 20, max: 100)
   int32 page_size = 3 [(buf.validate.field).int32 = {
     gte: 1

@@ -25,7 +25,7 @@ interface SeriesByClub {
 
 export function SeriesListPage() {
   const { t } = useTranslation()
-  const { user, selectedClubId } = useAuthStore()
+  const { user: _user, selectedClubId } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [seriesByClub, setSeriesByClub] = useState<SeriesByClub>({})

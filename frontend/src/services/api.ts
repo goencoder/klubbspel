@@ -31,6 +31,8 @@ import type {
 } from '@/types/api'
 import type {
   AuthUser,
+  AddPlayerToClubRequest,
+  AddPlayerToClubResponse,
   InvitePlayerRequest,
   InvitePlayerResponse,
   JoinClubRequest,
@@ -217,6 +219,11 @@ class ApiClient {
     // Use parameter names as specified in the OpenAPI spec
     if (params.searchQuery) {searchParams.append('searchQuery', params.searchQuery)}
     if (params.clubId) {searchParams.append('clubId', params.clubId)}
+    if (params.clubFilter && params.clubFilter.length > 0) {
+      params.clubFilter.forEach(clubId => {
+        searchParams.append('clubFilter', clubId)
+      })
+    }
     if (params.pageSize) {searchParams.append('pageSize', params.pageSize.toString())}
     if (params.cursorAfter) {searchParams.append('cursorAfter', params.cursorAfter)}
     if (params.cursorBefore) {searchParams.append('cursorBefore', params.cursorBefore)}
@@ -356,6 +363,15 @@ class ApiClient {
     return this.post<InvitePlayerResponse>(`/v1/clubs/${data.clubId}/invitations`, {
       email: data.email,
       role: data.role || 'MEMBERSHIP_ROLE_MEMBER'
+    })
+  }
+
+  // Add a player to a club (admin only)
+  async addPlayerToClub(data: AddPlayerToClubRequest): Promise<AddPlayerToClubResponse> {
+    return this.post<AddPlayerToClubResponse>(`/v1/clubs/${data.clubId}/players`, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email || undefined
     })
   }
 

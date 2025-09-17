@@ -9,6 +9,7 @@ import { PlayerConfirmDialog } from '@/components/PlayerConfirmDialog'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
 import { useAuthStore } from '@/store/auth'
+import { deriveAutomaticClubId } from '@/lib/clubSelection'
 import type { Player, Club } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -20,7 +21,7 @@ interface CreatePlayerDialogProps {
 
 export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: CreatePlayerDialogProps) {
   const { t } = useTranslation()
-  const { isPlatformOwner, isClubAdmin } = useAuthStore()
+  const { isPlatformOwner, isClubAdmin, selectedClubId } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [clubs, setClubs] = useState<Club[]>([])
   const [formData, setFormData] = useState({
@@ -29,13 +30,14 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
   })
   const [similarPlayers, setSimilarPlayers] = useState<Player[]>([])
   const [showSimilarDialog, setShowSimilarDialog] = useState(false)
+  const [hasManualClubSelection, setHasManualClubSelection] = useState(false)
 
   const loadManageableClubs = useCallback(async () => {
     try {
       const response = await apiClient.listClubs({ pageSize: 100 })
 
       // Filter clubs based on user permissions
-      const manageableClubs: Club[] = []
+      const nextManageableClubs: Club[] = []
 
       // Check if user is platform owner first
       const userIsPlatformOwner = isPlatformOwner()
@@ -43,29 +45,37 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       for (const club of response.items) {
         // Platform owners can manage any club
         if (userIsPlatformOwner) {
-          manageableClubs.push(club)
+          nextManageableClubs.push(club)
           continue
         }
 
         // Regular users can only manage clubs they are admin of
         const isAdmin = isClubAdmin(club.id)
         if (isAdmin) {
-          manageableClubs.push(club)
+          nextManageableClubs.push(club)
         }
       }
 
-      setClubs(manageableClubs)
+      setClubs(nextManageableClubs)
 
-      // Auto-select if only one club available
-      if (manageableClubs.length === 1) {
-        setFormData(prev => ({ ...prev, clubId: manageableClubs[0].id }))
+      if (!hasManualClubSelection) {
+        setFormData(prev => {
+          const nextClubId = deriveAutomaticClubId({
+            manageableClubs: nextManageableClubs,
+            selectedClubId,
+            previousClubId: prev.clubId,
+          })
+
+          return nextClubId === prev.clubId ? prev : { ...prev, clubId: nextClubId }
+        })
       }
 
       // Show warning if no manageable clubs - handled silently
     } catch (error: unknown) {
-      toast.error((error as Error).message || t('errors.generic'))
+      const message = error instanceof Error ? error.message : ''
+      toast.error(message || t('errors.generic'))
     }
-  }, [isPlatformOwner, isClubAdmin, t])
+  }, [hasManualClubSelection, isPlatformOwner, isClubAdmin, selectedClubId, t])
 
   // Load clubs when dialog opens
   useEffect(() => {
@@ -80,6 +90,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       setSimilarPlayers([])
       setShowSimilarDialog(false)
       setClubs([])
+      setHasManualClubSelection(false)
     }
   }, [open, loadManageableClubs])
 
@@ -123,7 +134,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       onOpenChange(false)
       toast.success(t('players.created'))
     } catch (error: unknown) {
-      const errorMessage = (error as Error).message || '';
+      const errorMessage = error instanceof Error ? error.message : ''
       // Handle specific authorization errors
       if (errorMessage.includes('CLUB_ADMIN_OR_PLATFORM_OWNER_REQUIRED')) {
         toast.error(t('errors.clubAdminRequired'))
@@ -140,6 +151,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
   }
 
   const handleClubSelected = (club: Club | null) => {
+    setHasManualClubSelection(true)
     setFormData(prev => ({ ...prev, clubId: club?.id || '' }))
   }
 

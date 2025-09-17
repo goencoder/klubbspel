@@ -96,7 +96,16 @@ export function Layout({ children }: LayoutProps) {
               {/* Club Navigation - only show if authenticated */}
               {isAuthenticated() && user && (
                 <div className="hidden lg:block">
-                  <ClubNavigation showAllOption={true} />
+                  <ClubNavigation 
+                    showAllOption={true} 
+                    onClubChange={(_clubId) => {
+                      // If we're on a specific club page and user changes club selection,
+                      // navigate to clubs list page to avoid confusion
+                      if (location.pathname.startsWith('/clubs/') && location.pathname !== '/clubs') {
+                        navigate('/clubs')
+                      }
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -161,7 +170,16 @@ export function Layout({ children }: LayoutProps) {
               {/* Club Navigation for mobile - show if authenticated and on clubs page */}
               {isAuthenticated() && user && location.pathname === '/clubs' && (
                 <div className="flex items-center ml-2">
-                  <ClubNavigation showAllOption={true} />
+                  <ClubNavigation 
+                    showAllOption={true} 
+                    onClubChange={(_clubId) => {
+                      // If we're on a specific club page and user changes club selection,
+                      // navigate to clubs list page to avoid confusion
+                      if (location.pathname.startsWith('/clubs/') && location.pathname !== '/clubs') {
+                        navigate('/clubs')
+                      }
+                    }}
+                  />
                 </div>
               )}
             </div>

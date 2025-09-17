@@ -81,9 +81,7 @@ export function ClubsPage() {
 
       if (selectedClubId === 'my-clubs') {
         // Show only clubs where user is a member (including admins)
-        const userClubIds = user?.memberships
-            ?.filter(m => m.active === true)
-            ?.map(m => m.clubId) || []
+        const userClubIds = user?.memberships?.map(m => m.clubId) || []
         filteredClubs = response.items.filter(club => {
           return userClubIds.includes(club.id)
         })

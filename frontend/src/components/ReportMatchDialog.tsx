@@ -101,7 +101,8 @@ export function ReportMatchDialog({
       await apiClient.reportMatch(reportRequest)
       onMatchReported()
     } catch (error: unknown) {
-      toast.error((error as Error).message || t('error.generic'))
+      const message = error instanceof Error ? error.message : ''
+      toast.error(message || t('error.generic'))
     } finally {
       setLoading(false)
     }

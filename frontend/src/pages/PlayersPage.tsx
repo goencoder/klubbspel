@@ -25,7 +25,7 @@ export function PlayersPage() {
   const [nextPageToken, setNextPageToken] = useState<string | undefined>()
 
   // Use global club selection from auth store
-  const { selectedClubId } = useAuthStore()
+  const { user, selectedClubId } = useAuthStore()
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
@@ -41,9 +41,25 @@ export function PlayersPage() {
   const loadPlayers = useCallback(async (pageToken?: string) => {
     try {
       setLoading(true)
+      
+      // Build filter based on selected club
+      let clubFilter: string[] = []
+      
+      if (!selectedClubId || selectedClubId === 'all-clubs') {
+        // "Alla klubbar" - send empty list to show all players
+        clubFilter = []
+      } else if (selectedClubId === 'my-clubs') {
+        // "Mina klubbar" - resolve to actual club IDs
+        const userClubIds = user?.memberships?.map(m => m.clubId).filter(Boolean) || []
+        clubFilter = userClubIds
+      } else {
+        // Specific club selected - send that club ID
+        clubFilter = [selectedClubId]
+      }
+      
       const response = await apiClient.listPlayers({
         searchQuery: debouncedSearchQuery || undefined,
-        clubId: selectedClubId || undefined,
+        clubFilter,
         pageSize: 20,
         cursorAfter: pageToken
       }, 'players-list')
@@ -60,15 +76,16 @@ export function PlayersPage() {
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearchQuery, selectedClubId, t])
+  }, [debouncedSearchQuery, selectedClubId, user?.memberships, t])
 
   useEffect(() => {
-    loadClubs()
-  }, [loadClubs])
-
-  useEffect(() => {
-    loadPlayers()
-  }, [loadPlayers])
+    const loadData = async () => {
+      // Load clubs first, then players
+      await loadClubs()
+      await loadPlayers()
+    }
+    loadData()
+  }, [loadClubs, loadPlayers])
 
   const handlePlayerCreated = (newPlayer: Player) => {
     setPlayers(prev => [newPlayer, ...prev])
@@ -81,14 +98,27 @@ export function PlayersPage() {
     return club?.name || t('players.unknownClub')
   }
 
-  // Get the primary club for a player (first active membership)
-  const getPrimaryClub = (player: Player) => {
+  // Get the primary club for a player, prioritizing the selected club
+  const getPrimaryClubInfo = (player: Player) => {
     // First try to use the new club memberships
     if (player.clubMemberships && player.clubMemberships.length > 0) {
-      const activeMembership = player.clubMemberships.find(m => m.active)
-      if (activeMembership) {
-        return getClubName(activeMembership.clubId)
+      let primaryMembership = player.clubMemberships[0]
+      
+      // If a specific club is selected, prioritize showing that club (if player is member)
+      if (selectedClubId && selectedClubId !== 'all-clubs' && selectedClubId !== 'my-clubs') {
+        const selectedClubMembership = player.clubMemberships.find(m => m.clubId === selectedClubId)
+        if (selectedClubMembership) {
+          primaryMembership = selectedClubMembership
+        }
       }
+      
+      const primaryClubName = getClubName(primaryMembership.clubId)
+      const additionalCount = player.clubMemberships.length - 1
+      
+      if (additionalCount > 0) {
+        return `${primaryClubName} +${additionalCount}`
+      }
+      return primaryClubName
     }
     
     // Fallback to deprecated clubId field
@@ -158,7 +188,7 @@ export function PlayersPage() {
                   </div>
                   <CardDescription>
                     <div className="text-sm font-medium text-foreground">
-                      {getPrimaryClub(player)}
+                      {getPrimaryClubInfo(player)}
                     </div>
                   </CardDescription>
                 </CardHeader>

@@ -61,7 +61,7 @@ export function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<UILBRow[]>([])
   const [seriesByClub, setSeriesByClub] = useState<SeriesByClub>({})
   const [openSeries, setOpenSeries] = useState<Series[]>([])
-  const [clubs, setClubs] = useState<{ [id: string]: Club }>({})
+  const [_clubs, setClubs] = useState<{ [id: string]: Club }>({})
   const [loadingSeries, setLoadingSeries] = useState(true)
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false)
 

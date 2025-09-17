@@ -114,7 +114,8 @@ export interface UpdatePlayerRequest {
 
 export interface ListPlayersRequest {
   searchQuery?: string
-  clubId?: string
+  clubId?: string // DEPRECATED: Use clubFilter instead
+  clubFilter?: string[] // Support multiple club IDs and special "OPEN" value
   pageSize?: number
   cursorAfter?: string
   cursorBefore?: string

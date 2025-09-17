@@ -114,6 +114,21 @@ func (r *TokenRepo) CreateMagicLinkToken(ctx context.Context, token, email, ipAd
 	return mlt, err
 }
 
+// CreateMagicLinkTokenWithExpiry creates a new magic link token with custom expiry duration
+func (r *TokenRepo) CreateMagicLinkTokenWithExpiry(ctx context.Context, token, email, ipAddress string, expiryDuration time.Duration) (*MagicLinkToken, error) {
+	mlt := &MagicLinkToken{
+		ID:        primitive.NewObjectID(),
+		Token:     token,
+		Email:     email,
+		ExpiresAt: time.Now().Add(expiryDuration),
+		CreatedAt: time.Now(),
+		IPAddress: ipAddress,
+	}
+
+	_, err := r.magicTokens.InsertOne(ctx, mlt)
+	return mlt, err
+}
+
 // GetMagicLinkToken retrieves a magic link token by token string
 func (r *TokenRepo) GetMagicLinkToken(ctx context.Context, token string) (*MagicLinkToken, error) {
 	var mlt MagicLinkToken

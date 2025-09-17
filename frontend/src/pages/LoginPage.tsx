@@ -67,8 +67,9 @@ export function LoginPage() {
       clearError()
 
       const returnTo = searchParams.get('returnTo')
-      const returnUrl = window.location.origin + '/login' +
-        (returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '')
+      const returnUrl = returnTo 
+        ? `${window.location.origin}/login?returnTo=${encodeURIComponent(returnTo)}`
+        : '/leaderboard'
 
       await sendMagicLink(email.trim(), returnUrl)
       setMagicLinkSent(true)

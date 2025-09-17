@@ -2,18 +2,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -21,12 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { AddPlayerDialog } from '@/components/AddPlayerDialog'
 import apiClient from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import type { ApiError } from '@/types/api'
 import type {
   ClubMemberInfo,
-  InvitePlayerRequest,
   MembershipRole,
   UpdateMemberRoleRequest
 } from '@/types/membership'
@@ -45,10 +33,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
   const { user, isClubAdmin, isPlatformOwner } = useAuthStore()
   const [members, setMembers] = useState<ClubMemberInfo[]>([])
   const [loading, setLoading] = useState(true)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<MembershipRole>('MEMBERSHIP_ROLE_MEMBER')
-  const [showInviteDialog, setShowInviteDialog] = useState(false)
-  const [inviting, setInviting] = useState(false)
+  const [showAddPlayerDialog, setShowAddPlayerDialog] = useState(false)
 
   const canManageClub = isClubAdmin(clubId) || isPlatformOwner()
 
@@ -75,39 +60,9 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
     loadMembers()
   }, [loadMembers])
 
-  const handleInvitePlayer = async () => {
-    if (!inviteEmail.trim()) {
-      toast.error('Please enter an email address')
-      return
-    }
-
-    try {
-      setInviting(true)
-      const request: InvitePlayerRequest = {
-        clubId,
-        email: inviteEmail.trim(),
-        role: inviteRole
-      }
-
-      const response = await apiClient.invitePlayer(request)
-
-      if (response.success) {
-        toast.success(
-          response.invitationSent
-            ? `Invitation sent to ${inviteEmail}`
-            : `${inviteEmail} has been added to the club`
-        )
-        setInviteEmail('')
-        setInviteRole('MEMBERSHIP_ROLE_MEMBER')
-        setShowInviteDialog(false)
-        await loadMembers()
-      }
-    } catch (error) {
-      const apiError = error as ApiError
-      toast.error(apiError.message || t('clubs.members.inviteFailed'))
-    } finally {
-      setInviting(false)
-    }
+  const handlePlayerAdded = () => {
+    // Reload members list after adding a player
+    loadMembers()
   }
 
   const handleUpdateRole = async (playerId: string, newRole: MembershipRole) => {
@@ -183,61 +138,13 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
           </div>
 
           {canManageClub && (
-            <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Invite Player
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Invite Player to {clubName}</DialogTitle>
-                  <DialogDescription>
-                    Send an invitation email to invite a player to join this club.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="email">{t('clubs.members.emailAddress')}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="player@example.com"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as MembershipRole)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MEMBERSHIP_ROLE_MEMBER">Member</SelectItem>
-                        <SelectItem value="MEMBERSHIP_ROLE_ADMIN">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowInviteDialog(false)}
-                    disabled={inviting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleInvitePlayer} disabled={inviting}>
-                    {inviting ? t('clubs.members.sending') : t('clubs.members.sendInvitation')}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button 
+              className="flex items-center gap-2"
+              onClick={() => setShowAddPlayerDialog(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              {t('clubs.members.addPlayer')}
+            </Button>
           )}
         </div>
       </CardHeader>
@@ -287,8 +194,8 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={member.membership.active ? 'default' : 'outline'}>
-                      {member.membership.active ? t('common.active') : t('common.inactive')}
+                    <Badge variant={member.membership.role === 'MEMBERSHIP_ROLE_ADMIN' ? 'default' : 'secondary'}>
+                      {member.membership.role === 'MEMBERSHIP_ROLE_ADMIN' ? t('clubs.members.admin') : t('clubs.members.member')}
                     </Badge>
                   </TableCell>
                   {canManageClub && (
@@ -334,6 +241,14 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
           </Table>
         )}
       </CardContent>
+      
+      <AddPlayerDialog
+        open={showAddPlayerDialog}
+        onOpenChange={setShowAddPlayerDialog}
+        clubId={clubId}
+        clubName={clubName}
+        onPlayerAdded={handlePlayerAdded}
+      />
     </Card>
   )
 }
