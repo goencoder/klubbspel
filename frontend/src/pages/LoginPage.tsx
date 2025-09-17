@@ -5,10 +5,12 @@ import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/store/auth'
 import { CheckCircle, LogIn, Mail } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 export function LoginPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
@@ -100,10 +102,10 @@ export function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2 text-2xl">
             <LogIn className="h-6 w-6" />
-            Welcome to Klubbspel
+            {t('login.title')}
           </CardTitle>
           <CardDescription>
-            Sign in to manage your table tennis tournaments and track your progress
+            {t('login.description')}
           </CardDescription>
         </CardHeader>
 
@@ -117,10 +119,10 @@ export function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <h3 className="font-semibold">Check your email</h3>
+                <h3 className="font-semibold">{t('login.checkEmail')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  We've sent a magic link to <strong>{email}</strong>.
-                  Click the link in your email to sign in.
+                  {t('login.checkEmailDescription')} <strong>{email}</strong>.
+                  {t('login.checkEmailInstructions')}
                 </p>
               </div>
 
@@ -140,13 +142,13 @@ export function LoginPage() {
           ) : (
             <form onSubmit={handleSendMagicLink} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email">{t('login.emailAddress')}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="your@email.com"
+                    placeholder={t('login.emailPlaceholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -167,12 +169,12 @@ export function LoginPage() {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Sending...' : 'Send Magic Link'}
+                {isLoading ? t('login.sending') : t('login.sendMagicLink')}
               </Button>
 
               <div className="text-center text-sm text-muted-foreground">
                 <p>
-                  We'll send you a secure link to sign in without a password.
+                  {t('login.description2')}
                 </p>
               </div>
             </form>

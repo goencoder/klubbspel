@@ -17,7 +17,15 @@
     "showMore": "Visa mer",
     "close": "Stäng",
     "success": "Framgång",
-    "viewDetails": "Visa detaljer"
+    "viewDetails": "Visa detaljer",
+    "backToClubs": "Tillbaka till klubbar",
+    "joinClub": "Gå med i klubb",
+    "joining": "Går med...",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "completed": "Slutförd",
+    "joined": "Gick med",
+    "unknown": "Okänd"
   },
   "nav": {
     "series": "Serier",
@@ -96,7 +104,8 @@
     },
     "select": {
       "club": "Alla klubbar"
-    }
+    },
+    "unknownClub": "Okänd klubb"
   },
   "matches": {
     "title": "Matchresultat",
@@ -115,6 +124,7 @@
     "winner": "Vinnare",
     "reported": "Match rapporterad framgångsrikt",
     "empty": "Inga matcher rapporterade än",
+    "emptyDescription": "Inga matcher har rapporterats än. Rapportera den första matchen för att komma igång!",
     "report": "Rapportera match",
     "score_a": "Spelare A poäng",
     "score_b": "Spelare B poäng",
@@ -185,12 +195,26 @@
         "noSeries": "Inga serier än",
         "createFirst": "Skapa den första turneringsserien för denna klubb.",
         "noneCreated": "Denna klubb har inte skapat några turneringsserier än."
-      }
+      },
+      "merge": {
+        "title": "Slå ihop dina konton",
+        "description": "Hitta och slå ihop klubbregistreringar som skapades utan e-postadress till ditt autentiserade konto.",
+        "noMatches": "Inga potentiella kontomatchningar hittades i denna klubb.",
+        "noMatchesHelp": "Om du lades till i denna klubb innan du registrerade dig, kanske dessa konton inte matchar ditt nuvarande namn.",
+        "loadingMatches": "Laddar potentiella matchningar..."
+      },
+      "description": "Bordstennisklubb",
+      "notFound": "Klubb hittades inte",
+      "notFoundMessage": "Klubben du letar efter finns inte.",
+      "adminBadge": "Admin",
+      "memberBadge": "Medlem"
     },
     "members": {
       "title": "Klubbmedlemmar",
       "manage": "Hantera medlemmar i",
-      "total": "totalt"
+      "total": "totalt",
+      "emailAddress": "E-postadress",
+      "joined": "Gick med"
     },
     "validation": {
       "nameRequired": "Klubbnamn krävs",
@@ -234,6 +258,20 @@
     "language.sv": "Svenska",
     "language.en": "English",
     "actor.description": "Hantera dina kontoinställningar och preferenser"
+  },
+  "login": {
+    "title": "Välkommen till Klubbspel",
+    "description": "Logga in för att hantera dina bordstennisturneringar och spåra dina framsteg",
+    "emailAddress": "E-postadress",
+    "emailPlaceholder": "din@email.com",
+    "sendMagicLink": "Skicka magisk länk",
+    "sending": "Skickar...",
+    "checkEmail": "Kolla din e-post",
+    "checkEmailDescription": "Vi har skickat en magisk länk till",
+    "checkEmailInstructions": "Klicka på länken i din e-post för att logga in.",
+    "useDifferent": "Använd en annan e-post",
+    "successfullyLoggedIn": "Framgångsrikt inloggad",
+    "description2": "Vi skickar dig en säker länk för att logga in utan lösenord."
   },
   "auth": {
     "loginRequired": "Du måste logga in för att skapa klubbar",

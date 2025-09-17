@@ -78,7 +78,7 @@ export function PlayersPage() {
 
   const getClubName = (clubId: string) => {
     const club = clubs.find(c => c.id === clubId)
-    return club?.name || 'Unknown Club'
+    return club?.name || t('players.unknownClub')
   }
 
   // Get the primary club for a player (first active membership)
@@ -96,7 +96,7 @@ export function PlayersPage() {
       return getClubName(player.clubId)
     }
     
-    return 'Unknown Club'
+    return t('players.unknownClub')
   }
 
   return (
@@ -153,7 +153,7 @@ export function PlayersPage() {
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg">{player.displayName}</CardTitle>
                     <Badge variant={player.active ? 'default' : 'secondary'}>
-                      {player.active ? 'Active' : 'Inactive'}
+                      {player.active ? t('common.active') : t('common.inactive')}
                     </Badge>
                   </div>
                   <CardDescription>
@@ -164,7 +164,7 @@ export function PlayersPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm text-muted-foreground">
-                    Joined {new Date().toLocaleDateString()}
+                    {t('common.joined')} {new Date().toLocaleDateString()}
                   </div>
                 </CardContent>
               </Card>

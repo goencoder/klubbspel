@@ -125,10 +125,10 @@ export function ClubDetailPage() {
   if (!club) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold mb-4">Club not found</h2>
-        <p className="text-muted-foreground mb-6">The club you're looking for doesn't exist.</p>
+        <h2 className="text-2xl font-bold mb-4">{t('clubs.detail.notFound')}</h2>
+        <p className="text-muted-foreground mb-6">{t('clubs.detail.notFoundMessage')}</p>
         <Button asChild>
-          <Link to="/clubs">Back to Clubs</Link>
+          <Link to="/clubs">{t('common.backToClubs')}</Link>
         </Button>
       </div>
     )
@@ -158,7 +158,7 @@ export function ClubDetailPage() {
             <div>
               <CardTitle className="text-3xl">{club.name}</CardTitle>
               <CardDescription className="text-lg mt-2">
-                Table Tennis Club
+                {t('clubs.detail.description')}
               </CardDescription>
             </div>
 
@@ -167,7 +167,7 @@ export function ClubDetailPage() {
                 <>
                   <Badge variant="default" className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    {isAdmin ? 'Admin' : 'Member'}
+                    {isAdmin ? t('clubs.detail.adminBadge') : t('clubs.detail.memberBadge')}
                   </Badge>
                   
                   <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
@@ -207,7 +207,7 @@ export function ClubDetailPage() {
 
               {isAuthenticated() && !isMember && (
                 <Button onClick={handleJoinClub} disabled={joining}>
-                  {joining ? 'Joining...' : 'Join Club'}
+                  {joining ? t('common.joining') : t('common.joinClub')}
                 </Button>
               )}
 
@@ -310,7 +310,7 @@ export function ClubDetailPage() {
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <Badge variant={new Date(s.endsAt) > new Date() ? 'default' : 'secondary'}>
-                        {new Date(s.endsAt) > new Date() ? 'Active' : 'Completed'}
+                        {new Date(s.endsAt) > new Date() ? t('common.active') : t('common.completed')}
                       </Badge>
                       <Button variant="outline" size="sm" asChild>
                         <Link to={`/series/${s.id}`}>View</Link>

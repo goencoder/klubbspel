@@ -17,7 +17,15 @@
     "showMore": "Show More",
     "close": "Close",
     "success": "Success",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "backToClubs": "Back to Clubs",
+    "joinClub": "Join Club",
+    "joining": "Joining...",
+    "active": "Active",
+    "inactive": "Inactive",
+    "completed": "Completed",
+    "joined": "Joined",
+    "unknown": "Unknown"
   },
   "nav": {
     "series": "Series",
@@ -96,7 +104,8 @@
     },
     "select": {
       "club": "All clubs"
-    }
+    },
+    "unknownClub": "Unknown Club"
   },
   "matches": {
     "title": "Match Results",
@@ -115,6 +124,7 @@
     "winner": "Winner",
     "reported": "Match reported successfully",
     "empty": "No matches reported yet",
+    "emptyDescription": "No matches have been reported yet. Report the first match to get started!",
     "report": "Report Match",
     "score_a": "Player A Score",
     "score_b": "Player B Score",
@@ -185,12 +195,26 @@
         "noSeries": "No series yet",
         "createFirst": "Create the first tournament series for this club.",
         "noneCreated": "This club hasn't created any tournament series yet."
-      }
+      },
+      "merge": {
+        "title": "Merge Your Accounts",
+        "description": "Find and merge club registrations that were created without an email address into your authenticated account.",
+        "noMatches": "No potential account matches found in this club.",
+        "noMatchesHelp": "If you were added to this club before signing up, those accounts may not match your current name.",
+        "loadingMatches": "Loading potential matches..."
+      },
+      "description": "Table Tennis Club",
+      "notFound": "Club not found",
+      "notFoundMessage": "The club you're looking for doesn't exist.",
+      "adminBadge": "Admin",
+      "memberBadge": "Member"
     },
     "members": {
       "title": "Club Members",
       "manage": "Manage members of",
-      "total": "total"
+      "total": "total",
+      "emailAddress": "Email Address",
+      "joined": "Joined"
     },
     "validation": {
       "nameRequired": "Club name is required",
@@ -234,6 +258,20 @@
     "language.sv": "Svenska",
     "language.en": "English",
     "actor.description": "Manage your account settings and preferences"
+  },
+  "login": {
+    "title": "Welcome to Klubbspel",
+    "description": "Sign in to manage your table tennis tournaments and track your progress",
+    "emailAddress": "Email Address",
+    "emailPlaceholder": "your@email.com",
+    "sendMagicLink": "Send Magic Link",
+    "sending": "Sending...",
+    "checkEmail": "Check your email",
+    "checkEmailDescription": "We've sent a magic link to",
+    "checkEmailInstructions": "Click the link in your email to sign in.",
+    "useDifferent": "Use a different email",
+    "successfullyLoggedIn": "Successfully logged in",
+    "description2": "We'll send you a secure link to sign in without a password."
   },
   "auth": {
     "loginRequired": "You must be logged in to create clubs",

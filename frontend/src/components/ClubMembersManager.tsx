@@ -200,7 +200,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email">{t('clubs.members.emailAddress')}</Label>
                     <Input
                       id="email"
                       type="email"
@@ -256,7 +256,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
                 <TableHead>Member</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
+                <TableHead>{t('clubs.members.joined')}</TableHead>
                 <TableHead>Status</TableHead>
                 {canManageClub && <TableHead>Actions</TableHead>}
               </TableRow>
@@ -288,7 +288,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
                   </TableCell>
                   <TableCell>
                     <Badge variant={member.membership.active ? 'default' : 'outline'}>
-                      {member.membership.active ? 'Active' : 'Inactive'}
+                      {member.membership.active ? t('common.active') : t('common.inactive')}
                     </Badge>
                   </TableCell>
                   {canManageClub && (

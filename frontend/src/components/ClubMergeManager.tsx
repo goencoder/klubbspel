@@ -98,25 +98,25 @@ export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerPr
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <UserPlus className="h-5 w-5" />
-            <span>Merge Your Accounts</span>
+            <span>{t('clubs.detail.merge.title')}</span>
           </CardTitle>
           <CardDescription>
-            Find and merge club registrations that were created without an email address into your authenticated account.
+            {t('clubs.detail.merge.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Loading potential matches...</div>
+              <div className="text-muted-foreground">{t('clubs.detail.merge.loadingMatches')}</div>
             </div>
           ) : mergeCandidates.length === 0 ? (
             <div className="text-center py-8">
               <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                No potential account matches found in this club.
+                {t('clubs.detail.merge.noMatches')}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                If you were added to this club before signing up, those accounts may not match your current name.
+                {t('clubs.detail.merge.noMatchesHelp')}
               </p>
             </div>
           ) : (

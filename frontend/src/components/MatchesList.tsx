@@ -74,7 +74,7 @@ export function MatchesList({ seriesId }: MatchesListProps) {
           <SharedEmptyState>
             <Cup size={48} />
             <h3>{t('matches.empty')}</h3>
-            <p>No matches have been reported yet. Report the first match to get started!</p>
+            <p>{t('matches.emptyDescription')}</p>
           </SharedEmptyState>
         </CardContent>
       </Card>
