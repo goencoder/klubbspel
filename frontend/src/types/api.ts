@@ -22,14 +22,27 @@ export interface TimeRange {
   end: string   // ISO timestamp
 }
 
+export type Sport =
+  | 'SPORT_UNSPECIFIED'
+  | 'SPORT_TABLE_TENNIS'
+  | 'SPORT_TENNIS'
+  | 'SPORT_PADEL'
+
+export type SeriesFormat =
+  | 'SERIES_FORMAT_UNSPECIFIED'
+  | 'SERIES_FORMAT_LADDER'
+  | 'SERIES_FORMAT_CUP'
+
 // Club types
 export interface Club {
   id: string
   name: string
+  supportedSports: Sport[]
 }
 
 export interface CreateClubRequest {
   name: string
+  supportedSports?: Sport[]
 }
 
 export interface CreateClubResponse {
@@ -38,6 +51,7 @@ export interface CreateClubResponse {
 
 export interface UpdateClubRequest {
   name?: string
+  supportedSports?: Sport[]
 }
 
 export interface ListClubsRequest {
@@ -148,6 +162,8 @@ export interface Series {
   startsAt: string  // Backend sends startsAt per swagger
   endsAt: string    // Backend sends endsAt per swagger
   visibility: SeriesVisibility
+  sport: Sport
+  format: SeriesFormat
 }
 
 export interface CreateSeriesRequest {
@@ -156,6 +172,8 @@ export interface CreateSeriesRequest {
   startsAt: string
   endsAt: string
   visibility: SeriesVisibility
+  sport?: Sport
+  format?: SeriesFormat
 }
 
 export interface UpdateSeriesRequest {
@@ -163,12 +181,15 @@ export interface UpdateSeriesRequest {
   startsAt?: string
   endsAt?: string
   visibility?: SeriesVisibility
+  sport?: Sport
+  format?: SeriesFormat
 }
 
 export interface ListSeriesRequest {
   pageSize?: number
   cursorAfter?: string
   cursorBefore?: string
+  sportFilter?: Sport
 }
 
 export interface ListSeriesResponse {

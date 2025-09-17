@@ -120,7 +120,7 @@ class ApiClient {
           message: errorData.message || response.statusText,
           details: errorData.details
         }
-        throw apiError
+        throw Object.assign(new Error(apiError.message), apiError)
       }
 
       // Handle empty responses (like DELETE)
@@ -147,10 +147,11 @@ class ApiClient {
       }
 
       // Network or other errors
-      throw {
+      const apiError: ApiError = {
         code: 'NETWORK_ERROR',
         message: error instanceof Error ? error.message : 'Network error occurred'
-      } as ApiError
+      }
+      throw Object.assign(new Error(apiError.message), apiError)
     }
   }
 
@@ -266,6 +267,9 @@ class ApiClient {
     if (params.pageSize) {searchParams.append('pageSize', params.pageSize.toString())}
     if (params.cursorAfter) {searchParams.append('cursorAfter', params.cursorAfter)}
     if (params.cursorBefore) {searchParams.append('cursorBefore', params.cursorBefore)}
+    if (params.sportFilter && params.sportFilter !== 'SPORT_UNSPECIFIED') {
+      searchParams.append('sportFilter', params.sportFilter)
+    }
 
     const query = searchParams.toString()
     const response = await this.get<{ items: Series[], startCursor?: string, endCursor?: string, hasNextPage: boolean, hasPreviousPage: boolean }>(`/v1/series${query ? `?${query}` : ''}`, requestId)

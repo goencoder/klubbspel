@@ -13,6 +13,7 @@ import { apiClient } from '@/services/api'
 import type { Series, SeriesVisibility } from '@/types/api'
 import { toast } from 'sonner'
 import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection } from './Styles'
+import { sportTranslationKey, seriesFormatTranslationKey } from '@/lib/sports'
 
 export function SeriesListPage() {
   const { t } = useTranslation()
@@ -149,6 +150,14 @@ export function SeriesListPage() {
                       <span>
                         {formatDateRange(seriesItem.startsAt, seriesItem.endsAt)}
                       </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <Badge variant="outline">
+                        {t(sportTranslationKey(seriesItem.sport))}
+                      </Badge>
+                      <Badge variant="outline">
+                        {t(seriesFormatTranslationKey(seriesItem.format))}
+                      </Badge>
                     </div>
                     <Link to={`/series/${seriesItem.id}`}>
                       <Button variant="outline" className="w-full">

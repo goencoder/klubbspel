@@ -8,3 +8,17 @@ message Error {
   string message = 2;   // localized message
   map<string,string> args = 3; // interpolation args
 }
+
+// Sport enumerates racket/paddle sports supported by the platform.
+// Table tennis is currently the only fully supported sport but we define
+// additional values so that the API is future proof.
+enum Sport {
+  // Default value, should not be used explicitly.
+  SPORT_UNSPECIFIED = 0;
+  // Classic ping pong / table tennis.
+  SPORT_TABLE_TENNIS = 1;
+  // Lawn/indoor tennis.
+  SPORT_TENNIS = 2;
+  // Padel tennis.
+  SPORT_PADEL = 3;
+}

@@ -11,8 +11,9 @@ import (
 )
 
 type Club struct {
-	ID   primitive.ObjectID `bson:"_id,omitempty"`
-	Name string             `bson:"name"`
+	ID              primitive.ObjectID `bson:"_id,omitempty"`
+	Name            string             `bson:"name"`
+	SupportedSports []int32            `bson:"supported_sports"`
 }
 
 type ClubRepo struct{ c *mongo.Collection }
@@ -21,18 +22,19 @@ func NewClubRepo(db *mongo.Database) *ClubRepo {
 	return &ClubRepo{c: db.Collection("clubs")}
 }
 
-func (r *ClubRepo) Create(ctx context.Context, name string) (*Club, error) {
+func (r *ClubRepo) Create(ctx context.Context, name string, supportedSports []int32) (*Club, error) {
 	club := &Club{
-		ID:   primitive.NewObjectID(),
-		Name: name,
+		ID:              primitive.NewObjectID(),
+		Name:            name,
+		SupportedSports: supportedSports,
 	}
 	_, err := r.c.InsertOne(ctx, club)
 	return club, err
 }
 
-func (r *ClubRepo) Upsert(ctx context.Context, name string) (*Club, error) {
+func (r *ClubRepo) Upsert(ctx context.Context, name string, supportedSports []int32) (*Club, error) {
 	// For simplicity, just create a new club
-	return r.Create(ctx, name)
+	return r.Create(ctx, name, supportedSports)
 }
 
 func (r *ClubRepo) GetByID(ctx context.Context, id string) (*Club, error) {
@@ -50,16 +52,18 @@ func (r *ClubRepo) FindByID(ctx context.Context, id string) (*Club, error) {
 	return &club, err
 }
 
-func (r *ClubRepo) Update(ctx context.Context, id, name string) (*Club, error) {
+func (r *ClubRepo) Update(ctx context.Context, id string, updates map[string]interface{}) (*Club, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 
-	update := bson.M{"$set": bson.M{"name": name}}
-	_, err = r.c.UpdateOne(ctx, bson.M{"_id": objID}, update)
-	if err != nil {
-		return nil, err
+	if len(updates) > 0 {
+		update := bson.M{"$set": updates}
+		_, err = r.c.UpdateOne(ctx, bson.M{"_id": objID}, update)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return r.FindByID(ctx, id)

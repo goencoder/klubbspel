@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { sportTranslationKey, seriesFormatTranslationKey } from '@/lib/sports'
 
 export function SeriesDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -159,6 +160,16 @@ export function SeriesDetailPage() {
                 <span className="font-medium">
                   {formatDateRange(series.startsAt, series.endsAt)}
                 </span>
+              </div>
+              <div className="flex items-center text-sm">
+                <Cup size={16} className="mr-2 text-muted-foreground" />
+                <span className="text-muted-foreground mr-2">{t('series.sportLabel')}:</span>
+                <span className="font-medium">{t(sportTranslationKey(series.sport))}</span>
+              </div>
+              <div className="flex items-center text-sm">
+                <ClipboardTick size={16} className="mr-2 text-muted-foreground" />
+                <span className="text-muted-foreground mr-2">{t('series.formatLabel')}:</span>
+                <span className="font-medium">{t(seriesFormatTranslationKey(series.format))}</span>
               </div>
               {series.clubId && (
                 <div className="flex items-center text-sm">

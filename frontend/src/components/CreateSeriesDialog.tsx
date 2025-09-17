@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -21,8 +21,9 @@ import {
 import { ClubSelector } from '@/components/ClubSelector'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
-import type { Series, SeriesVisibility, Club } from '@/types/api'
+import type { Series, SeriesVisibility, Club, Sport, SeriesFormat } from '@/types/api'
 import { toast } from 'sonner'
+import { SUPPORTED_SPORTS, DEFAULT_SPORT, SUPPORTED_SERIES_FORMATS, DEFAULT_SERIES_FORMAT, sportTranslationKey, seriesFormatTranslationKey } from '@/lib/sports'
 
 interface CreateSeriesDialogProps {
   open: boolean
@@ -37,18 +38,24 @@ export function CreateSeriesDialog({
 }: CreateSeriesDialogProps) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
+  const [clubs, setClubs] = useState<Club[]>([])
+  const [availableSports, setAvailableSports] = useState<Sport[]>(SUPPORTED_SPORTS)
   const [formData, setFormData] = useState<{
     title: string
     visibility: SeriesVisibility
     clubId: string
     startsAt: string
     endsAt: string
+    sport: Sport
+    format: SeriesFormat
   }>({
     title: '',
     visibility: 'SERIES_VISIBILITY_OPEN',
     clubId: '',
     startsAt: '',
     endsAt: '',
+    sport: DEFAULT_SPORT,
+    format: DEFAULT_SERIES_FORMAT,
   })
 
   // Reset form when dialog closes
@@ -60,9 +67,28 @@ export function CreateSeriesDialog({
         clubId: '',
         startsAt: '',
         endsAt: '',
+        sport: DEFAULT_SPORT,
+        format: DEFAULT_SERIES_FORMAT,
       })
+      setAvailableSports(SUPPORTED_SPORTS)
+      setClubs([])
     }
   }, [open])
+
+  const loadClubs = useCallback(async () => {
+    try {
+      const response = await apiClient.listClubs({ pageSize: 100 })
+      setClubs(response.items)
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('errors.unexpectedError'))
+    }
+  }, [t])
+
+  useEffect(() => {
+    if (open) {
+      loadClubs()
+    }
+  }, [open, loadClubs])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,11 +125,15 @@ export function CreateSeriesDialog({
         startsAt: string
         endsAt: string
         clubId?: string
+        sport: Sport
+        format: SeriesFormat
       } = {
         title: formData.title,
         visibility: formData.visibility,
         startsAt,
         endsAt,
+        sport: formData.sport,
+        format: formData.format,
         ...(formData.clubId && { clubId: formData.clubId }),
       }
 
@@ -121,7 +151,17 @@ export function CreateSeriesDialog({
   }
 
   const handleClubSelected = (club: Club | null) => {
-    setFormData((prev) => ({ ...prev, clubId: club?.id || '' }))
+    const sports = club?.supportedSports?.length ? club.supportedSports : SUPPORTED_SPORTS
+    setAvailableSports(sports)
+
+    setFormData((prev) => {
+      const nextSport = sports.includes(prev.sport) ? prev.sport : (sports[0] ?? DEFAULT_SPORT)
+      return {
+        ...prev,
+        clubId: club?.id || '',
+        sport: nextSport,
+      }
+    })
   }
 
   return (
@@ -155,13 +195,26 @@ export function CreateSeriesDialog({
             <Select
               value={formData.visibility}
               onValueChange={(value) =>
+                {
+                  const nextVisibility = value as SeriesVisibility
+                  if (nextVisibility === 'SERIES_VISIBILITY_OPEN') {
+                    setAvailableSports(SUPPORTED_SPORTS)
+                  } else if (nextVisibility === 'SERIES_VISIBILITY_CLUB_ONLY' && formData.clubId) {
+                    const selectedClub = clubs.find((clubItem) => clubItem.id === formData.clubId)
+                    const sports = selectedClub?.supportedSports?.length ? selectedClub.supportedSports : SUPPORTED_SPORTS
+                    setAvailableSports(sports)
+                  }
+
                 setFormData((prev) => ({
                   ...prev,
-                  visibility: value as SeriesVisibility,
+                  visibility: nextVisibility,
                   // reset club if switching away
-                  clubId:
-                    value === 'SERIES_VISIBILITY_CLUB_ONLY' ? prev.clubId : '',
+                  clubId: value === 'SERIES_VISIBILITY_CLUB_ONLY' ? prev.clubId : '',
+                  sport: value === 'SERIES_VISIBILITY_CLUB_ONLY' && prev.clubId
+                    ? prev.sport
+                    : SUPPORTED_SPORTS[0] ?? DEFAULT_SPORT,
                 }))
+                }
               }
             >
               <SelectTrigger id="visibility">
@@ -182,12 +235,75 @@ export function CreateSeriesDialog({
           {formData.visibility === 'SERIES_VISIBILITY_CLUB_ONLY' && (
             <div className="space-y-2">
               <Label>{t('players.club')} *</Label>
-              <ClubSelector 
-                value={formData.clubId}
-                onClubSelected={handleClubSelected} 
+              <ClubSelector
+                clubs={clubs}
+                selectedClubId={formData.clubId}
+                onClubSelected={handleClubSelected}
               />
             </div>
           )}
+
+          {/* Sport */}
+          <div className="space-y-2">
+            <Label htmlFor="sport">{t('series.sportLabel')}</Label>
+            {availableSports.length > 1 ? (
+              <Select
+                value={formData.sport}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    sport: value as Sport,
+                  }))
+                }
+              >
+                <SelectTrigger id="sport">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSports.map((sport) => (
+                    <SelectItem key={sport} value={sport}>
+                      {t(sportTranslationKey(sport))}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="text-sm text-muted-foreground border rounded-md p-2">
+                {t(sportTranslationKey(formData.sport))}
+              </div>
+            )}
+          </div>
+
+          {/* Format */}
+          <div className="space-y-2">
+            <Label htmlFor="format">{t('series.formatLabel')}</Label>
+            {SUPPORTED_SERIES_FORMATS.length > 1 ? (
+              <Select
+                value={formData.format}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    format: value as SeriesFormat,
+                  }))
+                }
+              >
+                <SelectTrigger id="format">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_SERIES_FORMATS.map((format) => (
+                    <SelectItem key={format} value={format}>
+                      {t(seriesFormatTranslationKey(format))}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="text-sm text-muted-foreground border rounded-md p-2">
+                {t(seriesFormatTranslationKey(formData.format))}
+              </div>
+            )}
+          </div>
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
