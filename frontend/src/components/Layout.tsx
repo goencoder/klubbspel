@@ -128,7 +128,7 @@ export function Layout({ children }: LayoutProps) {
                 </DropdownMenu>
               ) : (
                 <Button asChild>
-                  <Link to="/login">Sign In</Link>
+                  <Link to="/login">{t('auth.signIn')}</Link>
                 </Button>
               )}
             </div>

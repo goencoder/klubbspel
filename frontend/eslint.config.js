@@ -12,7 +12,12 @@ export default [
       '*.config.js',
       '*.config.ts',
       'vite.config.ts',
-      'tests/'
+      'tests/',
+      'src/components/ui/',  // Ignore shadcn/ui generated components
+      'src/lib/',           // Ignore utility libraries
+      'playwright-report/',
+      'test-results/',
+      'eslint-rules/'       // Ignore custom ESLint rules directory
     ]
   },
   {
@@ -51,7 +56,10 @@ export default [
         require: 'readonly',
 
         // React globals
-        React: 'readonly'
+        React: 'readonly',
+        
+        // i18n function
+        t: 'readonly'
       }
     },
     plugins: {

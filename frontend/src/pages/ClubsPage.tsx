@@ -549,9 +549,9 @@ export function ClubsPage() {
                                 </div>
                                 <div className="text-sm text-muted-foreground">
                                   {player.active ? (
-                                      <span className="text-green-600">Active</span>
+                                      <span className="text-green-600">{t('common.active')}</span>
                                   ) : (
-                                      <span className="text-gray-500">Inactive</span>
+                                      <span className="text-gray-500">{t('common.inactive')}</span>
                                   )}
                                 </div>
                               </div>

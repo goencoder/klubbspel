@@ -16,7 +16,16 @@
     "next": "Nästa",
     "showMore": "Visa mer",
     "close": "Stäng",
-    "success": "Framgång"
+    "success": "Framgång",
+    "viewDetails": "Visa detaljer",
+    "backToClubs": "Tillbaka till klubbar",
+    "joinClub": "Gå med i klubb",
+    "joining": "Går med...",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "completed": "Slutförd",
+    "joined": "Gick med",
+    "unknown": "Okänd"
   },
   "nav": {
     "series": "Serier",
@@ -30,6 +39,7 @@
     "title": "Turneringsserier",
     "subtitle": "Hantera bordstennisturneringar och ligor",
     "createNew": "Skapa ny serie",
+    "create_help": "Skapa en ny turneringsserie.",
     "name": "Serienamn",
     "name_placeholder": "Ange serienamn",
     "clubName": "Klubbnamn",
@@ -83,13 +93,24 @@
     "createNew": "Skapa ny",
     "noManageableClubs": "Du har inga klubbar du kan hantera",
     "needClubAdmin": "Du måste vara klubbadministratör eller plattformsägare för att skapa spelare",
+    "merge": {
+      "title": "Slå ihop spelare",
+      "description": "Slå ihop två spelarregister till ett. Alla matcher och data från källspelaren kommer att överföras till målspelaren.",
+      "targetPlayer": "Målspelare (behåll denna)",
+      "sourcePlayer": "Källspelare (radera efter sammanslagning)",
+      "merging": "Slår ihop...",
+      "selectBothRequired": "Välj båda spelarna för att slå ihop",
+      "selectTargetPlaceholder": "Välj spelaren att behålla...",
+      "selectSourcePlaceholder": "Välj spelaren att slå ihop från..."
+    },
     "validation": {
       "nameRequired": "Spelarnamn krävs",
       "clubRequired": "Klubb måste väljas"
     },
     "select": {
       "club": "Alla klubbar"
-    }
+    },
+    "unknownClub": "Okänd klubb"
   },
   "matches": {
     "title": "Matchresultat",
@@ -108,16 +129,23 @@
     "winner": "Vinnare",
     "reported": "Match rapporterad framgångsrikt",
     "empty": "Inga matcher rapporterade än",
+    "emptyDescription": "Inga matcher har rapporterats än. Rapportera den första matchen för att komma igång!",
+    "report": "Rapportera match",
+    "score_a": "Spelare A poäng",
+    "score_b": "Spelare B poäng",
     "validation": {
       "noTies": "En match kan inte sluta oavgjort",
       "bestOfFive": "Vinnaren måste nå 3 set (bäst av fem)",
       "samePlayer": "En spelare kan inte möta sig själv",
       "invalidScore": "Poäng måste vara mellan 0 och 5",
-      "seriesWindow": "Matchdatum måste ligga inom seriens period"
+      "seriesWindow": "Matchdatum måste ligga inom seriens period",
+      "scoresRange": "Poäng måste vara mellan 0 och 5",
+      "noTie": "En match kan inte sluta oavgjort"
     }
   },
   "leaderboard": {
     "title": "Resultattabell",
+    "subtitle": "Spelarankningar och statistik",
     "rank": "Placering",
     "player": "Spelare",
     "rating": "Ranking",
@@ -128,14 +156,19 @@
     "winrate": "Vinstprocent",
     "noData": "Inga rankningar tillgängliga än",
     "playMatches": "Rapportera några matcher för att se rankningar",
+    "empty": "Inga rankningar tillgängliga än",
+    "empty_help": "Inga matcher har rapporterats för denna serie än.",
     "select": {
-      "series": "Välj serie"
+      "series": "Välj serie",
+      "help": "Välj en serie för att visa dess resultattabell"
     }
   },
   "clubs": {
     "title": "Klubbar",
     "subtitle": "Hantera bordstennisklubbar i din organisation",
     "createNew": "Skapa ny klubb",
+    "createHelp": "Skapa en ny bordstennisklubb.",
+    "selectClub": "Välj klubb...",
     "name": "Klubbnamn",
     "description": "Beskrivning",
     "searchClubs": "Sök klubbar...",
@@ -149,6 +182,72 @@
     "updated": "Klubb uppdaterad framgångsrikt",
     "deleted": "Klubb borttagen framgångsrikt",
     "playersInClub": "Spelare i denna klubb",
+    "joinFailed": "Det gick inte att gå med i klubben",
+    "leaveFailed": "Det gick inte att lämna klubben",
+    "leaving": "Lämnar...",
+    "leaveClub": "Lämna klubb",
+    "leaveUserNotFound": "Användare hittades inte i klubben",
+    "navigation": {
+      "allClubs": "Alla klubbar",
+      "myClubs": "Mina klubbar"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "Översikt",
+        "series": "Serier",
+        "members": "Medlemmar",
+        "mergeePlayers": "Slå ihop spelare"
+      },
+      "stats": {
+        "activeSeries": "Aktiva serier",
+        "currentlyRunning": "Pågående turneringar",
+        "totalSeries": "Totalt antal serier",
+        "allTimeTournaments": "Alla turneringar",
+        "clubType": "Klubbtyp",
+        "open": "Öppen",
+        "anyoneCanJoin": "Vem som helst kan gå med"
+      },
+      "series": {
+        "noSeries": "Inga serier än",
+        "createFirst": "Skapa den första turneringsserien för denna klubb.",
+        "noneCreated": "Denna klubb har inte skapat några turneringsserier än."
+      },
+      "merge": {
+        "title": "Slå ihop dina konton",
+        "description": "Hitta och slå ihop klubbregistreringar som skapades utan e-postadress till ditt autentiserade konto.",
+        "noMatches": "Inga potentiella kontomatchningar hittades i denna klubb.",
+        "noMatchesHelp": "Om du lades till i denna klubb innan du registrerade dig, kanske dessa konton inte matchar ditt nuvarande namn.",
+        "loadingMatches": "Laddar potentiella matchningar...",
+        "loadFailed": "Det gick inte att ladda sammanläggningskandidater",
+        "mergeFailed": "Det gick inte att slå ihop spelare",
+        "merging": "Slår ihop...",
+        "confirm": "Bekräfta sammanslagning"
+      },
+      "description": "Bordstennisklubb",
+      "notFound": "Klubb hittades inte",
+      "notFoundMessage": "Klubben du letar efter finns inte.",
+      "adminBadge": "Admin",
+      "memberBadge": "Medlem"
+    },
+    "members": {
+      "title": "Klubbmedlemmar",
+      "manage": "Hantera medlemmar i",
+      "total": "totalt",
+      "emailAddress": "E-postadress",
+      "joined": "Gick med",
+      "inviteFailed": "Det gick inte att bjuda in spelare",
+      "roleUpdated": "Medlemsroll uppdaterad framgångsrikt",
+      "roleUpdateFailed": "Det gick inte att uppdatera medlemsroll",
+      "removeFailed": "Det gick inte att ta bort medlem",
+      "admin": "Admin",
+      "member": "Medlem",
+      "unknown": "Okänd",
+      "sending": "Skickar...",
+      "sendInvitation": "Skicka inbjudan",
+      "promoteToAdmin": "Befordra till admin",
+      "demoteToMember": "Degradera till medlem",
+      "removeFromClub": "Ta bort från klubb"
+    },
     "validation": {
       "nameRequired": "Klubbnamn krävs",
       "nameMinLength": "Klubbnamn måste vara minst 2 tecken",
@@ -164,6 +263,9 @@
     "invalidDates": "Ogiltiga datum",
     "clubAdminRequired": "Du måste vara klubbadministratör eller plattformsägare",
     "clubIdRequired": "Klubb måste anges för icke-plattformsägare"
+  },
+  "error": {
+    "generic": "Ett fel inträffade"
   },
   "form": {
     "validation": {
@@ -186,10 +288,33 @@
     "profile.update.failed": "Kunde inte uppdatera profilen",
     "profile.validation.required": "Både förnamn och efternamn är obligatoriska",
     "language.sv": "Svenska",
-    "language.en": "English"
+    "language.en": "English",
+    "language.failed": "Det gick inte att ändra språk",
+    "actor.description": "Hantera dina kontoinställningar och preferenser"
+  },
+  "login": {
+    "title": "Välkommen till Klubbspel",
+    "description": "Logga in för att hantera dina bordstennisturneringar och spåra dina framsteg",
+    "emailAddress": "E-postadress",
+    "emailPlaceholder": "din@email.com",
+    "sendMagicLink": "Skicka magisk länk",
+    "sending": "Skickar...",
+    "checkEmail": "Kolla din e-post",
+    "checkEmailDescription": "Vi har skickat en magisk länk till",
+    "checkEmailInstructions": "Klicka på länken i din e-post för att logga in.",
+    "useDifferent": "Använd en annan e-post",
+    "successfullyLoggedIn": "Framgångsrikt inloggad",
+    "description2": "Vi skickar dig en säker länk för att logga in utan lösenord.",
+    "welcome": "Välkommen! Du har loggats in framgångsrikt.",
+    "invalidLink": "Ogiltig eller utgången inloggningslänk. Vänligen försök igen.",
+    "magicLinkSent": "Magisk länk skickad! Kolla din e-post.",
+    "magicLinkFailed": "Misslyckades att skicka magisk länk. Vänligen försök igen."
   },
   "auth": {
-    "loginRequired": "Du måste logga in för att skapa klubbar"
+    "loginRequired": "Du måste logga in för att skapa klubbar",
+    "signIn": "Logga in",
+    "signInToJoin": "Logga in för att gå med",
+    "signOut": "Logga ut"
   },
   "profile": {
     "completion": {

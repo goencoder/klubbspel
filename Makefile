@@ -2,7 +2,7 @@
 .PHONY: up down logs docker-build test-integration test-api
 .PHONY: dev-start dev-stop dev-restart dev-logs dev-status
 .PHONY: host-dev host-be host-fe host-mongo host-services host-stop host-restart host-install
-.PHONY: fe.install fe.build fe.dev fe.lint
+.PHONY: fe.install fe.build fe.dev fe.lint i18n.check
 
 GO ?= go
 NODE ?= node
@@ -28,6 +28,13 @@ fe.dev:
 # Lint frontend code
 fe.lint:
 	cd frontend && $(NPM) run lint
+
+# Check for hardcoded strings that need translation (manual inspection)
+i18n.check:
+	@echo "🔍 Checking for hardcoded strings that need translation..."
+	@echo "📝 This is a manual inspection tool - review the output below:"
+	@echo ""
+	python3 scripts/validate_i18n.py --report
 
 # Start full host development environment (MongoDB + MailHog in Docker, BE+FE on host)
 host-dev: host-services host-install be.build
@@ -373,6 +380,9 @@ help:
 	@echo "  fe.build       - Build frontend for production"
 	@echo "  fe.dev         - Run frontend development server"
 	@echo "  fe.lint        - Lint frontend code"
+	@echo ""
+	@echo "🌍 Translation:"
+	@echo "  i18n.check     - Check for hardcoded strings that need translation"
 	@echo ""
 	@echo "🐳 Docker Development (For production-like environment):"
 	@echo "  dev-start      - Start complete development environment (MongoDB, MailHog, Backend)"

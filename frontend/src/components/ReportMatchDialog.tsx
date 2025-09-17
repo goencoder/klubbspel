@@ -72,12 +72,12 @@ export function ReportMatchDialog({
     const scoreB = parseInt(formData.score_b)
 
     if (scoreA < 0 || scoreB < 0 || scoreA > 5 || scoreB > 5) {
-      toast.error('Scores must be between 0 and 5')
+      toast.error(t('matches.validation.scoresRange'))
       return
     }
 
     if (scoreA === scoreB) {
-      toast.error('A match cannot end in a tie')
+      toast.error(t('matches.validation.noTie'))
       return
     }
 

@@ -19,6 +19,7 @@ import { apiClient } from '@/services/api'
 import type { Player } from '@/types/api'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 interface MergePlayersDialogProps {
   open: boolean
@@ -28,13 +29,14 @@ interface MergePlayersDialogProps {
 }
 
 export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: MergePlayersDialogProps) {
+  const { t } = useTranslation()
   const [targetPlayerId, setTargetPlayerId] = useState<string>('')
   const [sourcePlayerId, setSourcePlayerId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleMerge = async () => {
     if (!targetPlayerId || !sourcePlayerId) {
-      toast.error('Please select both players to merge')
+      toast.error(t('players.merge.selectBothRequired'))
       return
     }
 
@@ -81,22 +83,22 @@ export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: 
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Merge Players</DialogTitle>
+          <DialogTitle>{t('players.merge.title')}</DialogTitle>
           <DialogDescription>
-            Merge two player records into one. All matches and data from the source player will be transferred to the target player.
+            {t('players.merge.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           <div className="space-y-2">
-            <Label htmlFor="target-player">Target Player (Keep This One)</Label>
+            <Label htmlFor="target-player">{t('players.merge.targetPlayer')}</Label>
             <Select
               value={targetPlayerId}
               onValueChange={setTargetPlayerId}
               disabled={isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select the player to keep..." />
+                <SelectValue placeholder={t('players.merge.selectTargetPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {players.map((player) => (
@@ -121,14 +123,14 @@ export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="source-player">Source Player (Delete After Merge)</Label>
+            <Label htmlFor="source-player">{t('players.merge.sourcePlayer')}</Label>
             <Select
               value={sourcePlayerId}
               onValueChange={setSourcePlayerId}
               disabled={isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select the player to merge from..." />
+                <SelectValue placeholder={t('players.merge.selectSourcePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {players
@@ -185,7 +187,7 @@ export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: 
             disabled={isLoading || !targetPlayerId || !sourcePlayerId}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isLoading ? 'Merging...' : 'Merge Players'}
+            {isLoading ? t('players.merge.merging') : t('players.merge.title')}
           </Button>
         </DialogFooter>
       </DialogContent>

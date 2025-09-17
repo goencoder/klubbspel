@@ -12,6 +12,7 @@ import { apiClient } from '@/services/api'
 import type { Club } from '@/types/api'
 import { Check, ChevronDown, Users, UserCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ClubNavigationProps {
   showAllOption?: boolean
@@ -19,6 +20,7 @@ interface ClubNavigationProps {
 }
 
 export function ClubNavigation({ showAllOption = true, onClubChange }: ClubNavigationProps) {
+  const { t } = useTranslation()
   const { user, selectedClubId, selectClub, isClubMember, isClubAdmin } = useAuthStore()
   const [allClubs, setAllClubs] = useState<Club[]>([])
   const [loading, setLoading] = useState(false)
@@ -50,11 +52,11 @@ export function ClubNavigation({ showAllOption = true, onClubChange }: ClubNavig
   // Get display text for current selection
   const getDisplayText = () => {
     if (!selectedClubId) {
-      return 'All Clubs'
+      return t('clubs.navigation.allClubs')
     }
 
     if (selectedClubId === 'my-clubs') {
-      return 'My Clubs'
+      return t('clubs.navigation.myClubs')
     }
 
     // Find the specific club name from all clubs
@@ -72,7 +74,7 @@ export function ClubNavigation({ showAllOption = true, onClubChange }: ClubNavig
     }
 
     // If we can't find the club, fall back to "All Clubs"
-    return 'All Clubs'
+    return t('clubs.navigation.allClubs')
   }
 
   return (
@@ -95,7 +97,7 @@ export function ClubNavigation({ showAllOption = true, onClubChange }: ClubNavig
           >
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              <span>All Clubs</span>
+              <span>{t('clubs.navigation.allClubs')}</span>
             </div>
             {!selectedClubId && <Check className="h-4 w-4" />}
           </DropdownMenuItem>
@@ -108,7 +110,7 @@ export function ClubNavigation({ showAllOption = true, onClubChange }: ClubNavig
           >
             <div className="flex items-center gap-2">
               <UserCheck className="h-4 w-4" />
-              <span>My Clubs</span>
+              <span>{t('clubs.navigation.myClubs')}</span>
             </div>
             {selectedClubId === 'my-clubs' && <Check className="h-4 w-4" />}
           </DropdownMenuItem>

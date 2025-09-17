@@ -16,7 +16,16 @@
     "next": "Next",
     "showMore": "Show More",
     "close": "Close",
-    "success": "Success"
+    "success": "Success",
+    "viewDetails": "View Details",
+    "backToClubs": "Back to Clubs",
+    "joinClub": "Join Club",
+    "joining": "Joining...",
+    "active": "Active",
+    "inactive": "Inactive",
+    "completed": "Completed",
+    "joined": "Joined",
+    "unknown": "Unknown"
   },
   "nav": {
     "series": "Series",
@@ -30,6 +39,7 @@
     "title": "Tournament Series",
     "subtitle": "Manage table tennis tournaments and leagues",
     "createNew": "Create New Series",
+    "create_help": "Create a new tournament series.",
     "name": "Series Name",
     "name_placeholder": "Enter series name",
     "clubName": "Club Name",
@@ -83,13 +93,24 @@
     "createNew": "Create New",
     "noManageableClubs": "You have no clubs you can manage",
     "needClubAdmin": "You must be a club administrator or platform owner to create players",
+    "merge": {
+      "title": "Merge Players",
+      "description": "Merge two player records into one. All matches and data from the source player will be transferred to the target player.",
+      "targetPlayer": "Target Player (Keep This One)",
+      "sourcePlayer": "Source Player (Delete After Merge)",
+      "merging": "Merging...",
+      "selectBothRequired": "Please select both players to merge",
+      "selectTargetPlaceholder": "Select the player to keep...",
+      "selectSourcePlaceholder": "Select the player to merge from..."
+    },
     "validation": {
       "nameRequired": "Player name is required",
       "clubRequired": "Club must be selected"
     },
     "select": {
       "club": "All clubs"
-    }
+    },
+    "unknownClub": "Unknown Club"
   },
   "matches": {
     "title": "Match Results",
@@ -108,16 +129,23 @@
     "winner": "Winner",
     "reported": "Match reported successfully",
     "empty": "No matches reported yet",
+    "emptyDescription": "No matches have been reported yet. Report the first match to get started!",
+    "report": "Report Match",
+    "score_a": "Player A Score",
+    "score_b": "Player B Score",
     "validation": {
       "noTies": "A match cannot end in a tie",
       "bestOfFive": "Winner must reach 3 games (best of five)",
       "samePlayer": "A player cannot play against themselves",
       "invalidScore": "Scores must be between 0 and 5",
-      "seriesWindow": "Match date must be within the series period"
+      "seriesWindow": "Match date must be within the series period",
+      "scoresRange": "Scores must be between 0 and 5",
+      "noTie": "A match cannot end in a tie"
     }
   },
   "leaderboard": {
     "title": "Leaderboard",
+    "subtitle": "Player rankings and statistics",
     "rank": "Rank",
     "player": "Player",
     "rating": "Rating",
@@ -128,14 +156,19 @@
     "winrate": "Win Rate",
     "noData": "No rankings available yet",
     "playMatches": "Report some matches to see rankings",
+    "empty": "No rankings available yet",
+    "empty_help": "No matches have been reported for this series yet.",
     "select": {
-      "series": "Select series"
+      "series": "Select series",
+      "help": "Choose a series to view its leaderboard"
     }
   },
   "clubs": {
     "title": "Clubs",
     "subtitle": "Manage table tennis clubs in your organization",
     "createNew": "Create New Club",
+    "createHelp": "Create a new table tennis club.",
+    "selectClub": "Select club...",
     "name": "Club Name",
     "description": "Description",
     "searchClubs": "Search clubs...",
@@ -149,6 +182,72 @@
     "updated": "Club updated successfully",
     "deleted": "Club deleted successfully",
     "playersInClub": "Players in this club",
+    "joinFailed": "Failed to join club",
+    "leaveFailed": "Failed to leave club",
+    "leaving": "Leaving...",
+    "leaveClub": "Leave Club",
+    "leaveUserNotFound": "User not found in club",
+    "navigation": {
+      "allClubs": "All Clubs",
+      "myClubs": "My Clubs"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "Overview",
+        "series": "Series",
+        "members": "Members",
+        "mergeePlayers": "Merge Players"
+      },
+      "stats": {
+        "activeSeries": "Active Series",
+        "currentlyRunning": "Currently running tournaments",
+        "totalSeries": "Total Series",
+        "allTimeTournaments": "All-time tournaments",
+        "clubType": "Club Type",
+        "open": "Open",
+        "anyoneCanJoin": "Anyone can join"
+      },
+      "series": {
+        "noSeries": "No series yet",
+        "createFirst": "Create the first tournament series for this club.",
+        "noneCreated": "This club hasn't created any tournament series yet."
+      },
+      "merge": {
+        "title": "Merge Your Accounts",
+        "description": "Find and merge club registrations that were created without an email address into your authenticated account.",
+        "noMatches": "No potential account matches found in this club.",
+        "noMatchesHelp": "If you were added to this club before signing up, those accounts may not match your current name.",
+        "loadingMatches": "Loading potential matches...",
+        "loadFailed": "Failed to load merge candidates",
+        "mergeFailed": "Failed to merge player",
+        "merging": "Merging...",
+        "confirm": "Confirm Merge"
+      },
+      "description": "Table Tennis Club",
+      "notFound": "Club not found",
+      "notFoundMessage": "The club you're looking for doesn't exist.",
+      "adminBadge": "Admin",
+      "memberBadge": "Member"
+    },
+    "members": {
+      "title": "Club Members",
+      "manage": "Manage members of",
+      "total": "total",
+      "emailAddress": "Email Address",
+      "joined": "Joined",
+      "inviteFailed": "Failed to invite player",
+      "roleUpdated": "Member role updated successfully",
+      "roleUpdateFailed": "Failed to update member role",
+      "removeFailed": "Failed to remove member",
+      "admin": "Admin",
+      "member": "Member",
+      "unknown": "Unknown",
+      "sending": "Sending...",
+      "sendInvitation": "Send Invitation",
+      "promoteToAdmin": "Promote to Admin",
+      "demoteToMember": "Demote to Member",
+      "removeFromClub": "Remove from Club"
+    },
     "validation": {
       "nameRequired": "Club name is required",
       "nameMinLength": "Club name must be at least 2 characters",
@@ -164,6 +263,9 @@
     "invalidDates": "Invalid dates",
     "clubAdminRequired": "You must be a club administrator or platform owner",
     "clubIdRequired": "Club must be specified for non-platform owners"
+  },
+  "error": {
+    "generic": "An error occurred"
   },
   "form": {
     "validation": {
@@ -186,10 +288,33 @@
     "profile.update.failed": "Failed to update profile",
     "profile.validation.required": "Both first and last name are required",
     "language.sv": "Svenska",
-    "language.en": "English"
+    "language.en": "English",
+    "language.failed": "Failed to change language",
+    "actor.description": "Manage your account settings and preferences"
+  },
+  "login": {
+    "title": "Welcome to Klubbspel",
+    "description": "Sign in to manage your table tennis tournaments and track your progress",
+    "emailAddress": "Email Address",
+    "emailPlaceholder": "your@email.com",
+    "sendMagicLink": "Send Magic Link",
+    "sending": "Sending...",
+    "checkEmail": "Check your email",
+    "checkEmailDescription": "We've sent a magic link to",
+    "checkEmailInstructions": "Click the link in your email to sign in.",
+    "useDifferent": "Use a different email",
+    "successfullyLoggedIn": "Successfully logged in",
+    "description2": "We'll send you a secure link to sign in without a password.",
+    "welcome": "Welcome! You have been successfully logged in.",
+    "invalidLink": "Invalid or expired login link. Please try again.",
+    "magicLinkSent": "Magic link sent! Check your email.",
+    "magicLinkFailed": "Failed to send magic link. Please try again."
   },
   "auth": {
-    "loginRequired": "You must be logged in to create clubs"
+    "loginRequired": "You must be logged in to create clubs",
+    "signIn": "Sign In",
+    "signInToJoin": "Sign In to Join",
+    "signOut": "Sign Out"
   },
   "profile": {
     "completion": {

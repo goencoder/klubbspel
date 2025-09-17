@@ -13,6 +13,7 @@ import { apiClient } from '@/services/api'
 import type { MergeCandidate } from '@/types/api'
 import { useAuthStore } from '@/store/auth'
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { User, Mail, UserPlus } from 'lucide-react'
 
@@ -23,6 +24,7 @@ interface ClubMergeManagerProps {
 
 export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerProps) {
   const { user } = useAuthStore()
+  const { t } = useTranslation()
   const [mergeCandidates, setMergeCandidates] = useState<MergeCandidate[]>([])
   const [loading, setLoading] = useState(false)
   const [showMergeDialog, setShowMergeDialog] = useState(false)
@@ -43,11 +45,11 @@ export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerPr
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to load merge candidates:', error)
-      toast.error('Failed to load merge candidates')
+      toast.error(t('clubs.detail.merge.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [clubId, canUseMergeFeature])
+  }, [clubId, canUseMergeFeature, t])
 
   useEffect(() => {
     loadMergeCandidates()
@@ -77,7 +79,7 @@ export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerPr
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Merge failed:', error)
-      toast.error('Failed to merge player')
+      toast.error(t('clubs.detail.merge.mergeFailed'))
     } finally {
       setMerging(false)
     }
@@ -98,25 +100,25 @@ export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerPr
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <UserPlus className="h-5 w-5" />
-            <span>Merge Your Accounts</span>
+            <span>{t('clubs.detail.merge.title')}</span>
           </CardTitle>
           <CardDescription>
-            Find and merge club registrations that were created without an email address into your authenticated account.
+            {t('clubs.detail.merge.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Loading potential matches...</div>
+              <div className="text-muted-foreground">{t('clubs.detail.merge.loadingMatches')}</div>
             </div>
           ) : mergeCandidates.length === 0 ? (
             <div className="text-center py-8">
               <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                No potential account matches found in this club.
+                {t('clubs.detail.merge.noMatches')}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                If you were added to this club before signing up, those accounts may not match your current name.
+                {t('clubs.detail.merge.noMatchesHelp')}
               </p>
             </div>
           ) : (
@@ -232,7 +234,7 @@ export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerPr
               disabled={merging}
               className="bg-red-600 hover:bg-red-700"
             >
-              {merging ? 'Merging...' : 'Confirm Merge'}
+              {merging ? t('clubs.detail.merge.merging') : t('clubs.detail.merge.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

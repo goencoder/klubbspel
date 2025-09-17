@@ -1,5 +1,6 @@
 // Mapping from Phosphor icons to Iconsax equivalents
 // Based on https://iconsax-react.pages.dev/
+// i18n-ignore-file: Icon mapping constants, not user-facing text
 
 export const ICON_MAPPING = {
   // Navigation & UI

@@ -141,7 +141,7 @@ export function LeaderboardPage() {
             <span>{t('leaderboard.select.series')}</span>
           </CardTitle>
           <CardDescription>
-            {t('leaderboard.select.help', 'Choose a series to view its leaderboard')}
+            {t('leaderboard.select.help')}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -74,7 +74,7 @@ export interface Player {
 // Club membership for players
 export interface ClubMembership {
   clubId: string
-  role: 'MEMBERSHIP_ROLE_MEMBER' | 'MEMBERSHIP_ROLE_ADMIN' | 'MEMBERSHIP_ROLE_UNSPECIFIED'
+  role: 'MEMBERSHIP_ROLE_MEMBER' | 'MEMBERSHIP_ROLE_ADMIN' | 'MEMBERSHIP_ROLE_UNSPECIFIED' // i18n-ignore: API constants
   active: boolean
   joinedAt: string
   leftAt?: string
