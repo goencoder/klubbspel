@@ -184,7 +184,9 @@ func (rl *HTTPRateLimiter) writeRateLimitError(w http.ResponseWriter, message st
 		}
 	}`, message)
 
-	w.Write([]byte(response))
+	if _, err := w.Write([]byte(response)); err != nil {
+		fmt.Printf("HTTP rate limiter failed to write response: %v\n", err)
+	}
 }
 
 // GetDefaultHTTPConfig returns default HTTP rate limiting configuration

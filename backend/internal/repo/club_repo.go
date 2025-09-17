@@ -102,13 +102,15 @@ func (r *ClubRepo) ListWithCursor(ctx context.Context, searchQuery string, pageS
 		}
 	}
 
-	opts := options.Find().SetLimit(int64(pageSize + 1)).SetSort(bson.D{{"_id", 1}})
+	opts := options.Find().SetLimit(int64(pageSize + 1)).SetSort(bson.D{{Key: "_id", Value: 1}})
 	cursor, err := r.c.Find(ctx, filter, opts)
 	if err != nil {
 		fmt.Printf("DEBUG ClubRepo.ListWithCursor: Error in Find: %v\n", err)
 		return nil, "", "", false, false, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var clubs []*Club
 	for cursor.Next(ctx) {
@@ -149,7 +151,9 @@ func (r *ClubRepo) List(ctx context.Context, query string, pageSize int32, pageT
 	if err != nil {
 		return nil, "", err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var clubs []*Club
 	for cursor.Next(ctx) {

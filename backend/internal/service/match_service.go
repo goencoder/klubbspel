@@ -11,6 +11,7 @@ import (
 )
 
 type MatchService struct {
+	pb.UnimplementedMatchServiceServer
 	Matches *repo.MatchRepo
 	Players *repo.PlayerRepo
 	Series  *repo.SeriesRepo
@@ -93,5 +94,3 @@ func (s *MatchService) ListMatches(ctx context.Context, in *pb.ListMatchesReques
 		HasPreviousPage: hasPrev,
 	}, nil
 }
-
-func (s *MatchService) mustEmbedUnimplementedMatchServiceServer() {}

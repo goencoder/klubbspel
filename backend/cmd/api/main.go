@@ -40,7 +40,11 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("mongo")
 	}
-	defer mc.Close(ctx)
+	defer func() {
+		if err := mc.Close(context.Background()); err != nil {
+			log.Error().Err(err).Msg("failed to close mongo client")
+		}
+	}()
 
 	gs, gw, httpSrv := server.Bootstrap(ctx, cfg, mc)
 

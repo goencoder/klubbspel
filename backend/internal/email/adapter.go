@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -139,7 +140,11 @@ func parseInt(s string) int {
 		return 0
 	}
 
-	var result int
-	fmt.Sscanf(s, "%d", &result)
-	return result
+	value, err := strconv.Atoi(s)
+	if err != nil {
+		log.Warn().Err(err).Str("value", s).Msg("failed to parse SMTP port")
+		return 0
+	}
+
+	return value
 }
