@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -23,6 +23,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
 import type { Series, SeriesVisibility, Club } from '@/types/api'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/store/auth'
 
 interface CreateSeriesDialogProps {
   open: boolean
@@ -36,7 +37,9 @@ export function CreateSeriesDialog({
   onSeriesCreated,
 }: CreateSeriesDialogProps) {
   const { t } = useTranslation()
+  const { isPlatformOwner, isClubAdmin, selectedClubId } = useAuthStore()
   const [loading, setLoading] = useState(false)
+  const [clubs, setClubs] = useState<Club[]>([])
   const [formData, setFormData] = useState<{
     title: string
     visibility: SeriesVisibility
@@ -50,10 +53,59 @@ export function CreateSeriesDialog({
     startsAt: '',
     endsAt: '',
   })
+  const [hasManualClubSelection, setHasManualClubSelection] = useState(false)
+
+  const loadManageableClubs = useCallback(async () => {
+    try {
+      const response = await apiClient.listClubs({ pageSize: 100 })
+
+      const manageableClubs: Club[] = []
+      const userIsPlatformOwner = isPlatformOwner()
+
+      for (const club of response.items) {
+        if (userIsPlatformOwner || isClubAdmin(club.id)) {
+          manageableClubs.push(club)
+        }
+      }
+
+      setClubs(manageableClubs)
+
+      if (!hasManualClubSelection) {
+        setFormData(prev => {
+          const selectedClubExists = selectedClubId
+            ? manageableClubs.some(club => club.id === selectedClubId)
+            : false
+
+          if (selectedClubExists) {
+            return prev.clubId === selectedClubId
+              ? prev
+              : { ...prev, clubId: selectedClubId }
+          }
+
+          if (manageableClubs.length === 1) {
+            const [onlyClub] = manageableClubs
+            return prev.clubId === onlyClub.id
+              ? prev
+              : { ...prev, clubId: onlyClub.id }
+          }
+
+          if (prev.clubId && !manageableClubs.some(club => club.id === prev.clubId)) {
+            return { ...prev, clubId: '' }
+          }
+
+          return prev
+        })
+      }
+    } catch (error: unknown) {
+      toast.error((error as Error)?.message || t('errors.unexpectedError'))
+    }
+  }, [hasManualClubSelection, isClubAdmin, isPlatformOwner, selectedClubId, t])
 
   // Reset form when dialog closes
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      loadManageableClubs()
+    } else {
       setFormData({
         title: '',
         visibility: 'SERIES_VISIBILITY_OPEN',
@@ -61,8 +113,10 @@ export function CreateSeriesDialog({
         startsAt: '',
         endsAt: '',
       })
+      setClubs([])
+      setHasManualClubSelection(false)
     }
-  }, [open])
+  }, [open, loadManageableClubs])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -104,7 +158,9 @@ export function CreateSeriesDialog({
         visibility: formData.visibility,
         startsAt,
         endsAt,
-        ...(formData.clubId && { clubId: formData.clubId }),
+        ...(formData.visibility === 'SERIES_VISIBILITY_CLUB_ONLY' && formData.clubId
+          ? { clubId: formData.clubId }
+          : {}),
       }
 
       const series = await apiClient.createSeries(payload)
@@ -121,6 +177,7 @@ export function CreateSeriesDialog({
   }
 
   const handleClubSelected = (club: Club | null) => {
+    setHasManualClubSelection(true)
     setFormData((prev) => ({ ...prev, clubId: club?.id || '' }))
   }
 
@@ -155,13 +212,39 @@ export function CreateSeriesDialog({
             <Select
               value={formData.visibility}
               onValueChange={(value) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  visibility: value as SeriesVisibility,
-                  // reset club if switching away
-                  clubId:
-                    value === 'SERIES_VISIBILITY_CLUB_ONLY' ? prev.clubId : '',
-                }))
+                setFormData((prev) => {
+                  const nextVisibility = value as SeriesVisibility
+                  const nextState = {
+                    ...prev,
+                    visibility: nextVisibility,
+                  }
+
+                  if (nextVisibility !== 'SERIES_VISIBILITY_CLUB_ONLY') {
+                    return nextState
+                  }
+
+                  if (hasManualClubSelection && prev.clubId) {
+                    return nextState
+                  }
+
+                  const clubFromContext = selectedClubId && clubs.some(club => club.id === selectedClubId)
+                    ? selectedClubId
+                    : undefined
+
+                  if (clubFromContext && prev.clubId !== clubFromContext) {
+                    return { ...nextState, clubId: clubFromContext }
+                  }
+
+                  if (!prev.clubId && clubs.length === 1) {
+                    return { ...nextState, clubId: clubs[0].id }
+                  }
+
+                  if (prev.clubId && clubs.some(club => club.id === prev.clubId)) {
+                    return { ...nextState, clubId: prev.clubId }
+                  }
+
+                  return { ...nextState, clubId: '' }
+                })
               }
             >
               <SelectTrigger id="visibility">
@@ -182,9 +265,11 @@ export function CreateSeriesDialog({
           {formData.visibility === 'SERIES_VISIBILITY_CLUB_ONLY' && (
             <div className="space-y-2">
               <Label>{t('players.club')} *</Label>
-              <ClubSelector 
-                value={formData.clubId}
-                onClubSelected={handleClubSelected} 
+              <ClubSelector
+                clubs={clubs}
+                selectedClubId={formData.clubId}
+                onClubSelected={handleClubSelected}
+                disabled={loading}
               />
             </div>
           )}

@@ -20,7 +20,7 @@ interface CreatePlayerDialogProps {
 
 export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: CreatePlayerDialogProps) {
   const { t } = useTranslation()
-  const { isPlatformOwner, isClubAdmin } = useAuthStore()
+  const { isPlatformOwner, isClubAdmin, selectedClubId } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [clubs, setClubs] = useState<Club[]>([])
   const [formData, setFormData] = useState({
@@ -29,6 +29,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
   })
   const [similarPlayers, setSimilarPlayers] = useState<Player[]>([])
   const [showSimilarDialog, setShowSimilarDialog] = useState(false)
+  const [hasManualClubSelection, setHasManualClubSelection] = useState(false)
 
   const loadManageableClubs = useCallback(async () => {
     try {
@@ -56,16 +57,38 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
 
       setClubs(manageableClubs)
 
-      // Auto-select if only one club available
-      if (manageableClubs.length === 1) {
-        setFormData(prev => ({ ...prev, clubId: manageableClubs[0].id }))
+      if (!hasManualClubSelection) {
+        setFormData(prev => {
+          const selectedClubExists = selectedClubId
+            ? manageableClubs.some(club => club.id === selectedClubId)
+            : false
+
+          if (selectedClubExists) {
+            return prev.clubId === selectedClubId
+              ? prev
+              : { ...prev, clubId: selectedClubId }
+          }
+
+          if (manageableClubs.length === 1) {
+            const [onlyClub] = manageableClubs
+            return prev.clubId === onlyClub.id
+              ? prev
+              : { ...prev, clubId: onlyClub.id }
+          }
+
+          if (prev.clubId && !manageableClubs.some(club => club.id === prev.clubId)) {
+            return { ...prev, clubId: '' }
+          }
+
+          return prev
+        })
       }
 
       // Show warning if no manageable clubs - handled silently
     } catch (error: unknown) {
       toast.error((error as Error).message || t('errors.generic'))
     }
-  }, [isPlatformOwner, isClubAdmin, t])
+  }, [hasManualClubSelection, isPlatformOwner, isClubAdmin, selectedClubId, t])
 
   // Load clubs when dialog opens
   useEffect(() => {
@@ -80,6 +103,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       setSimilarPlayers([])
       setShowSimilarDialog(false)
       setClubs([])
+      setHasManualClubSelection(false)
     }
   }, [open, loadManageableClubs])
 
@@ -140,6 +164,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
   }
 
   const handleClubSelected = (club: Club | null) => {
+    setHasManualClubSelection(true)
     setFormData(prev => ({ ...prev, clubId: club?.id || '' }))
   }
 

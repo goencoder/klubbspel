@@ -147,10 +147,11 @@ class ApiClient {
       }
 
       // Network or other errors
-      throw {
-        code: 'NETWORK_ERROR',
-        message: error instanceof Error ? error.message : 'Network error occurred'
-      } as ApiError
+      const networkError = new Error(
+        error instanceof Error ? error.message : 'Network error occurred'
+      ) as ApiError
+      networkError.code = 'NETWORK_ERROR'
+      throw networkError
     }
   }
 

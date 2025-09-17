@@ -68,8 +68,8 @@ export function ReportMatchDialog({
       return
     }
 
-    const scoreA = parseInt(formData.score_a)
-    const scoreB = parseInt(formData.score_b)
+    const scoreA = parseInt(formData.score_a, 10)
+    const scoreB = parseInt(formData.score_b, 10)
 
     if (scoreA < 0 || scoreB < 0 || scoreA > 5 || scoreB > 5) {
       toast.error(t('matches.validation.scoresRange'))

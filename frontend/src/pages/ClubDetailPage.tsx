@@ -1,5 +1,6 @@
 import ClubMembersManager from '@/components/ClubMembersManager'
 import { ClubMergeManager } from '@/components/ClubMergeManager'
+import { CreateSeriesDialog } from '@/components/CreateSeriesDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,6 +33,7 @@ export function ClubDetailPage() {
   const [joining, setJoining] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [showCreateSeriesDialog, setShowCreateSeriesDialog] = useState(false)
 
   const loadClubDetails = useCallback(async () => {
     if (!id) return
@@ -136,6 +138,21 @@ export function ClubDetailPage() {
 
   const isMember = isAuthenticated() && user && isClubMember(club.id)
   const isAdmin = isAuthenticated() && user && isClubAdmin(club.id)
+
+  const openCreateSeriesDialog = () => {
+    useAuthStore.getState().selectClub(club.id)
+    setShowCreateSeriesDialog(true)
+  }
+
+  const handleSeriesCreated = (createdSeries: Series) => {
+    useAuthStore.getState().selectClub(club.id)
+
+    if (createdSeries.clubId === club.id || createdSeries.visibility === 'SERIES_VISIBILITY_OPEN') {
+      setSeries(prev => [createdSeries, ...prev.filter(s => s.id !== createdSeries.id)])
+    }
+
+    setShowCreateSeriesDialog(false)
+  }
 
   return (
     <div className="space-y-6">
@@ -282,6 +299,11 @@ export function ClubDetailPage() {
         </TabsContent>
 
         <TabsContent value="series" className="space-y-6">
+          {isAdmin && series.length > 0 && (
+            <div className="flex justify-end">
+              <Button onClick={openCreateSeriesDialog}>{t('series.createNew')}</Button>
+            </div>
+          )}
           {series.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
@@ -294,6 +316,11 @@ export function ClubDetailPage() {
                       : t('clubs.detail.series.noneCreated')
                     }
                   </p>
+                  {isAdmin && (
+                    <Button className="mt-6" onClick={openCreateSeriesDialog}>
+                      {t('series.createNew')}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -335,6 +362,17 @@ export function ClubDetailPage() {
           </TabsContent>
         )}
       </Tabs>
+
+      <CreateSeriesDialog
+        open={showCreateSeriesDialog}
+        onOpenChange={(nextOpen) => {
+          if (nextOpen) {
+            useAuthStore.getState().selectClub(club.id)
+          }
+          setShowCreateSeriesDialog(nextOpen)
+        }}
+        onSeriesCreated={handleSeriesCreated}
+      />
     </div>
   )
 }
