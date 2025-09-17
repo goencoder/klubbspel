@@ -86,7 +86,8 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
 
       // Show warning if no manageable clubs - handled silently
     } catch (error: unknown) {
-      toast.error((error as Error).message || t('errors.generic'))
+      const message = error instanceof Error ? error.message : ''
+      toast.error(message || t('errors.generic'))
     }
   }, [hasManualClubSelection, isPlatformOwner, isClubAdmin, selectedClubId, t])
 
@@ -147,7 +148,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       onOpenChange(false)
       toast.success(t('players.created'))
     } catch (error: unknown) {
-      const errorMessage = (error as Error).message || '';
+      const errorMessage = error instanceof Error ? error.message : ''
       // Handle specific authorization errors
       if (errorMessage.includes('CLUB_ADMIN_OR_PLATFORM_OWNER_REQUIRED')) {
         toast.error(t('errors.clubAdminRequired'))

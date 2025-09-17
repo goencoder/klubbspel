@@ -97,7 +97,8 @@ export function CreateSeriesDialog({
         })
       }
     } catch (error: unknown) {
-      toast.error((error as Error)?.message || t('errors.unexpectedError'))
+      const message = error instanceof Error ? error.message : ''
+      toast.error(message || t('errors.unexpectedError'))
     }
   }, [hasManualClubSelection, isClubAdmin, isPlatformOwner, selectedClubId, t])
 
@@ -169,8 +170,8 @@ export function CreateSeriesDialog({
       onOpenChange(false)
     } catch (error: unknown) {
       // grpc-gateway rpcStatus: { code, message, details }
-      const msg = (error as Error)?.message || t('errors.unexpectedError')
-      toast.error(msg)
+      const message = error instanceof Error ? error.message : ''
+      toast.error(message || t('errors.unexpectedError'))
     } finally {
       setLoading(false)
     }
