@@ -5,55 +5,60 @@ import (
 	"testing"
 )
 
-const epsilon = 1e-6
+const (
+	epsilon = 1e-6
+	// expectedProbabilityDiff200Favorite represents the favourite's win probability when leading by 200 Elo points.
+	// Derived from the standard Elo expected score formula: 1 / (1 + 10^(-200/400)) ≈ 0.759746926647958.
+	expectedProbabilityDiff200Favorite = 0.759746926647958
+	// expectedProbabilityDiff200Underdog complements the favourite's probability (≈ 0.240253073352042).
+	expectedProbabilityDiff200Underdog = 1 - expectedProbabilityDiff200Favorite
+	eloKFactor                         = 32.0
+)
 
 func TestCalculateELOExpectedProbability(t *testing.T) {
-	ratingA := 1200.0
-	ratingB := 1000.0
+	ratingFavorite := 1200.0
+	ratingUnderdog := 1000.0
 
-	newRatingA, newRatingB := calculateELO(ratingA, ratingB, 11, 5)
+	probabilityFavorite := 1 / (1 + math.Pow(10, (ratingUnderdog-ratingFavorite)/400))
+	probabilityUnderdog := 1 / (1 + math.Pow(10, (ratingFavorite-ratingUnderdog)/400))
 
-	expectedA := 1 / (1 + math.Pow(10, (ratingB-ratingA)/400))
-	expectedB := 1 / (1 + math.Pow(10, (ratingA-ratingB)/400))
-
-	derivedExpectedA := 1 - (newRatingA-ratingA)/32
-	derivedExpectedB := -(newRatingB - ratingB) / 32
-
-	if math.Abs(derivedExpectedA-expectedA) > epsilon {
-		t.Fatalf("expected player A win probability %.6f, got %.6f", expectedA, derivedExpectedA)
+	if math.Abs(probabilityFavorite-expectedProbabilityDiff200Favorite) > epsilon {
+		t.Fatalf("expected favourite win probability %.6f, got %.6f", expectedProbabilityDiff200Favorite, probabilityFavorite)
 	}
-	if math.Abs(derivedExpectedB-expectedB) > epsilon {
-		t.Fatalf("expected player B win probability %.6f, got %.6f", expectedB, derivedExpectedB)
-	}
-
-	if math.Abs(expectedA-0.7597469) > 1e-3 {
-		t.Fatalf("expected probability for player A to be close to 0.76, got %.6f", expectedA)
-	}
-	if math.Abs(expectedB-0.2402531) > 1e-3 {
-		t.Fatalf("expected probability for player B to be close to 0.24, got %.6f", expectedB)
+	if math.Abs(probabilityUnderdog-expectedProbabilityDiff200Underdog) > epsilon {
+		t.Fatalf("expected underdog win probability %.6f, got %.6f", expectedProbabilityDiff200Underdog, probabilityUnderdog)
 	}
 }
 
 func TestCalculateELORatingUpdate(t *testing.T) {
-	ratingA := 1000.0
-	ratingB := 1200.0
+	ratingFavorite := 1200.0
+	ratingUnderdog := 1000.0
 
-	newRatingA, newRatingB := calculateELO(ratingA, ratingB, 7, 11)
+	t.Run("favourite wins", func(t *testing.T) {
+		newRatingFavorite, newRatingUnderdog := calculateELO(ratingFavorite, ratingUnderdog, 11, 5)
 
-	expectedA := 1 / (1 + math.Pow(10, (ratingB-ratingA)/400))
-	expectedB := 1 / (1 + math.Pow(10, (ratingA-ratingB)/400))
+		wantRatingFavorite := ratingFavorite + eloKFactor*(1-expectedProbabilityDiff200Favorite)
+		wantRatingUnderdog := ratingUnderdog - eloKFactor*expectedProbabilityDiff200Underdog
 
-	const K = 32.0
-	actualA := 0.0
-	actualB := 1.0
+		if math.Abs(newRatingFavorite-wantRatingFavorite) > epsilon {
+			t.Fatalf("expected favourite rating %.6f, got %.6f", wantRatingFavorite, newRatingFavorite)
+		}
+		if math.Abs(newRatingUnderdog-wantRatingUnderdog) > epsilon {
+			t.Fatalf("expected underdog rating %.6f, got %.6f", wantRatingUnderdog, newRatingUnderdog)
+		}
+	})
 
-	wantRatingA := ratingA + K*(actualA-expectedA)
-	wantRatingB := ratingB + K*(actualB-expectedB)
+	t.Run("underdog wins", func(t *testing.T) {
+		newRatingFavorite, newRatingUnderdog := calculateELO(ratingFavorite, ratingUnderdog, 5, 11)
 
-	if math.Abs(newRatingA-wantRatingA) > epsilon {
-		t.Fatalf("expected new rating for player A %.6f, got %.6f", wantRatingA, newRatingA)
-	}
-	if math.Abs(newRatingB-wantRatingB) > epsilon {
-		t.Fatalf("expected new rating for player B %.6f, got %.6f", wantRatingB, newRatingB)
-	}
+		wantRatingFavorite := ratingFavorite - eloKFactor*expectedProbabilityDiff200Favorite
+		wantRatingUnderdog := ratingUnderdog + eloKFactor*(1-expectedProbabilityDiff200Underdog)
+
+		if math.Abs(newRatingFavorite-wantRatingFavorite) > epsilon {
+			t.Fatalf("expected favourite rating %.6f, got %.6f", wantRatingFavorite, newRatingFavorite)
+		}
+		if math.Abs(newRatingUnderdog-wantRatingUnderdog) > epsilon {
+			t.Fatalf("expected underdog rating %.6f, got %.6f", wantRatingUnderdog, newRatingUnderdog)
+		}
+	})
 }
