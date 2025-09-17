@@ -4,6 +4,6 @@ declare const BASE_KV_SERVICE_URL: string
 
 // Enable JSON imports
 declare module "*.json" {
-  const value: any;
+  const value: Record<string, unknown>;
   export default value;
 }

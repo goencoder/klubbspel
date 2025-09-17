@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
@@ -35,23 +35,7 @@ export function PlayerSelector({
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  useEffect(() => {
-    if (open || debouncedSearchQuery) {
-      loadPlayers()
-    }
-  }, [debouncedSearchQuery, open, clubId, excludePlayerId])
-
-  useEffect(() => {
-    if (value && !selectedPlayer) {
-      // Find the selected player by ID
-      const player = players.find(p => p.id === value)
-      if (player) {
-        setSelectedPlayer(player)
-      }
-    }
-  }, [value, players, selectedPlayer])
-
-  const loadPlayers = async () => {
+  const loadPlayers = useCallback(async () => {
     try {
       setLoading(true)
       const response = await apiClient.listPlayers({
@@ -66,12 +50,28 @@ export function PlayerSelector({
       )
       
       setPlayers(filteredPlayers)
-    } catch (error: any) {
-      toast.error(error.message || t('errors.generic'))
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('errors.generic'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [debouncedSearchQuery, clubId, excludePlayerId, t])
+
+  useEffect(() => {
+    if (open || debouncedSearchQuery) {
+      loadPlayers()
+    }
+  }, [open, debouncedSearchQuery, loadPlayers])
+
+  useEffect(() => {
+    if (value && !selectedPlayer) {
+      // Find the selected player by ID
+      const player = players.find(p => p.id === value)
+      if (player) {
+        setSelectedPlayer(player)
+      }
+    }
+  }, [value, players, selectedPlayer])
 
   const handlePlayerSelect = (player: Player) => {
     setSelectedPlayer(player)

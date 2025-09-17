@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,7 @@ interface CreatePlayerDialogProps {
 
 export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: CreatePlayerDialogProps) {
   const { t } = useTranslation()
-  const { user, isPlatformOwner, isClubAdmin } = useAuthStore()
+  const { isPlatformOwner, isClubAdmin } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [clubs, setClubs] = useState<Club[]>([])
   const [formData, setFormData] = useState({
@@ -30,23 +30,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
   const [similarPlayers, setSimilarPlayers] = useState<Player[]>([])
   const [showSimilarDialog, setShowSimilarDialog] = useState(false)
 
-  // Load clubs when dialog opens
-  useEffect(() => {
-    if (open) {
-      loadManageableClubs()
-    } else {
-      // Reset form when dialog closes
-      setFormData({
-        displayName: '',
-        clubId: ''
-      })
-      setSimilarPlayers([])
-      setShowSimilarDialog(false)
-      setClubs([])
-    }
-  }, [open])
-
-  const loadManageableClubs = async () => {
+  const loadManageableClubs = useCallback(async () => {
     try {
       const response = await apiClient.listClubs({ pageSize: 100 })
 
@@ -77,14 +61,27 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
         setFormData(prev => ({ ...prev, clubId: manageableClubs[0].id }))
       }
 
-      // Show warning if no manageable clubs
-      if (manageableClubs.length === 0) {
-        console.warn('User has no manageable clubs for creating players')
-      }
-    } catch (error: any) {
-      toast.error(error.message || t('errors.generic'))
+      // Show warning if no manageable clubs - handled silently
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('errors.generic'))
     }
-  }
+  }, [isPlatformOwner, isClubAdmin, t])
+
+  // Load clubs when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadManageableClubs()
+    } else {
+      // Reset form when dialog closes
+      setFormData({
+        displayName: '',
+        clubId: ''
+      })
+      setSimilarPlayers([])
+      setShowSimilarDialog(false)
+      setClubs([])
+    }
+  }, [open, loadManageableClubs])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -125,16 +122,17 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       onPlayerCreated(response.player)
       onOpenChange(false)
       toast.success(t('players.created'))
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = (error as Error).message || '';
       // Handle specific authorization errors
-      if (error.message.includes('CLUB_ADMIN_OR_PLATFORM_OWNER_REQUIRED')) {
+      if (errorMessage.includes('CLUB_ADMIN_OR_PLATFORM_OWNER_REQUIRED')) {
         toast.error(t('errors.clubAdminRequired'))
-      } else if (error.message.includes('CLUB_ID_REQUIRED_FOR_NON_PLATFORM_OWNERS')) {
+      } else if (errorMessage.includes('CLUB_ID_REQUIRED_FOR_NON_PLATFORM_OWNERS')) {
         toast.error(t('errors.clubIdRequired'))
-      } else if (error.message.includes('LOGIN_REQUIRED')) {
+      } else if (errorMessage.includes('LOGIN_REQUIRED')) {
         toast.error(t('auth.loginRequired'))
       } else {
-        toast.error(error.message || t('errors.generic'))
+        toast.error(errorMessage || t('errors.generic'))
       }
     } finally {
       setLoading(false)

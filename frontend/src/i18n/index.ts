@@ -12,7 +12,6 @@ const resources = {
 let storedLanguage = 'sv'
 if (typeof window !== 'undefined') {
   storedLanguage = localStorage.getItem('klubbspel-language') || 'sv'
-  console.log('i18n: Loading stored language:', storedLanguage)
 }
 
 // Initialize i18n synchronously

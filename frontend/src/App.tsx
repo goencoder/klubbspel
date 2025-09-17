@@ -22,7 +22,6 @@ function App() {
   // Sync language changes
   useEffect(() => {
     if (language && i18n.language !== language) {
-      console.log('App: changing language from', i18n.language, 'to', language)
       i18n.changeLanguage(language)
     }
   }, [language, i18n])

@@ -19,6 +19,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "resolveJsonModule": true,
+    "allowJs": true,
     /* Linting */
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,

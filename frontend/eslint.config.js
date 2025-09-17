@@ -62,7 +62,14 @@ export default [
       ...js.configs.recommended.rules,
 
       // TypeScript specific rules
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_'
+        }
+      ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -77,7 +84,7 @@ export default [
       'prefer-const': 'error',
       'no-var': 'error',
       'eqeqeq': ['error', 'always'],
-      'curly': ['error', 'all'],
+      'curly': ['error', 'multi-line'],
 
       // React hooks rules
       'react-hooks/rules-of-hooks': 'error',

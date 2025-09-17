@@ -1,6 +1,5 @@
 import styled from 'styled-components';
-import { colors, spacing, radii } from '../Styles';
-import { SharedEmptyState } from '../components/Styles';
+import { colors, spacing } from '../Styles';
 
 // =============================================================================
 // PAGE-LEVEL STYLED COMPONENTS

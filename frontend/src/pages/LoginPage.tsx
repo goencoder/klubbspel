@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/store/auth'
 import { CheckCircle, LogIn, Mail } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import React, {useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -26,13 +26,25 @@ export function LoginPage() {
     clearError
   } = useAuthStore()
 
+  const handleTokenValidation = useCallback(async (token: string) => {
+    try {
+      setIsLoading(true)
+      await validateToken(token)
+      toast.success('Welcome! You have been successfully logged in.')
+    } catch (_error) {
+      toast.error('Invalid or expired login link. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [validateToken])
+
   // Check for token in URL on mount
   useEffect(() => {
     const token = searchParams.get('token') || searchParams.get('apikey')
     if (token) {
       handleTokenValidation(token)
     }
-  }, [searchParams])
+  }, [searchParams, handleTokenValidation])
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -41,19 +53,6 @@ export function LoginPage() {
       navigate(returnTo, { replace: true })
     }
   }, [isAuthenticated, user, navigate, searchParams])
-
-  const handleTokenValidation = async (token: string) => {
-    try {
-      setIsLoading(true)
-      await validateToken(token)
-      toast.success('Welcome! You have been successfully logged in.')
-    } catch (error) {
-      console.error('Token validation failed:', error)
-      toast.error('Invalid or expired login link. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,14 +66,14 @@ export function LoginPage() {
       setIsLoading(true)
       clearError()
 
+      const returnTo = searchParams.get('returnTo')
       const returnUrl = window.location.origin + '/login' +
-        (searchParams.get('returnTo') ? `?returnTo=${encodeURIComponent(searchParams.get('returnTo')!)}` : '')
+        (returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '')
 
       await sendMagicLink(email.trim(), returnUrl)
       setMagicLinkSent(true)
       toast.success('Magic link sent! Check your email.')
-    } catch (error) {
-      console.error('Failed to send magic link:', error)
+    } catch (_error) {
       toast.error('Failed to send magic link. Please try again.')
     } finally {
       setIsLoading(false)

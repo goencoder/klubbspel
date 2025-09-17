@@ -12,7 +12,7 @@ import {
 import { apiClient } from '@/services/api'
 import type { Series } from '@/types/api'
 import { Chart, CloseCircle, Cup, Medal, TickCircle } from 'iconsax-reactjs'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -28,17 +28,18 @@ type UILBRow = {
 }
 
 // ---- helpers to tolerate API shape differences (rows vs entries, snake_case vs camelCase)
-function normalizeLeaderboard(resp: any): UILBRow[] {
-  const raw = (resp?.rows ?? resp?.entries ?? []) as any[]
+function normalizeLeaderboard(resp: { rows?: unknown[]; entries?: unknown[] } | unknown): UILBRow[] {
+  const raw = ((resp as { rows?: unknown[]; entries?: unknown[] })?.rows ?? 
+               (resp as { rows?: unknown[]; entries?: unknown[] })?.entries ?? []) as Array<Record<string, unknown>>
   if (!Array.isArray(raw)) return []
-  return raw.map((r: any) => ({
-    rank: r.rank ?? 0,
-    playerId: r.playerId ?? r.player_id ?? '',
-    displayName: r.displayName ?? r.playerName ?? r.display_name ?? '',
+  return raw.map((r: Record<string, unknown>) => ({
+    rank: Number(r.rank ?? 0),
+    playerId: String(r.playerId ?? r.player_id ?? ''),
+    displayName: String(r.displayName ?? r.playerName ?? r.display_name ?? ''),
     rating: Number(r.rating ?? r.eloRating ?? 0),
-    games: r.games ?? r.matchesPlayed ?? 0,
-    wins: r.wins ?? r.matchesWon ?? 0,
-    losses: r.losses ?? r.matchesLost ?? 0,
+    games: Number(r.games ?? r.matchesPlayed ?? 0),
+    wins: Number(r.wins ?? r.matchesWon ?? 0),
+    losses: Number(r.losses ?? r.matchesLost ?? 0),
   }))
 }
 
@@ -52,38 +53,29 @@ export function LeaderboardPage() {
   const [loadingSeries, setLoadingSeries] = useState(true)
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false)
 
-  useEffect(() => {
-    loadSeries()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    if (selectedSeriesId) {
-      loadLeaderboard(selectedSeriesId)
-    } else {
-      setLeaderboard([])
-    }
-  }, [selectedSeriesId])
-
-  const loadSeries = async () => {
+  const loadSeries = useCallback(async () => {
     try {
       setLoadingSeries(true)
       // Accept both {pageSize} and {page_size} depending on your client
-      const response = await apiClient.listSeries?.({ pageSize: 100 }) ?? await apiClient.listSeries({ page_size: 100 })
+      const response = await apiClient.listSeries?.({ pageSize: 100 }) ?? await apiClient.listSeries({ pageSize: 100 })
       const items: Series[] = Array.isArray(response?.items) ? response.items : []
       setSeries(items)
       if (!seriesIdFromParams && items.length > 0) {
-        setSelectedSeriesId(items[0].id as string)
+        setSelectedSeriesId(items[0].id)
       }
-    } catch (error: any) {
-      toast.error(error?.message || t('error.generic'))
+    } catch (error: unknown) {
+      toast.error((error as Error)?.message || t('error.generic'))
       setSeries([])
     } finally {
       setLoadingSeries(false)
     }
-  }
+  }, [seriesIdFromParams, t])
 
-  const loadLeaderboard = async (seriesId: string) => {
+  useEffect(() => {
+    loadSeries()
+  }, [loadSeries])
+
+  const loadLeaderboard = useCallback(async (seriesId: string) => {
     try {
       setLoadingLeaderboard(true)
       // Tolerate either {seriesId, pageSize} or {series_id, top_n}
@@ -92,13 +84,21 @@ export function LeaderboardPage() {
         (await apiClient.getLeaderboard({ series_id: seriesId, top_n: 50 }, 'leaderboard'))
 
       setLeaderboard(normalizeLeaderboard(resp))
-    } catch (error: any) {
-      toast.error(error?.message || t('error.generic'))
+    } catch (error: unknown) {
+      toast.error((error as Error)?.message || t('error.generic'))
       setLeaderboard([])
     } finally {
       setLoadingLeaderboard(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    if (selectedSeriesId) {
+      loadLeaderboard(selectedSeriesId)
+    } else {
+      setLeaderboard([])
+    }
+  }, [selectedSeriesId, loadLeaderboard])
 
   const calculateWinRate = (wins: number, games: number) => {
     if (!games) return 0

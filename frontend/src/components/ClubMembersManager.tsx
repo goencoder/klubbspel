@@ -31,7 +31,7 @@ import type {
   UpdateMemberRoleRequest
 } from '@/types/membership'
 import { Mail, Shield, User, UserPlus, UserX, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -52,11 +52,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
 
   const canManageClub = isClubAdmin(clubId) || isPlatformOwner()
 
-  useEffect(() => {
-    loadMembers()
-  }, [clubId])
-
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     try {
       setLoading(true)
       const response = await apiClient.listClubMembers({
@@ -73,7 +69,11 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
     } finally {
       setLoading(false)
     }
-  }
+  }, [clubId, t])
+
+  useEffect(() => {
+    loadMembers()
+  }, [loadMembers])
 
   const handleInvitePlayer = async () => {
     if (!inviteEmail.trim()) {
@@ -128,7 +128,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
   }
 
   const handleRemoveMember = async (playerId: string, playerName: string) => {
-    if (!confirm(`Are you sure you want to remove ${playerName} from ${clubName}?`)) {
+    if (!window.confirm(`Are you sure you want to remove ${playerName} from ${clubName}?`)) {
       return
     }
 
