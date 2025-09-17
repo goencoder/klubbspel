@@ -32,9 +32,9 @@ func NewMockEmailService(config EmailConfig) (*MockEmailService, error) {
 
 // SendMagicLink logs a magic link email (mock implementation)
 func (s *MockEmailService) SendMagicLink(ctx context.Context, toEmail, token, returnURL string) error {
-	// Default to root page if returnURL is /login or empty
+	// Default to leaderboard page if returnURL is /login or empty
 	if returnURL == "" || returnURL == "/login" {
-		returnURL = "/"
+		returnURL = "/leaderboard"
 	}
 
 	// Build magic link URL
@@ -69,6 +69,51 @@ Klubbspel-teamet`, magicURL)
 
 	// Log for debugging
 	log.Printf("[MOCK EMAIL] Magic Link sent to %s: %s", toEmail, magicURL)
+
+	return nil
+}
+
+// SendClubInvitationMagicLink logs a club invitation magic link email (mock implementation)
+func (s *MockEmailService) SendClubInvitationMagicLink(ctx context.Context, toEmail, token, returnURL, clubName, inviterName, inviterEmail string) error {
+	// Default to root page if returnURL is /login or empty
+	if returnURL == "" || returnURL == "/login" {
+		returnURL = "/"
+	}
+
+	// Build magic link URL
+	magicURL := fmt.Sprintf("%s/auth/login?apikey=%s", s.config.BaseURL, token)
+	if returnURL != "" {
+		magicURL += fmt.Sprintf("&return_url=%s", returnURL)
+	}
+
+	subject := fmt.Sprintf("Du har blivit tillagd som medlem i %s", clubName)
+	body := fmt.Sprintf(`Hej!
+
+%s (%s) har lagt till dig som medlem i klubben "%s" på Klubbspel.
+
+Klicka på länken nedan för att logga in och se klubbdetaljer:
+
+%s
+
+Denna länk går ut om 24 timmar av säkerhetsskäl.
+
+Om du har frågor kan du kontakta %s på %s.
+
+Med vänliga hälsningar,
+Klubbspel-teamet`, inviterName, inviterEmail, clubName, magicURL, inviterName, inviterEmail)
+
+	// Store the mock email
+	mockEmail := MockEmail{
+		To:        toEmail,
+		Subject:   subject,
+		Body:      body,
+		Timestamp: time.Now(),
+		Type:      "club_invitation_magic_link",
+	}
+	s.sentEmails = append(s.sentEmails, mockEmail)
+
+	// Log for debugging
+	log.Printf("[MOCK EMAIL] Club invitation magic link sent to %s for club %s by %s (%s): %s", toEmail, clubName, inviterName, inviterEmail, magicURL)
 
 	return nil
 }

@@ -5,6 +5,7 @@ option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbsp
 import "google/api/annotations.proto";
 import "google/protobuf/field_mask.proto";
 import "buf/validate/validate.proto";
+import "klubbspel/v1/common.proto";
 
 // Club represents a table tennis club that can host series and have players
 message Club {
@@ -12,12 +13,16 @@ message Club {
   string id = 1;
   // Display name of the club (e.g., "Stockholm TK", "Malmö Bordtennis")
   string name = 2 [(buf.validate.field).string = {min_len: 2, max_len: 80}];
+  // Sports supported by this club. Defaults to table tennis for now.
+  repeated Sport supported_sports = 3;
 }
 
 // Request to create a new club
-message CreateClubRequest { 
+message CreateClubRequest {
   // Club name (must be unique)
-  string name = 1 [(buf.validate.field).string = {min_len: 2, max_len: 80}]; 
+  string name = 1 [(buf.validate.field).string = {min_len: 2, max_len: 80}];
+  // Optional sports to enable for this club. Defaults to table tennis.
+  repeated Sport supported_sports = 2;
 }
 
 // Response containing the created club

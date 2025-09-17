@@ -6,6 +6,7 @@ import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
+import "klubbspel/v1/common.proto";
 
 // Visibility setting for a tournament series
 enum SeriesVisibility {
@@ -15,6 +16,16 @@ enum SeriesVisibility {
   SERIES_VISIBILITY_CLUB_ONLY = 1;
   // Players from any club can participate
   SERIES_VISIBILITY_OPEN = 2;
+}
+
+// SeriesFormat captures the competition structure.
+enum SeriesFormat {
+  // Default value, should not be used.
+  SERIES_FORMAT_UNSPECIFIED = 0;
+  // Continuous ladder where players challenge each other.
+  SERIES_FORMAT_LADDER = 1;
+  // Knock-out cup or bracket style tournament.
+  SERIES_FORMAT_CUP = 2;
 }
 
 // Series represents a time-bound table tennis tournament
@@ -34,6 +45,10 @@ message Series {
   google.protobuf.Timestamp ends_at = 5 [(buf.validate.field).required = true];
   // Who can participate in this series
   SeriesVisibility visibility = 6;
+  // Sport that the series is played in.
+  Sport sport = 7;
+  // Competition format for the series.
+  SeriesFormat format = 8;
 
   option (buf.validate.message).cel = {
     id: "series_valid_time_range"
@@ -57,6 +72,10 @@ message CreateSeriesRequest {
   google.protobuf.Timestamp ends_at = 4 [(buf.validate.field).required = true];
   // Who can participate in this series
   SeriesVisibility visibility = 5;
+  // Sport that the series is played in. Defaults to table tennis.
+  Sport sport = 6;
+  // Competition format. Defaults to LADDER.
+  SeriesFormat format = 7;
 
   option (buf.validate.message).cel = {
     id: "create_series_valid_time_range"
@@ -124,6 +143,12 @@ message ListSeriesRequest {
   string cursor_after = 2;
   // ID to start listing before (for backward pagination)
   string cursor_before = 3;
+  // Optional filter by sport.
+  Sport sport_filter = 4;
+  // Optional filter by club IDs. Special value "OPEN" includes all open series.
+  // If empty, returns all series. Example: ["98463678", "OPEN"] returns 
+  // series for club 98463678 plus all open series.
+  repeated string club_filter = 5;
 }
 
 // Response containing list of series and cursor pagination info

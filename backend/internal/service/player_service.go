@@ -118,8 +118,32 @@ func (s *PlayerService) CreatePlayer(ctx context.Context, in *pb.CreatePlayerReq
 }
 
 func (s *PlayerService) ListPlayers(ctx context.Context, in *pb.ListPlayersRequest) (*pb.ListPlayersResponse, error) {
-	// Use the new ListWithCursor method for proper pagination
-	players, startCursor, endCursor, hasNext, hasPrev, err := s.Players.ListWithCursor(ctx, in.GetSearchQuery(), in.GetClubId(), in.GetPageSize(), in.GetCursorAfter(), in.GetCursorBefore())
+	// Handle both old club_id and new club_filter for backward compatibility
+	var clubIDs []string
+	var includeOpen bool
+
+	// Use new club_filter if provided
+	if len(in.GetClubFilter()) > 0 {
+		for _, filter := range in.GetClubFilter() {
+			if filter == "OPEN" {
+				includeOpen = true
+			} else {
+				clubIDs = append(clubIDs, filter)
+			}
+		}
+	} else if in.GetClubId() != "" {
+		// Fallback to old club_id for backward compatibility
+		clubIDs = []string{in.GetClubId()}
+	}
+
+	// Use the new filtering method
+	filters := repo.PlayerListFilters{
+		SearchQuery: in.GetSearchQuery(),
+		ClubIDs:     clubIDs,
+		IncludeOpen: includeOpen,
+	}
+
+	players, startCursor, endCursor, hasNext, hasPrev, err := s.Players.ListWithCursorAndFilters(ctx, in.GetPageSize(), in.GetCursorAfter(), in.GetCursorBefore(), filters)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "PLAYER_LIST_FAILED")
 	}
@@ -271,6 +295,23 @@ func (s *PlayerService) FindMergeCandidates(ctx context.Context, in *pb.FindMerg
 	email := subject.GetEmail()
 	if email == "" {
 		return nil, status.Error(codes.Unauthenticated, "SUBJECT_EMAIL_EMPTY")
+	}
+
+	// Check if user is platform owner or club member/admin
+	isPlatformOwner, err := subject.IsPlatformOwner(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "FAILED_TO_CHECK_PLATFORM_OWNER")
+	}
+
+	if !isPlatformOwner {
+		// Check if user is a member or admin of the specified club
+		isMember, err := subject.IsClubMember(ctx, in.GetClubId())
+		if err != nil {
+			return nil, status.Error(codes.Internal, "FAILED_TO_CHECK_CLUB_MEMBERSHIP")
+		}
+		if !isMember {
+			return nil, status.Error(codes.PermissionDenied, "MUST_BE_CLUB_MEMBER_TO_FIND_MERGE_CANDIDATES")
+		}
 	}
 
 	// Get the authenticated user's player record

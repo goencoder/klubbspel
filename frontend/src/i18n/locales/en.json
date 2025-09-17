@@ -37,7 +37,7 @@
   },
   "series": {
     "title": "Tournament Series",
-    "subtitle": "Manage table tennis tournaments and leagues",
+    "subtitle": "Manage club tournaments and leagues",
     "createNew": "Create New Series",
     "create_help": "Create a new tournament series.",
     "name": "Series Name",
@@ -53,6 +53,17 @@
     "visibility.open_description": "Open to all players",
     "visibility.club_only": "Club Only",
     "visibility.club_only_description": "Club members only",
+    "sportLabel": "Sport",
+    "formatLabel": "Format",
+    "formatOptions": {
+      "ladder": "Ladder",
+      "cup": "Cup",
+      "unknown": "Coming soon"
+    },
+    "sections": {
+      "openSeries": "Open Series",
+      "unknownClub": "Unknown Club"
+    },
     "noSeries": "No series found",
     "createFirst": "Create your first tournament series to get started",
     "searchAdjust": "Try adjusting your search terms",
@@ -182,6 +193,7 @@
     "updated": "Club updated successfully",
     "deleted": "Club deleted successfully",
     "playersInClub": "Players in this club",
+    "supportedSports": "Supported sports",
     "joinFailed": "Failed to join club",
     "leaveFailed": "Failed to leave club",
     "leaving": "Leaving...",
@@ -236,6 +248,18 @@
       "emailAddress": "Email Address",
       "joined": "Joined",
       "inviteFailed": "Failed to invite player",
+      "addPlayer": "Add Player",
+      "addPlayerToClub": "Add Player to {clubName}",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "emailOptional": "Email (optional)",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "invalidEmail": "Please enter a valid email address",
+      "addingPlayer": "Adding player...",
+      "playerAdded": "Player added successfully",
+      "addFailed": "Failed to add player",
       "roleUpdated": "Member role updated successfully",
       "roleUpdateFailed": "Failed to update member role",
       "removeFailed": "Failed to remove member",
@@ -324,5 +348,11 @@
         "email": "Email"
       }
     }
+  },
+  "sports": {
+    "table_tennis": "Table tennis",
+    "tennis": "Tennis",
+    "padel": "Padel",
+    "unknown": "Unknown sport"
   }
 }

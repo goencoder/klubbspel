@@ -138,7 +138,7 @@ func Bootstrap(ctx context.Context, cfg config.Config, mc *mongo.Client) (*GRPCS
 	matchSvc := &service.MatchService{Matches: matchRepo, Players: playerRepo, Series: seriesRepo}
 	leaderboardSvc := &service.LeaderboardService{Matches: matchRepo, Players: playerRepo}
 	authSvc := &service.AuthService{TokenRepo: tokenRepo, PlayerRepo: playerRepo, EmailSvc: emailSvc}
-	clubMembershipSvc := &service.ClubMembershipService{PlayerRepo: playerRepo, ClubRepo: clubRepo}
+	clubMembershipSvc := &service.ClubMembershipService{PlayerRepo: playerRepo, ClubRepo: clubRepo, TokenRepo: tokenRepo, EmailSvc: emailSvc}
 
 	// Authentication interceptor with audit logging
 	authInterceptor := auth.NewAuthInterceptor(tokenRepo, playerRepo)

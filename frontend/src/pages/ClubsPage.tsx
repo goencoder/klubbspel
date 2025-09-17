@@ -2,6 +2,7 @@ import { ProfileCompletionModal } from '@/components/ProfileCompletionModal'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, LoadingGrid, SharedEmptyState, ActionGroup } from './Styles'
+import { DEFAULT_SPORT, sportTranslationKey } from '@/lib/sports'
 
 export function ClubsPage() {
   const { t } = useTranslation()
@@ -79,9 +81,7 @@ export function ClubsPage() {
 
       if (selectedClubId === 'my-clubs') {
         // Show only clubs where user is a member (including admins)
-        const userClubIds = user?.memberships
-            ?.filter(m => m.active === true)
-            ?.map(m => m.clubId) || []
+        const userClubIds = user?.memberships?.map(m => m.clubId) || []
         filteredClubs = response.items.filter(club => {
           return userClubIds.includes(club.id)
         })
@@ -126,7 +126,8 @@ export function ClubsPage() {
     try {
       setSubmitting(true)
       const clubData: CreateClubRequest = {
-        name: createFormData.name.trim()
+        name: createFormData.name.trim(),
+        supportedSports: [DEFAULT_SPORT]
       }
 
       const club = await apiClient.createClub(clubData)
@@ -254,6 +255,7 @@ export function ClubsPage() {
     const { isClubAdmin, isPlatformOwner } = useAuthStore()
     const playerData = clubPlayers[club.id]
     const isLoadingPlayers = loadingClubPlayers[club.id]
+    const sports = club.supportedSports?.length ? club.supportedSports : [DEFAULT_SPORT]
 
     // Check if user can delete this club (club admin or platform owner)
     const canDeleteClub = isPlatformOwner() || isClubAdmin(club.id)
@@ -294,6 +296,14 @@ export function ClubsPage() {
                           {t('common.viewDetails')}
                         </Button>
                     )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
+                    <span>{t('clubs.supportedSports')}:</span>
+                    {sports.map((sport) => (
+                      <Badge key={sport} variant="outline">
+                        {t(sportTranslationKey(sport))}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
               </div>

@@ -21,9 +21,9 @@ func NewMailHogService(config EmailConfig) (*MailHogService, error) {
 
 // SendMagicLink sends a magic link email via SMTP
 func (s *MailHogService) SendMagicLink(ctx context.Context, toEmail, token, returnURL string) error {
-	// Default to root page if returnURL is /login or empty
+	// Default to leaderboard page if returnURL is /login or empty
 	if returnURL == "" || returnURL == "/login" {
-		returnURL = "/"
+		returnURL = "/leaderboard"
 	}
 
 	// Build magic link URL
@@ -47,6 +47,40 @@ Om du inte begärt denna inloggning kan du bortse från detta mejl.
 
 Med vänliga hälsningar,
 Klubbspel-teamet`, magicURL)
+
+	return s.SendEmail(ctx, toEmail, subject, body)
+}
+
+// SendClubInvitationMagicLink sends a club invitation email with magic link
+func (s *MailHogService) SendClubInvitationMagicLink(ctx context.Context, toEmail, token, returnURL, clubName, inviterName, inviterEmail string) error {
+	// Default to root page if returnURL is /login or empty
+	if returnURL == "" || returnURL == "/login" {
+		returnURL = "/"
+	}
+
+	// Build magic link URL
+	magicURL := fmt.Sprintf("%s/auth/login?apikey=%s", s.config.BaseURL, token)
+	if returnURL != "" {
+		magicURL += fmt.Sprintf("&return_url=%s", returnURL)
+	}
+
+	subject := fmt.Sprintf("Du har blivit tillagd som medlem i %s", clubName)
+
+	// Enhanced body with club and inviter context (Swedish)
+	body := fmt.Sprintf(`Hej!
+
+%s (%s) har lagt till dig som medlem i klubben "%s" på Klubbspel.
+
+Klicka på länken nedan för att logga in och se klubbdetaljer:
+
+%s
+
+Denna länk går ut om 24 timmar av säkerhetsskäl.
+
+Om du har frågor kan du kontakta %s på %s.
+
+Med vänliga hälsningar,
+Klubbspel-teamet`, inviterName, inviterEmail, clubName, magicURL, inviterName, inviterEmail)
 
 	return s.SendEmail(ctx, toEmail, subject, body)
 }

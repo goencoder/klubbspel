@@ -188,6 +188,139 @@ func (r *PlayerRepo) List(ctx context.Context, query, clubID string, pageSize in
 	return players, "", nil
 }
 
+// PlayerListFilters holds filtering options for listing players
+type PlayerListFilters struct {
+	SearchQuery string   // Search query for display name
+	ClubIDs     []string // Club IDs to filter by
+	IncludeOpen bool     // Whether to include players not associated with any club
+}
+
+// ListWithCursorAndFilters lists players with advanced filtering, similar to series
+func (r *PlayerRepo) ListWithCursorAndFilters(ctx context.Context, pageSize int32, cursorAfter string, cursorBefore string, filters PlayerListFilters) ([]*Player, string, string, bool, bool, error) {
+	// Set default page size if invalid
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	filter := bson.M{}
+
+	// Handle search query
+	if filters.SearchQuery != "" {
+		filter["display_name"] = bson.M{"$regex": filters.SearchQuery, "$options": "i"}
+	}
+
+	// Handle club filtering
+	if len(filters.ClubIDs) > 0 || filters.IncludeOpen {
+		var clubConditions []bson.M
+
+		// Add specific club IDs
+		if len(filters.ClubIDs) > 0 {
+			// Convert club IDs to ObjectIDs
+			var clubObjectIDs []primitive.ObjectID
+			for _, clubID := range filters.ClubIDs {
+				if objectID, err := primitive.ObjectIDFromHex(clubID); err == nil {
+					clubObjectIDs = append(clubObjectIDs, objectID)
+				}
+			}
+
+			if len(clubObjectIDs) > 0 {
+				clubConditions = append(clubConditions, bson.M{
+					"club_memberships": bson.M{
+						"$elemMatch": bson.M{
+							"club_id": bson.M{"$in": clubObjectIDs},
+						},
+					},
+				})
+			}
+		}
+
+		// Add open players condition (players with no club memberships)
+		if filters.IncludeOpen {
+			clubConditions = append(clubConditions, bson.M{
+				"$or": []bson.M{
+					{"club_memberships": bson.M{"$exists": false}},
+					{"club_memberships": bson.M{"$size": 0}},
+				},
+			})
+		}
+
+		if len(clubConditions) == 1 {
+			// If only one condition, use it directly
+			for k, v := range clubConditions[0] {
+				filter[k] = v
+			}
+		} else if len(clubConditions) > 1 {
+			// Multiple conditions, use $or
+			filter["$or"] = clubConditions
+		}
+	}
+
+	// Add cursor filtering logic
+	if cursorAfter != "" {
+		afterID, err := primitive.ObjectIDFromHex(cursorAfter)
+		if err == nil {
+			filter["_id"] = bson.M{"$gt": afterID}
+		}
+	}
+
+	if cursorBefore != "" {
+		beforeID, err := primitive.ObjectIDFromHex(cursorBefore)
+		if err == nil {
+			if existing, exists := filter["_id"]; exists {
+				// Combine with existing cursor condition
+				if existingMap, ok := existing.(bson.M); ok {
+					existingMap["$lt"] = beforeID
+				}
+			} else {
+				filter["_id"] = bson.M{"$lt": beforeID}
+			}
+		}
+	}
+
+	// Create find options with limit and sorting
+	opts := options.Find().
+		SetLimit(int64(pageSize + 1)).          // +1 to check if there are more results
+		SetSort(bson.D{{Key: "_id", Value: 1}}) // Sort by ID for consistent ordering
+
+	cursor, err := r.c.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, "", "", false, false, err
+	}
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
+
+	var players []*Player
+	for cursor.Next(ctx) {
+		var player Player
+		if err := cursor.Decode(&player); err != nil {
+			continue
+		}
+		players = append(players, &player)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, "", "", false, false, err
+	}
+
+	// Determine pagination info
+	hasNextPage := len(players) > int(pageSize)
+	hasPreviousPage := cursorAfter != "" || cursorBefore != ""
+
+	// Remove extra item used for pagination check
+	if hasNextPage {
+		players = players[:pageSize]
+	}
+
+	var startCursor, endCursor string
+	if len(players) > 0 {
+		startCursor = players[0].ID.Hex()
+		endCursor = players[len(players)-1].ID.Hex()
+	}
+
+	return players, startCursor, endCursor, hasNextPage, hasPreviousPage, nil
+}
+
 func (r *PlayerRepo) ListWithCursor(ctx context.Context, searchQuery, clubID string, pageSize int32, cursorAfter string, cursorBefore string) ([]*Player, string, string, bool, bool, error) {
 	// Set default page size if invalid
 	if pageSize <= 0 || pageSize > 100 {

@@ -404,13 +404,15 @@ func (hc *HealthChecker) runChecksInternal(ctx context.Context) OverallStatus {
 	hc.status.Status = overallStatus
 	hc.lastCheck = time.Now()
 
-	// Log status
-	hc.logger.Info().
-		Str("overall_status", string(overallStatus)).
-		Int("healthy_checks", hc.status.Summary["healthy"]).
-		Int("unhealthy_checks", hc.status.Summary["unhealthy"]).
-		Int("degraded_checks", hc.status.Summary["degraded"]).
-		Msg("Health check completed")
+	// Log status only if not healthy
+	if overallStatus != StatusHealthy {
+		hc.logger.Warn().
+			Str("overall_status", string(overallStatus)).
+			Int("healthy_checks", hc.status.Summary["healthy"]).
+			Int("unhealthy_checks", hc.status.Summary["unhealthy"]).
+			Int("degraded_checks", hc.status.Summary["degraded"]).
+			Msg("Health check completed with issues")
+	}
 
 	return hc.status
 }

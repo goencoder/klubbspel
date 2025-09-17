@@ -12,6 +12,9 @@
       "name": "ClubService"
     },
     {
+      "name": "PlayerService"
+    },
+    {
       "name": "ClubMembershipService"
     },
     {
@@ -19,9 +22,6 @@
     },
     {
       "name": "MatchService"
-    },
-    {
-      "name": "PlayerService"
     },
     {
       "name": "SeriesService"
@@ -505,6 +505,47 @@
         ]
       }
     },
+    "/v1/clubs/{clubId}/players": {
+      "post": {
+        "summary": "Add a player to a club (admin only)",
+        "description": "AUTHORIZATION: Requires valid authentication and club admin role\n\nPURPOSE: Club admins can add players by name and optional email to join their club\n\nDATA MODEL CHANGES:\n- Creates new Player with first_name, last_name, and optional email\n- If email provided and player exists, adds membership to existing player\n- If email provided and player doesn't exist, creates new player with email\n- If no email provided, creates new player without email (local club member)\n- Adds ClubMembership with member role\n- Sends notification email if email provided",
+        "operationId": "ClubMembershipService_AddPlayerToClub",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddPlayerToClubResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clubId",
+            "description": "ID of the club",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClubMembershipServiceAddPlayerToClubBody"
+            }
+          }
+        ],
+        "tags": [
+          "ClubMembershipService"
+        ]
+      }
+    },
     "/v1/clubs/{id}": {
       "get": {
         "summary": "Get a specific club by ID",
@@ -672,10 +713,21 @@
           },
           {
             "name": "clubId",
-            "description": "Filter players by club ID (empty means all clubs)",
+            "description": "Filter players by club ID (empty means all clubs)\nDEPRECATED: Use club_filter instead for multiple club support",
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "clubFilter",
+            "description": "Filter players by multiple club IDs (supports special value \"OPEN\" for club-less players)\nIf empty, returns players from all clubs\nIf contains \"OPEN\", includes players not associated with any club",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
           },
           {
             "name": "pageSize",
@@ -1003,6 +1055,31 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "sportFilter",
+            "description": "Optional filter by sport.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "SPORT_UNSPECIFIED",
+              "SPORT_TABLE_TENNIS",
+              "SPORT_TENNIS",
+              "SPORT_PADEL"
+            ],
+            "default": "SPORT_UNSPECIFIED"
+          },
+          {
+            "name": "clubFilter",
+            "description": "Optional filter by club IDs. Special value \"OPEN\" includes all open series.\nIf empty, returns all series. Example: [\"98463678\", \"OPEN\"] returns \nseries for club 98463678 plus all open series.",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
           }
         ],
         "tags": [
@@ -1257,6 +1334,24 @@
     }
   },
   "definitions": {
+    "ClubMembershipServiceAddPlayerToClubBody": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "title": "First name of the player (required)"
+        },
+        "lastName": {
+          "type": "string",
+          "title": "Last name of the player (required)"
+        },
+        "email": {
+          "type": "string",
+          "title": "Email of the player (optional)"
+        }
+      },
+      "title": "Request to add a player to a club"
+    },
     "ClubMembershipServiceInvitePlayerBody": {
       "type": "object",
       "properties": {
@@ -1323,6 +1418,28 @@
         }
       }
     },
+    "v1AddPlayerToClubResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        },
+        "player": {
+          "$ref": "#/definitions/v1Player",
+          "title": "The created or updated player"
+        },
+        "notificationSent": {
+          "type": "boolean",
+          "title": "Whether an email notification was sent"
+        },
+        "wasNewPlayer": {
+          "type": "boolean",
+          "title": "Whether this was a new player or existing player"
+        }
+      },
+      "title": "Response after adding a player to a club"
+    },
     "v1AuthUser": {
       "type": "object",
       "properties": {
@@ -1372,6 +1489,13 @@
         "name": {
           "type": "string",
           "title": "Display name of the club (e.g., \"Stockholm TK\", \"Malmö Bordtennis\")"
+        },
+        "supportedSports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1Sport"
+          },
+          "description": "Sports supported by this club. Defaults to table tennis for now."
         }
       },
       "title": "Club represents a table tennis club that can host series and have players"
@@ -1421,6 +1545,13 @@
         "name": {
           "type": "string",
           "title": "Club name (must be unique)"
+        },
+        "supportedSports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1Sport"
+          },
+          "description": "Optional sports to enable for this club. Defaults to table tennis."
         }
       },
       "title": "Request to create a new club"
@@ -1491,6 +1622,14 @@
         "visibility": {
           "$ref": "#/definitions/v1SeriesVisibility",
           "title": "Who can participate in this series"
+        },
+        "sport": {
+          "$ref": "#/definitions/v1Sport",
+          "description": "Sport that the series is played in. Defaults to table tennis."
+        },
+        "format": {
+          "$ref": "#/definitions/v1SeriesFormat",
+          "description": "Competition format. Defaults to LADDER."
         }
       },
       "title": "Request to create a new tournament series"
@@ -2148,9 +2287,27 @@
         "visibility": {
           "$ref": "#/definitions/v1SeriesVisibility",
           "title": "Who can participate in this series"
+        },
+        "sport": {
+          "$ref": "#/definitions/v1Sport",
+          "description": "Sport that the series is played in."
+        },
+        "format": {
+          "$ref": "#/definitions/v1SeriesFormat",
+          "description": "Competition format for the series."
         }
       },
       "title": "Series represents a time-bound table tennis tournament"
+    },
+    "v1SeriesFormat": {
+      "type": "string",
+      "enum": [
+        "SERIES_FORMAT_UNSPECIFIED",
+        "SERIES_FORMAT_LADDER",
+        "SERIES_FORMAT_CUP"
+      ],
+      "default": "SERIES_FORMAT_UNSPECIFIED",
+      "description": "SeriesFormat captures the competition structure.\n\n - SERIES_FORMAT_UNSPECIFIED: Default value, should not be used.\n - SERIES_FORMAT_LADDER: Continuous ladder where players challenge each other.\n - SERIES_FORMAT_CUP: Knock-out cup or bracket style tournament."
     },
     "v1SeriesVisibility": {
       "type": "string",
@@ -2162,6 +2319,17 @@
       "default": "SERIES_VISIBILITY_UNSPECIFIED",
       "description": "- SERIES_VISIBILITY_UNSPECIFIED: Default value, should not be used\n - SERIES_VISIBILITY_CLUB_ONLY: Only players from the specified club can participate\n - SERIES_VISIBILITY_OPEN: Players from any club can participate",
       "title": "Visibility setting for a tournament series"
+    },
+    "v1Sport": {
+      "type": "string",
+      "enum": [
+        "SPORT_UNSPECIFIED",
+        "SPORT_TABLE_TENNIS",
+        "SPORT_TENNIS",
+        "SPORT_PADEL"
+      ],
+      "default": "SPORT_UNSPECIFIED",
+      "description": "Sport enumerates racket/paddle sports supported by the platform.\nTable tennis is currently the only fully supported sport but we define\nadditional values so that the API is future proof.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis."
     },
     "v1UpdateClubResponse": {
       "type": "object",

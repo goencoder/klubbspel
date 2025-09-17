@@ -87,6 +87,11 @@ func (a *EmailAdapter) SendMagicLink(ctx context.Context, toEmail, token, return
 	return a.service.SendMagicLink(ctx, toEmail, token, returnURL)
 }
 
+// SendClubInvitationMagicLink sends a club invitation email with magic link
+func (a *EmailAdapter) SendClubInvitationMagicLink(ctx context.Context, toEmail, token, returnURL, clubName, inviterName, inviterEmail string) error {
+	return a.service.SendClubInvitationMagicLink(ctx, toEmail, token, returnURL, clubName, inviterName, inviterEmail)
+}
+
 // SendInvitation sends an invitation email
 func (a *EmailAdapter) SendInvitation(ctx context.Context, toEmail, clubName, inviterName string) error {
 	return a.service.SendInvitation(ctx, toEmail, clubName, inviterName)

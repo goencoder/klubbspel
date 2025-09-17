@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/goencoder/klubbspel/backend/internal/repo"
@@ -35,8 +36,13 @@ func (s *ClubService) CreateClub(ctx context.Context, in *pb.CreateClubRequest) 
 		return nil, status.Error(codes.FailedPrecondition, "PROFILE_COMPLETION_REQUIRED")
 	}
 
+	sports, err := normalizeClubSports(in.GetSupportedSports())
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the club
-	club, err := s.Clubs.Upsert(ctx, in.Name)
+	club, err := s.Clubs.Upsert(ctx, in.GetName(), sports)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "CLUB_CREATE_FAILED")
 	}
@@ -56,8 +62,9 @@ func (s *ClubService) CreateClub(ctx context.Context, in *pb.CreateClubRequest) 
 
 	return &pb.CreateClubResponse{
 		Club: &pb.Club{
-			Id:   club.ID.Hex(),
-			Name: club.Name,
+			Id:              club.ID.Hex(),
+			Name:            club.Name,
+			SupportedSports: pbSupportedSports(club.SupportedSports),
 		},
 	}, nil
 }
@@ -70,27 +77,63 @@ func (s *ClubService) GetClub(ctx context.Context, in *pb.GetClubRequest) (*pb.G
 
 	return &pb.GetClubResponse{
 		Club: &pb.Club{
-			Id:   club.ID.Hex(),
-			Name: club.Name,
+			Id:              club.ID.Hex(),
+			Name:            club.Name,
+			SupportedSports: pbSupportedSports(club.SupportedSports),
 		},
 	}, nil
 }
 
 func (s *ClubService) UpdateClub(ctx context.Context, in *pb.UpdateClubRequest) (*pb.UpdateClubResponse, error) {
 	// Validate the request
-	if in.GetClub() == nil || in.GetClub().GetName() == "" {
+	if in.GetClub() == nil {
 		return nil, status.Error(codes.InvalidArgument, "VALIDATION_REQUIRED")
 	}
 
-	club, err := s.Clubs.Update(ctx, in.GetId(), in.GetClub().GetName())
+	updates := map[string]interface{}{}
+	if mask := in.GetUpdateMask(); mask != nil && len(mask.GetPaths()) > 0 {
+		for _, path := range mask.GetPaths() {
+			switch path {
+			case "name":
+				if in.GetClub().GetName() == "" {
+					return nil, status.Error(codes.InvalidArgument, "CLUB_NAME_REQUIRED")
+				}
+				updates["name"] = in.GetClub().GetName()
+			case "supported_sports":
+				sports, err := normalizeClubSports(in.GetClub().GetSupportedSports())
+				if err != nil {
+					return nil, err
+				}
+				updates["supported_sports"] = sports
+			default:
+				return nil, status.Error(codes.InvalidArgument, "UNSUPPORTED_UPDATE_FIELD")
+			}
+		}
+	} else {
+		if in.GetClub().GetName() != "" {
+			updates["name"] = in.GetClub().GetName()
+		}
+		sports, err := normalizeClubSports(in.GetClub().GetSupportedSports())
+		if err != nil {
+			return nil, err
+		}
+		updates["supported_sports"] = sports
+	}
+
+	if len(updates) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "NO_FIELDS_TO_UPDATE")
+	}
+
+	club, err := s.Clubs.Update(ctx, in.GetId(), updates)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "CLUB_UPDATE_FAILED")
 	}
 
 	return &pb.UpdateClubResponse{
 		Club: &pb.Club{
-			Id:   club.ID.Hex(),
-			Name: club.Name,
+			Id:              club.ID.Hex(),
+			Name:            club.Name,
+			SupportedSports: pbSupportedSports(club.SupportedSports),
 		},
 	}, nil
 }
@@ -181,8 +224,9 @@ func (s *ClubService) ListClubs(ctx context.Context, in *pb.ListClubsRequest) (*
 	var pbClubs []*pb.Club
 	for _, club := range clubs {
 		pbClubs = append(pbClubs, &pb.Club{
-			Id:   club.ID.Hex(),
-			Name: club.Name,
+			Id:              club.ID.Hex(),
+			Name:            club.Name,
+			SupportedSports: pbSupportedSports(club.SupportedSports),
 		})
 	}
 
@@ -193,4 +237,58 @@ func (s *ClubService) ListClubs(ctx context.Context, in *pb.ListClubsRequest) (*
 		HasNextPage:     hasNext,
 		HasPreviousPage: hasPrev,
 	}, nil
+}
+
+func normalizeClubSports(input []pb.Sport) ([]int32, error) {
+	seen := map[int32]struct{}{}
+	var sports []int32
+
+	for _, sport := range input {
+		if sport == pb.Sport_SPORT_UNSPECIFIED {
+			continue
+		}
+
+		if sport != pb.Sport_SPORT_TABLE_TENNIS {
+			return nil, status.Error(codes.Unimplemented, "SPORT_NOT_SUPPORTED")
+		}
+
+		key := int32(sport)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		sports = append(sports, key)
+	}
+
+	if len(sports) == 0 {
+		sports = []int32{int32(pb.Sport_SPORT_TABLE_TENNIS)}
+	}
+
+	sort.Slice(sports, func(i, j int) bool { return sports[i] < sports[j] })
+	return sports, nil
+}
+
+func pbSupportedSports(values []int32) []pb.Sport {
+	if len(values) == 0 {
+		return []pb.Sport{pb.Sport_SPORT_TABLE_TENNIS}
+	}
+
+	seen := map[pb.Sport]struct{}{}
+	var sports []pb.Sport
+
+	for _, value := range values {
+		sport := pb.Sport(value)
+		if sport == pb.Sport_SPORT_UNSPECIFIED {
+			sport = pb.Sport_SPORT_TABLE_TENNIS
+		}
+
+		if _, ok := seen[sport]; ok {
+			continue
+		}
+		seen[sport] = struct{}{}
+		sports = append(sports, sport)
+	}
+
+	sort.Slice(sports, func(i, j int) bool { return sports[i] < sports[j] })
+	return sports
 }

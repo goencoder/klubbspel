@@ -59,6 +59,28 @@ export interface InvitePlayerResponse {
   invitationSent: boolean
 }
 
+// === ADD PLAYER TO CLUB ===
+export interface AddPlayerToClubRequest {
+  clubId: string
+  firstName: string
+  lastName: string
+  email?: string
+}
+
+export interface AddPlayerToClubResponse {
+  success: boolean
+  player: {
+    id: string
+    displayName: string
+    firstName: string
+    lastName: string
+    email: string
+    clubMemberships: ClubMembership[]
+  }
+  notificationSent: boolean
+  wasNewPlayer: boolean
+}
+
 // === UPDATE MEMBER ROLE ===
 export interface UpdateMemberRoleRequest {
   clubId: string

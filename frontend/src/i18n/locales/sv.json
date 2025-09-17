@@ -37,7 +37,7 @@
   },
   "series": {
     "title": "Turneringsserier",
-    "subtitle": "Hantera bordstennisturneringar och ligor",
+    "subtitle": "Hantera klubbtävlingar och ligor",
     "createNew": "Skapa ny serie",
     "create_help": "Skapa en ny turneringsserie.",
     "name": "Serienamn",
@@ -53,6 +53,17 @@
     "visibility.open_description": "Öppen för alla spelare",
     "visibility.club_only": "Endast klubb",
     "visibility.club_only_description": "Endast klubbmedlemmar",
+    "sportLabel": "Sport",
+    "formatLabel": "Spelformat",
+    "formatOptions": {
+      "ladder": "Stege",
+      "cup": "Cup",
+      "unknown": "Kommer snart"
+    },
+    "sections": {
+      "openSeries": "Öppna serier",
+      "unknownClub": "Okänd klubb"
+    },
     "noSeries": "Inga serier hittades",
     "createFirst": "Skapa din första turneringsserie för att komma igång",
     "searchAdjust": "Försök justera dina söktermer",
@@ -165,9 +176,9 @@
   },
   "clubs": {
     "title": "Klubbar",
-    "subtitle": "Hantera bordstennisklubbar i din organisation",
+    "subtitle": "Hantera klubbar i din organisation",
     "createNew": "Skapa ny klubb",
-    "createHelp": "Skapa en ny bordstennisklubb.",
+    "createHelp": "Skapa en ny klubb.",
     "selectClub": "Välj klubb...",
     "name": "Klubbnamn",
     "description": "Beskrivning",
@@ -182,6 +193,7 @@
     "updated": "Klubb uppdaterad framgångsrikt",
     "deleted": "Klubb borttagen framgångsrikt",
     "playersInClub": "Spelare i denna klubb",
+    "supportedSports": "Stödda sporter",
     "joinFailed": "Det gick inte att gå med i klubben",
     "leaveFailed": "Det gick inte att lämna klubben",
     "leaving": "Lämnar...",
@@ -236,6 +248,18 @@
       "emailAddress": "E-postadress",
       "joined": "Gick med",
       "inviteFailed": "Det gick inte att bjuda in spelare",
+      "addPlayer": "Lägg till spelare",
+      "addPlayerToClub": "Lägg till spelare i {clubName}",
+      "firstName": "Förnamn",
+      "lastName": "Efternamn",
+      "email": "E-post",
+      "emailOptional": "E-post (valfritt)",
+      "firstNameRequired": "Förnamn krävs",
+      "lastNameRequired": "Efternamn krävs",
+      "invalidEmail": "Vänligen ange en giltig e-postadress",
+      "addingPlayer": "Lägger till spelare...",
+      "playerAdded": "Spelare tillagd",
+      "addFailed": "Det gick inte att lägga till spelare",
       "roleUpdated": "Medlemsroll uppdaterad framgångsrikt",
       "roleUpdateFailed": "Det gick inte att uppdatera medlemsroll",
       "removeFailed": "Det gick inte att ta bort medlem",
@@ -324,5 +348,11 @@
         "email": "E-post"
       }
     }
+  },
+  "sports": {
+    "table_tennis": "Bordtennis",
+    "tennis": "Tennis",
+    "padel": "Padel",
+    "unknown": "Okänd sport"
   }
 }

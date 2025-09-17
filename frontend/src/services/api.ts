@@ -31,6 +31,8 @@ import type {
 } from '@/types/api'
 import type {
   AuthUser,
+  AddPlayerToClubRequest,
+  AddPlayerToClubResponse,
   InvitePlayerRequest,
   InvitePlayerResponse,
   JoinClubRequest,
@@ -120,7 +122,7 @@ class ApiClient {
           message: errorData.message || response.statusText,
           details: errorData.details
         }
-        throw apiError
+        throw Object.assign(new Error(apiError.message), apiError)
       }
 
       // Handle empty responses (like DELETE)
@@ -147,11 +149,11 @@ class ApiClient {
       }
 
       // Network or other errors
-      const networkError = new Error(
-        error instanceof Error ? error.message : 'Network error occurred'
-      ) as ApiError
-      networkError.code = 'NETWORK_ERROR'
-      throw networkError
+      const apiError: ApiError = {
+        code: 'NETWORK_ERROR',
+        message: error instanceof Error ? error.message : 'Network error occurred'
+      }
+      throw Object.assign(new Error(apiError.message), apiError)
     }
   }
 
@@ -217,6 +219,11 @@ class ApiClient {
     // Use parameter names as specified in the OpenAPI spec
     if (params.searchQuery) {searchParams.append('searchQuery', params.searchQuery)}
     if (params.clubId) {searchParams.append('clubId', params.clubId)}
+    if (params.clubFilter && params.clubFilter.length > 0) {
+      params.clubFilter.forEach(clubId => {
+        searchParams.append('clubFilter', clubId)
+      })
+    }
     if (params.pageSize) {searchParams.append('pageSize', params.pageSize.toString())}
     if (params.cursorAfter) {searchParams.append('cursorAfter', params.cursorAfter)}
     if (params.cursorBefore) {searchParams.append('cursorBefore', params.cursorBefore)}
@@ -267,6 +274,14 @@ class ApiClient {
     if (params.pageSize) {searchParams.append('pageSize', params.pageSize.toString())}
     if (params.cursorAfter) {searchParams.append('cursorAfter', params.cursorAfter)}
     if (params.cursorBefore) {searchParams.append('cursorBefore', params.cursorBefore)}
+    if (params.sportFilter && params.sportFilter !== 'SPORT_UNSPECIFIED') {
+      searchParams.append('sportFilter', params.sportFilter)
+    }
+    if (params.clubFilter && params.clubFilter.length > 0) {
+      params.clubFilter.forEach(clubId => {
+        searchParams.append('clubFilter', clubId)
+      })
+    }
 
     const query = searchParams.toString()
     const response = await this.get<{ items: Series[], startCursor?: string, endCursor?: string, hasNextPage: boolean, hasPreviousPage: boolean }>(`/v1/series${query ? `?${query}` : ''}`, requestId)
@@ -348,6 +363,15 @@ class ApiClient {
     return this.post<InvitePlayerResponse>(`/v1/clubs/${data.clubId}/invitations`, {
       email: data.email,
       role: data.role || 'MEMBERSHIP_ROLE_MEMBER'
+    })
+  }
+
+  // Add a player to a club (admin only)
+  async addPlayerToClub(data: AddPlayerToClubRequest): Promise<AddPlayerToClubResponse> {
+    return this.post<AddPlayerToClubResponse>(`/v1/clubs/${data.clubId}/players`, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email || undefined
     })
   }
 

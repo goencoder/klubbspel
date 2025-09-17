@@ -47,14 +47,11 @@ export function ClubDetailPage() {
 
       // Load club series
       const seriesResponse = await apiClient.listSeries({
-        pageSize: 50
+        pageSize: 50,
+        clubFilter: [id]  // Only series for this specific club
       })
 
-      // Filter series for this club (assuming series have clubId)
-      const clubSeries = seriesResponse.items.filter(s =>
-        s.clubId === id || s.visibility === 'SERIES_VISIBILITY_OPEN'
-      )
-      setSeries(clubSeries)
+      setSeries(seriesResponse.items)
 
     } catch (error) {
       const apiError = error as ApiError
@@ -195,7 +192,7 @@ export function ClubDetailPage() {
                     <DialogTrigger asChild>
                       <Button variant="outline" className="flex items-center gap-2">
                         <UserMinus className="h-4 w-4" />
-                        Leave Club
+                        {t('clubs.leaveClub')}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -252,7 +249,7 @@ export function ClubDetailPage() {
           {(isMember || isAdmin) && (
             <TabsTrigger value="members">{t('clubs.detail.tabs.members')}</TabsTrigger>
           )}
-          {user && user.playerId && (
+          {(isMember || isAdmin) && (
             <TabsTrigger value="merge">{t('clubs.detail.tabs.mergeePlayers')}</TabsTrigger>
           )}
         </TabsList>
@@ -360,7 +357,7 @@ export function ClubDetailPage() {
           </TabsContent>
         )}
 
-        {user && user.playerId && (
+        {(isMember || isAdmin) && (
           <TabsContent value="merge" className="space-y-6">
             <ClubMergeManager clubId={club.id} />
           </TabsContent>

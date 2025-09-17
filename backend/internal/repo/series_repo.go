@@ -17,6 +17,8 @@ type Series struct {
 	StartsAt   time.Time          `bson:"starts_at"`
 	EndsAt     time.Time          `bson:"ends_at"`
 	Visibility int32              `bson:"visibility"` // SeriesVisibility enum value
+	Sport      int32              `bson:"sport"`
+	Format     int32              `bson:"format"`
 }
 
 type SeriesRepo struct{ c *mongo.Collection }
@@ -25,7 +27,7 @@ func NewSeriesRepo(db *mongo.Database) *SeriesRepo {
 	return &SeriesRepo{c: db.Collection("series")}
 }
 
-func (r *SeriesRepo) Create(ctx context.Context, clubID, title string, startsAt, endsAt time.Time, visibility int32) (*Series, error) {
+func (r *SeriesRepo) Create(ctx context.Context, clubID, title string, startsAt, endsAt time.Time, visibility int32, sport, format int32) (*Series, error) {
 	s := &Series{
 		ID:         primitive.NewObjectID(),
 		ClubID:     clubID,
@@ -33,6 +35,8 @@ func (r *SeriesRepo) Create(ctx context.Context, clubID, title string, startsAt,
 		StartsAt:   startsAt,
 		EndsAt:     endsAt,
 		Visibility: visibility,
+		Sport:      sport,
+		Format:     format,
 	}
 	_, err := r.c.InsertOne(ctx, s)
 	return s, err
@@ -59,13 +63,48 @@ func (r *SeriesRepo) List(ctx context.Context, pageSize int32, pageToken string)
 	return series, "", nil
 }
 
-func (r *SeriesRepo) ListWithCursor(ctx context.Context, pageSize int32, cursor string) ([]*Series, bool, bool, error) {
+type SeriesListFilters struct {
+	Sport       *int32
+	ClubIDs     []string // Club IDs to filter by
+	IncludeOpen bool     // Whether to include open series
+}
+
+func (r *SeriesRepo) ListWithCursor(ctx context.Context, pageSize int32, cursor string, filters SeriesListFilters) ([]*Series, bool, bool, error) {
 	// Set default page size if invalid
 	if pageSize <= 0 || pageSize > 100 {
 		pageSize = 20
 	}
 
 	filter := bson.M{}
+
+	if filters.Sport != nil {
+		filter["sport"] = *filters.Sport
+	}
+
+	// Handle club filtering
+	if len(filters.ClubIDs) > 0 || filters.IncludeOpen {
+		var clubConditions []bson.M
+
+		// Add specific club IDs
+		if len(filters.ClubIDs) > 0 {
+			clubConditions = append(clubConditions, bson.M{"club_id": bson.M{"$in": filters.ClubIDs}})
+		}
+
+		// Add open series condition
+		if filters.IncludeOpen {
+			clubConditions = append(clubConditions, bson.M{"visibility": 2}) // SERIES_VISIBILITY_OPEN = 2
+		}
+
+		if len(clubConditions) == 1 {
+			// If only one condition, use it directly
+			for k, v := range clubConditions[0] {
+				filter[k] = v
+			}
+		} else {
+			// Multiple conditions, use $or
+			filter["$or"] = clubConditions
+		}
+	}
 
 	// Add cursor condition for pagination
 	if cursor != "" {
