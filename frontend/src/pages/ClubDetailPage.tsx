@@ -214,7 +214,7 @@ export function ClubDetailPage() {
               {!isAuthenticated() && (
                 <Button asChild>
                   <Link to={`/login?returnTo=${encodeURIComponent(window.location.pathname)}`}>
-                    Sign In to Join
+                    {t('auth.signInToJoin')}
                   </Link>
                 </Button>
               )}

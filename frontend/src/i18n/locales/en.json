@@ -312,6 +312,8 @@
   },
   "auth": {
     "loginRequired": "You must be logged in to create clubs",
+    "signIn": "Sign In",
+    "signInToJoin": "Sign In to Join",
     "signOut": "Sign Out"
   },
   "profile": {

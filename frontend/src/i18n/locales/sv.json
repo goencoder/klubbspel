@@ -312,6 +312,8 @@
   },
   "auth": {
     "loginRequired": "Du måste logga in för att skapa klubbar",
+    "signIn": "Logga in",
+    "signInToJoin": "Logga in för att gå med",
     "signOut": "Logga ut"
   },
   "profile": {
