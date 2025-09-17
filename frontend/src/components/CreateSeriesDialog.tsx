@@ -21,6 +21,7 @@ import {
 import { ClubSelector } from '@/components/ClubSelector'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
+import { deriveAutomaticClubId } from '@/lib/clubSelection'
 import type { Series, SeriesVisibility, Club } from '@/types/api'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/auth'
@@ -29,6 +30,28 @@ interface CreateSeriesDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSeriesCreated: (series: Series) => void
+}
+
+function resolveClubIdForClubOnlyVisibility({
+  previousClubId,
+  hasManualClubSelection,
+  selectedClubId,
+  manageableClubs,
+}: {
+  previousClubId: string
+  hasManualClubSelection: boolean
+  selectedClubId?: string | null
+  manageableClubs: Club[]
+}) {
+  if (hasManualClubSelection && previousClubId) {
+    return previousClubId
+  }
+
+  return deriveAutomaticClubId({
+    manageableClubs,
+    selectedClubId,
+    previousClubId,
+  })
 }
 
 export function CreateSeriesDialog({
@@ -72,28 +95,13 @@ export function CreateSeriesDialog({
 
       if (!hasManualClubSelection) {
         setFormData(prev => {
-          const selectedClubExists = selectedClubId
-            ? nextManageableClubs.some(club => club.id === selectedClubId)
-            : false
+          const nextClubId = deriveAutomaticClubId({
+            manageableClubs: nextManageableClubs,
+            selectedClubId,
+            previousClubId: prev.clubId,
+          })
 
-          if (selectedClubExists) {
-            return prev.clubId === selectedClubId
-              ? prev
-              : { ...prev, clubId: selectedClubId }
-          }
-
-          if (nextManageableClubs.length === 1) {
-            const [onlyClub] = nextManageableClubs
-            return prev.clubId === onlyClub.id
-              ? prev
-              : { ...prev, clubId: onlyClub.id }
-          }
-
-          if (prev.clubId && !nextManageableClubs.some(club => club.id === prev.clubId)) {
-            return { ...prev, clubId: '' }
-          }
-
-          return prev
+          return nextClubId === prev.clubId ? prev : { ...prev, clubId: nextClubId }
         })
       }
     } catch (error: unknown) {
@@ -148,6 +156,11 @@ export function CreateSeriesDialog({
       const startsAt = new Date(formData.startsAt).toISOString()
       const endsAt = new Date(formData.endsAt).toISOString()
 
+      const clubIdPayload =
+        formData.visibility === 'SERIES_VISIBILITY_CLUB_ONLY' && formData.clubId
+          ? { clubId: formData.clubId }
+          : {}
+
       const payload: {
         title: string
         visibility: SeriesVisibility
@@ -159,9 +172,7 @@ export function CreateSeriesDialog({
         visibility: formData.visibility,
         startsAt,
         endsAt,
-        ...(formData.visibility === 'SERIES_VISIBILITY_CLUB_ONLY' && formData.clubId
-          ? { clubId: formData.clubId }
-          : {}),
+        ...clubIdPayload,
       }
 
       const series = await apiClient.createSeries(payload)
@@ -212,37 +223,37 @@ export function CreateSeriesDialog({
             <Label htmlFor="visibility">{t('series.visibility')} *</Label>
             <Select
               value={formData.visibility}
-              onValueChange={(value) =>
-                setFormData((prev) => {
-                  const nextVisibility = value as SeriesVisibility
-                  const nextState = {
+              onValueChange={(value) => {
+                const nextVisibility = value as SeriesVisibility
+
+                setFormData(prev => {
+                  if (nextVisibility !== 'SERIES_VISIBILITY_CLUB_ONLY') {
+                    return prev.visibility === nextVisibility
+                      ? prev
+                      : { ...prev, visibility: nextVisibility }
+                  }
+
+                  const nextClubId = resolveClubIdForClubOnlyVisibility({
+                    previousClubId: prev.clubId,
+                    hasManualClubSelection,
+                    selectedClubId,
+                    manageableClubs,
+                  })
+
+                  if (
+                    prev.visibility === nextVisibility &&
+                    nextClubId === prev.clubId
+                  ) {
+                    return prev
+                  }
+
+                  return {
                     ...prev,
                     visibility: nextVisibility,
+                    clubId: nextClubId,
                   }
-
-                  if (nextVisibility !== 'SERIES_VISIBILITY_CLUB_ONLY') {
-                    return nextState
-                  }
-
-                  if (hasManualClubSelection && prev.clubId) {
-                    return nextState
-                  }
-
-                  if (selectedClubId && prev.clubId !== selectedClubId) {
-                    return { ...nextState, clubId: selectedClubId }
-                  }
-
-                  if (!prev.clubId && manageableClubs.length === 1) {
-                    return { ...nextState, clubId: manageableClubs[0].id }
-                  }
-
-                  if (prev.clubId && manageableClubs.some(club => club.id === prev.clubId)) {
-                    return { ...nextState, clubId: prev.clubId }
-                  }
-
-                  return { ...nextState, clubId: '' }
                 })
-              }
+              }}
             >
               <SelectTrigger id="visibility">
                 <SelectValue />

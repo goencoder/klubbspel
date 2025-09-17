@@ -9,6 +9,7 @@ import { PlayerConfirmDialog } from '@/components/PlayerConfirmDialog'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
 import { useAuthStore } from '@/store/auth'
+import { deriveAutomaticClubId } from '@/lib/clubSelection'
 import type { Player, Club } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -36,7 +37,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       const response = await apiClient.listClubs({ pageSize: 100 })
 
       // Filter clubs based on user permissions
-      const manageableClubs: Club[] = []
+      const nextManageableClubs: Club[] = []
 
       // Check if user is platform owner first
       const userIsPlatformOwner = isPlatformOwner()
@@ -44,43 +45,28 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       for (const club of response.items) {
         // Platform owners can manage any club
         if (userIsPlatformOwner) {
-          manageableClubs.push(club)
+          nextManageableClubs.push(club)
           continue
         }
 
         // Regular users can only manage clubs they are admin of
         const isAdmin = isClubAdmin(club.id)
         if (isAdmin) {
-          manageableClubs.push(club)
+          nextManageableClubs.push(club)
         }
       }
 
-      setClubs(manageableClubs)
+      setClubs(nextManageableClubs)
 
       if (!hasManualClubSelection) {
         setFormData(prev => {
-          const selectedClubExists = selectedClubId
-            ? manageableClubs.some(club => club.id === selectedClubId)
-            : false
+          const nextClubId = deriveAutomaticClubId({
+            manageableClubs: nextManageableClubs,
+            selectedClubId,
+            previousClubId: prev.clubId,
+          })
 
-          if (selectedClubExists) {
-            return prev.clubId === selectedClubId
-              ? prev
-              : { ...prev, clubId: selectedClubId }
-          }
-
-          if (manageableClubs.length === 1) {
-            const [onlyClub] = manageableClubs
-            return prev.clubId === onlyClub.id
-              ? prev
-              : { ...prev, clubId: onlyClub.id }
-          }
-
-          if (prev.clubId && !manageableClubs.some(club => club.id === prev.clubId)) {
-            return { ...prev, clubId: '' }
-          }
-
-          return prev
+          return nextClubId === prev.clubId ? prev : { ...prev, clubId: nextClubId }
         })
       }
 
