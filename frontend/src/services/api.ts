@@ -77,8 +77,8 @@ class ApiClient {
         if (user?.apiToken) {
           headers['Authorization'] = `Bearer ${user.apiToken}`
         }
-      } catch (error) {
-        console.warn('Failed to parse auth state for headers:', error)
+      } catch (_error) {
+        // Failed to parse auth state - continue without auth headers
       }
     }
 
@@ -108,12 +108,6 @@ class ApiClient {
     try {
       const response = await fetch(url, config)
 
-      console.log('API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: response.url
-      })
-
       // Clean up abort controller
       if (requestId) {
         this.abortControllers.delete(requestId)
@@ -121,7 +115,6 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('API Error:', errorData)
         const apiError: ApiError = {
           code: errorData.code || `HTTP_${response.status}`,
           message: errorData.message || response.statusText,
@@ -136,11 +129,8 @@ class ApiClient {
       }
 
       const responseData = await response.json()
-      console.log('API Response Data:', responseData)
       return responseData
     } catch (error) {
-      console.error('API Request Error:', error)
-
       // Clean up abort controller on error
       if (requestId) {
         this.abortControllers.delete(requestId)
@@ -168,7 +158,7 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET', requestId })
   }
 
-  private post<T>(endpoint: string, data?: any, requestId?: string): Promise<T> {
+  private post<T>(endpoint: string, data?: unknown, requestId?: string): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
@@ -176,7 +166,7 @@ class ApiClient {
     })
   }
 
-  private patch<T>(endpoint: string, data: any, requestId?: string): Promise<T> {
+  private patch<T>(endpoint: string, data: unknown, requestId?: string): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -278,20 +268,10 @@ class ApiClient {
     if (params.cursorBefore) {searchParams.append('cursorBefore', params.cursorBefore)}
 
     const query = searchParams.toString()
-    const response = await this.get<{ items: any[], startCursor?: string, endCursor?: string, hasNextPage: boolean, hasPreviousPage: boolean }>(`/v1/series${query ? `?${query}` : ''}`, requestId)
-
-    // Map backend field names to frontend expectations  
-    const mappedItems: Series[] = response.items.map(item => ({
-      id: item.id,
-      clubId: item.clubId || item.club_id,
-      title: item.title,
-      startsAt: item.startsAt || item.starts_at,
-      endsAt: item.endsAt || item.ends_at,
-      visibility: item.visibility
-    }))
+    const response = await this.get<{ items: Series[], startCursor?: string, endCursor?: string, hasNextPage: boolean, hasPreviousPage: boolean }>(`/v1/series${query ? `?${query}` : ''}`, requestId)
 
     return {
-      items: mappedItems,
+      items: response.items,
       startCursor: response.startCursor,
       endCursor: response.endCursor,
       hasNextPage: response.hasNextPage,
@@ -300,48 +280,18 @@ class ApiClient {
   }
 
   async getSeries(id: string): Promise<Series> {
-    const response = await this.get<{ series: any }>(`/v1/series/${id}`)
-    const item = response.series
-
-    // Map backend field names to frontend expectations
-    return {
-      id: item.id,
-      clubId: item.clubId || item.club_id,
-      title: item.title,
-      startsAt: item.startsAt || item.starts_at,
-      endsAt: item.endsAt || item.ends_at,
-      visibility: item.visibility
-    }
+    const response = await this.get<{ series: Series }>(`/v1/series/${id}`)
+    return response.series
   }
 
   async createSeries(data: CreateSeriesRequest): Promise<Series> {
-    const response = await this.post<{ series: any }>('/v1/series', data)
-    const item = response.series
-
-    // Map backend field names to frontend expectations
-    return {
-      id: item.id,
-      clubId: item.clubId || item.club_id,
-      title: item.title,
-      startsAt: item.startsAt || item.starts_at,
-      endsAt: item.endsAt || item.ends_at,
-      visibility: item.visibility
-    }
+    const response = await this.post<{ series: Series }>('/v1/series', data)
+    return response.series
   }
 
   async updateSeries(id: string, data: UpdateSeriesRequest): Promise<Series> {
-    const response = await this.patch<{ series: any }>(`/v1/series/${id}`, data)
-    const item = response.series
-
-    // Map backend field names to frontend expectations
-    return {
-      id: item.id,
-      clubId: item.clubId || item.club_id,
-      title: item.title,
-      startsAt: item.startsAt || item.starts_at,
-      endsAt: item.endsAt || item.ends_at,
-      visibility: item.visibility
-    }
+    const response = await this.patch<{ series: Series }>(`/v1/series/${id}`, data)
+    return response.series
   }
 
   async deleteSeries(id: string): Promise<void> {

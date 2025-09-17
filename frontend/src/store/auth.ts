@@ -119,8 +119,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               }
             })
           }
-        } catch (error) {
-          console.error('Failed to refresh memberships:', error)
+        } catch (_error) {
           // Don't set error state for background refresh
         }
       },
@@ -145,8 +144,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
             set({ user: updatedUser })
           }
-        } catch (error) {
-          console.error('Failed to refresh user:', error)
+        } catch (_error) {
           // Don't set error state for background refresh
         }
       },

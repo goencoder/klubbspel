@@ -29,7 +29,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
       // Set the language from store
       if (language && i18n.language !== language) {
-        console.log('LanguageProvider: changing language from', i18n.language, 'to', language)
         await i18n.changeLanguage(language)
       }
 

@@ -59,8 +59,8 @@ export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: 
       // Reset form
       setTargetPlayerId('')
       setSourcePlayerId('')
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to merge players')
+    } catch (error: unknown) {
+      toast.error((error as Error).message || 'An error occurred while merging players')
     } finally {
       setIsLoading(false)
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -25,11 +25,7 @@ export function SeriesListPage() {
   
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  useEffect(() => {
-    loadSeries()
-  }, [debouncedSearchQuery])
-
-  const loadSeries = async (cursorAfter?: string) => {
+  const loadSeries = useCallback(async (cursorAfter?: string) => {
     try {
       setLoading(true)
       const response = await apiClient.listSeries({
@@ -44,12 +40,16 @@ export function SeriesListPage() {
       }
       setEndCursor(response.endCursor)
       setHasNextPage(response.hasNextPage)
-    } catch (error: any) {
-      toast.error(error.message || t('errors.unexpectedError'))
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('errors.unexpectedError'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    loadSeries()
+  }, [debouncedSearchQuery, loadSeries])
 
   const handleSeriesCreated = (newSeries: Series) => {
     setSeries(prev => [newSeries, ...prev])
@@ -76,8 +76,7 @@ export function SeriesListPage() {
       }
       
       return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`
-    } catch (error) {
-      console.error('Date parsing error:', error, { startDate, endDate })
+    } catch (_error) {
       return t('errors.invalidDates')
     }
   }

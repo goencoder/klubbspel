@@ -100,8 +100,8 @@ export function ReportMatchDialog({
 
       await apiClient.reportMatch(reportRequest)
       onMatchReported()
-    } catch (error: any) {
-      toast.error(error.message || t('error.generic'))
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('error.generic'))
     } finally {
       setLoading(false)
     }

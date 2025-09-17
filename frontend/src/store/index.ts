@@ -19,8 +19,7 @@ export const useAppStore = create<AppState>()(
   localStorage.setItem('klubbspel-language', language)
         // Use async/await to ensure language change is complete
         i18n.changeLanguage(language).then(() => {
-          // Force a reload of the page to ensure all components re-render with new language
-          console.log('Language changed to:', language)
+          // Language changed successfully
         })
       },
       setActor: (actor: string) => set({ actor }),

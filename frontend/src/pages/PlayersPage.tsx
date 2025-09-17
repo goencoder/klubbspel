@@ -9,7 +9,7 @@ import { apiClient } from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import type { Club, Player } from '@/types/api'
 import { Add, People, SearchNormal1 } from 'iconsax-reactjs'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection } from './Styles'
@@ -29,24 +29,16 @@ export function PlayersPage() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  useEffect(() => {
-    loadClubs()
-  }, [])
-
-  useEffect(() => {
-    loadPlayers()
-  }, [debouncedSearchQuery, selectedClubId])
-
-  const loadClubs = async () => {
+  const loadClubs = useCallback(async () => {
     try {
       const response = await apiClient.listClubs({ pageSize: 100 })
       setClubs(response.items)
-    } catch (error: any) {
-      toast.error(error.message || t('errors.generic'))
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('errors.generic'))
     }
-  }
+  }, [t])
 
-  const loadPlayers = async (pageToken?: string) => {
+  const loadPlayers = useCallback(async (pageToken?: string) => {
     try {
       setLoading(true)
       const response = await apiClient.listPlayers({
@@ -63,12 +55,20 @@ export function PlayersPage() {
       }
       setNextPageToken(response.endCursor)
       setHasNextPage(response.hasNextPage)
-    } catch (error: any) {
-      toast.error(error.message || t('errors.generic'))
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('errors.generic'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [debouncedSearchQuery, selectedClubId, t])
+
+  useEffect(() => {
+    loadClubs()
+  }, [loadClubs])
+
+  useEffect(() => {
+    loadPlayers()
+  }, [loadPlayers])
 
   const handlePlayerCreated = (newPlayer: Player) => {
     setPlayers(prev => [newPlayer, ...prev])

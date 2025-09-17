@@ -111,9 +111,9 @@ export function CreateSeriesDialog({
       onSeriesCreated(series)
       toast.success(t('series.created'))
       onOpenChange(false)
-    } catch (error: any) {
+    } catch (error: unknown) {
       // grpc-gateway rpcStatus: { code, message, details }
-      const msg = error?.message || t('errors.unexpectedError')
+      const msg = (error as Error)?.message || t('errors.unexpectedError')
       toast.error(msg)
     } finally {
       setLoading(false)
