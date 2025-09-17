@@ -64,7 +64,9 @@ func (r *SeriesRepo) List(ctx context.Context, pageSize int32, pageToken string)
 }
 
 type SeriesListFilters struct {
-	Sport *int32
+	Sport       *int32
+	ClubIDs     []string // Club IDs to filter by
+	IncludeOpen bool     // Whether to include open series
 }
 
 func (r *SeriesRepo) ListWithCursor(ctx context.Context, pageSize int32, cursor string, filters SeriesListFilters) ([]*Series, bool, bool, error) {
@@ -77,6 +79,31 @@ func (r *SeriesRepo) ListWithCursor(ctx context.Context, pageSize int32, cursor 
 
 	if filters.Sport != nil {
 		filter["sport"] = *filters.Sport
+	}
+
+	// Handle club filtering
+	if len(filters.ClubIDs) > 0 || filters.IncludeOpen {
+		var clubConditions []bson.M
+
+		// Add specific club IDs
+		if len(filters.ClubIDs) > 0 {
+			clubConditions = append(clubConditions, bson.M{"club_id": bson.M{"$in": filters.ClubIDs}})
+		}
+
+		// Add open series condition
+		if filters.IncludeOpen {
+			clubConditions = append(clubConditions, bson.M{"visibility": 2}) // SERIES_VISIBILITY_OPEN = 2
+		}
+
+		if len(clubConditions) == 1 {
+			// If only one condition, use it directly
+			for k, v := range clubConditions[0] {
+				filter[k] = v
+			}
+		} else {
+			// Multiple conditions, use $or
+			filter["$or"] = clubConditions
+		}
 	}
 
 	// Add cursor condition for pagination

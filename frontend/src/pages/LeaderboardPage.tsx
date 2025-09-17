@@ -6,16 +6,25 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import { apiClient } from '@/services/api'
-import type { Series } from '@/types/api'
+import { useAuthStore } from '@/store/auth'
+import type { Series, Club } from '@/types/api'
 import { Chart, CloseCircle, Cup, Medal, TickCircle } from 'iconsax-reactjs'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
+
+interface SeriesByClub {
+  [clubId: string]: {
+    club: Club | null
+    series: Series[]
+  }
+}
 
 type UILBRow = {
   rank: number
@@ -46,43 +55,101 @@ function normalizeLeaderboard(resp: { rows?: unknown[]; entries?: unknown[] } | 
 export function LeaderboardPage() {
   const { id: seriesIdFromParams } = useParams<{ id: string }>()
   const { t } = useTranslation()
+  const { selectedClubId, user } = useAuthStore()
 
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(seriesIdFromParams || '')
   const [leaderboard, setLeaderboard] = useState<UILBRow[]>([])
-  const [series, setSeries] = useState<Series[]>([])
+  const [seriesByClub, setSeriesByClub] = useState<SeriesByClub>({})
+  const [openSeries, setOpenSeries] = useState<Series[]>([])
+  const [clubs, setClubs] = useState<{ [id: string]: Club }>({})
   const [loadingSeries, setLoadingSeries] = useState(true)
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false)
 
   const loadSeries = useCallback(async () => {
     try {
       setLoadingSeries(true)
-      // Accept both {pageSize} and {page_size} depending on your client
-      const response = await apiClient.listSeries?.({ pageSize: 100 }) ?? await apiClient.listSeries({ pageSize: 100 })
+      
+      // Build filter based on selected club (same logic as SeriesListPage)
+      let clubFilter: string[] = []
+      
+      if (!selectedClubId || selectedClubId === 'all-clubs') {
+        // "Alla klubbar" - send empty list to show all series
+        clubFilter = []
+      } else if (selectedClubId === 'my-clubs') {
+        // "Mina klubbar" - resolve to actual club IDs + open series
+        const userClubIds = user?.memberships?.map(m => m.clubId).filter(Boolean) || []
+        clubFilter = [...userClubIds, 'OPEN']
+      } else {
+        // Specific club selected - send that club ID + open series
+        clubFilter = [selectedClubId, 'OPEN']
+      }
+      
+      const response = await apiClient.listSeries({
+        pageSize: 100,
+        clubFilter
+      })
+      
       const items: Series[] = Array.isArray(response?.items) ? response.items : []
-      setSeries(items)
+      
+      // Load clubs information for displaying club names
+      const allClubIds = [...new Set(items.map(s => s.clubId).filter((id): id is string => Boolean(id)))]
+      const clubsData: { [id: string]: Club } = {}
+      
+      await Promise.all(
+        allClubIds.map(async (clubId) => {
+          try {
+            const club = await apiClient.getClub(clubId)
+            clubsData[clubId] = club
+          } catch (_error) {
+            // Club might not exist or be accessible - silently skip
+          }
+        })
+      )
+      
+      setClubs(clubsData)
+      
+      // Separate series by club and open series
+      const seriesByClubData: SeriesByClub = {}
+      const openSeriesData: Series[] = []
+      
+      items.forEach(series => {
+        if (series.visibility === 'SERIES_VISIBILITY_OPEN') {
+          openSeriesData.push(series)
+        } else if (series.clubId) {
+          if (!seriesByClubData[series.clubId]) {
+            seriesByClubData[series.clubId] = {
+              club: clubsData[series.clubId] || null,
+              series: []
+            }
+          }
+          seriesByClubData[series.clubId].series.push(series)
+        }
+      })
+      
+      setSeriesByClub(seriesByClubData)
+      setOpenSeries(openSeriesData)
+      
+      // Set default selected series if none selected and series exist
       if (!seriesIdFromParams && items.length > 0) {
         setSelectedSeriesId(items[0].id)
       }
     } catch (error: unknown) {
       toast.error((error as Error)?.message || t('error.generic'))
-      setSeries([])
+      setSeriesByClub({})
+      setOpenSeries([])
     } finally {
       setLoadingSeries(false)
     }
-  }, [seriesIdFromParams, t])
+  }, [selectedClubId, user, seriesIdFromParams, t])
 
   useEffect(() => {
     loadSeries()
-  }, [loadSeries])
+  }, [loadSeries, selectedClubId])
 
   const loadLeaderboard = useCallback(async (seriesId: string) => {
     try {
       setLoadingLeaderboard(true)
-      // Tolerate either {seriesId, pageSize} or {series_id, top_n}
-      const resp =
-        (await apiClient.getLeaderboard?.({ seriesId, pageSize: 50 }, 'leaderboard')) ??
-        (await apiClient.getLeaderboard({ series_id: seriesId, top_n: 50 }, 'leaderboard'))
-
+      const resp = await apiClient.getLeaderboard({ seriesId, pageSize: 50 }, 'leaderboard')
       setLeaderboard(normalizeLeaderboard(resp))
     } catch (error: unknown) {
       toast.error((error as Error)?.message || t('error.generic'))
@@ -118,7 +185,13 @@ export function LeaderboardPage() {
     return 'outline' as const
   }
 
-  const selectedSeries = series.find((s) => s.id === selectedSeriesId) || null
+  // Get all series for finding selected series
+  const allSeries = [
+    ...Object.values(seriesByClub).flatMap(club => club.series),
+    ...openSeries
+  ]
+  
+  const selectedSeries = allSeries.find((s) => s.id === selectedSeriesId) || null
 
   if (loadingSeries) {
     return <LoadingSpinner />
@@ -150,11 +223,36 @@ export function LeaderboardPage() {
               <SelectValue placeholder={t('leaderboard.select.series')} />
             </SelectTrigger>
             <SelectContent>
-              {series.map((seriesItem) => (
-                <SelectItem key={seriesItem.id as string} value={seriesItem.id as string}>
-                  {seriesItem.title}
-                </SelectItem>
-              ))}
+              {/* Club Series Sections First */}
+              {Object.entries(seriesByClub).map(([clubId, clubData]) => [
+                // Club name header
+                <div key={`header-${clubId}`} className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
+                  {clubData.club?.name || t('series.sections.unknownClub')}
+                </div>,
+                // Club series
+                ...clubData.series.map((seriesItem) => (
+                  <SelectItem key={seriesItem.id} value={seriesItem.id}>
+                    {seriesItem.title}
+                  </SelectItem>
+                ))
+              ]).flat()}
+              
+              {/* Separator if we have both club series and open series */}
+              {Object.keys(seriesByClub).length > 0 && openSeries.length > 0 && (
+                <Separator className="my-1" />
+              )}
+              
+              {/* Open Series Section */}
+              {openSeries.length > 0 && [
+                <div key="open-header" className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
+                  {t('series.sections.openSeries')}
+                </div>,
+                ...openSeries.map((seriesItem) => (
+                  <SelectItem key={seriesItem.id} value={seriesItem.id}>
+                    {seriesItem.title}
+                  </SelectItem>
+                ))
+              ]}
             </SelectContent>
           </Select>
         </CardContent>
@@ -168,9 +266,6 @@ export function LeaderboardPage() {
               <Cup size={20} className="text-emerald-600" />
               <span>{selectedSeries.title}</span>
             </CardTitle>
-            {selectedSeries?.description && (
-              <CardDescription>{selectedSeries.description}</CardDescription>
-            )}
           </CardHeader>
         </Card>
       )}

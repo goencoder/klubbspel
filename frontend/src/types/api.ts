@@ -190,6 +190,7 @@ export interface ListSeriesRequest {
   cursorAfter?: string
   cursorBefore?: string
   sportFilter?: Sport
+  clubFilter?: string[]  // Club IDs to filter by, special value "OPEN" for open series
 }
 
 export interface ListSeriesResponse {

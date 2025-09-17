@@ -52,6 +52,7 @@ func (s *SeriesService) ListSeries(ctx context.Context, in *pb.ListSeriesRequest
 	// Use cursor_after for forward pagination
 	cursor := in.GetCursorAfter()
 	filters := repo.SeriesListFilters{}
+
 	if in.GetSportFilter() != pb.Sport_SPORT_UNSPECIFIED {
 		sport, err := normalizeSeriesSport(in.GetSportFilter())
 		if err != nil {
@@ -59,6 +60,20 @@ func (s *SeriesService) ListSeries(ctx context.Context, in *pb.ListSeriesRequest
 		}
 		sportValue := int32(sport)
 		filters.Sport = &sportValue
+	}
+
+	// Handle club filtering
+	clubFilters := in.GetClubFilter()
+	if len(clubFilters) > 0 {
+		var clubIDs []string
+		for _, clubFilter := range clubFilters {
+			if clubFilter == "OPEN" {
+				filters.IncludeOpen = true
+			} else {
+				clubIDs = append(clubIDs, clubFilter)
+			}
+		}
+		filters.ClubIDs = clubIDs
 	}
 
 	seriesList, hasNext, hasPrev, err := s.Series.ListWithCursor(ctx, in.GetPageSize(), cursor, filters)

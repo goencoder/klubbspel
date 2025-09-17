@@ -270,6 +270,11 @@ class ApiClient {
     if (params.sportFilter && params.sportFilter !== 'SPORT_UNSPECIFIED') {
       searchParams.append('sportFilter', params.sportFilter)
     }
+    if (params.clubFilter && params.clubFilter.length > 0) {
+      params.clubFilter.forEach(clubId => {
+        searchParams.append('clubFilter', clubId)
+      })
+    }
 
     const query = searchParams.toString()
     const response = await this.get<{ items: Series[], startCursor?: string, endCursor?: string, hasNextPage: boolean, hasPreviousPage: boolean }>(`/v1/series${query ? `?${query}` : ''}`, requestId)

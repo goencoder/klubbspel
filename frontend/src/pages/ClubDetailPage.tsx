@@ -45,14 +45,11 @@ export function ClubDetailPage() {
 
       // Load club series
       const seriesResponse = await apiClient.listSeries({
-        pageSize: 50
+        pageSize: 50,
+        clubFilter: [id]  // Only series for this specific club
       })
 
-      // Filter series for this club (assuming series have clubId)
-      const clubSeries = seriesResponse.items.filter(s =>
-        s.clubId === id || s.visibility === 'SERIES_VISIBILITY_OPEN'
-      )
-      setSeries(clubSeries)
+      setSeries(seriesResponse.items)
 
     } catch (error) {
       const apiError = error as ApiError

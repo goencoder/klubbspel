@@ -60,6 +60,10 @@
       "cup": "Cup",
       "unknown": "Kommer snart"
     },
+    "sections": {
+      "openSeries": "Öppna serier",
+      "unknownClub": "Okänd klubb"
+    },
     "noSeries": "Inga serier hittades",
     "createFirst": "Skapa din första turneringsserie för att komma igång",
     "searchAdjust": "Försök justera dina söktermer",

@@ -1017,6 +1017,17 @@
               "SPORT_PADEL"
             ],
             "default": "SPORT_UNSPECIFIED"
+          },
+          {
+            "name": "clubFilter",
+            "description": "Optional filter by club IDs. Special value \"OPEN\" includes all open series.\nIf empty, returns all series. Example: [\"98463678\", \"OPEN\"] returns \nseries for club 98463678 plus all open series.",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
           }
         ],
         "tags": [

@@ -60,6 +60,10 @@
       "cup": "Cup",
       "unknown": "Coming soon"
     },
+    "sections": {
+      "openSeries": "Open Series",
+      "unknownClub": "Unknown Club"
+    },
     "noSeries": "No series found",
     "createFirst": "Create your first tournament series to get started",
     "searchAdjust": "Try adjusting your search terms",

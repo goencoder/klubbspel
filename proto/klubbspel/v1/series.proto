@@ -145,6 +145,10 @@ message ListSeriesRequest {
   string cursor_before = 3;
   // Optional filter by sport.
   Sport sport_filter = 4;
+  // Optional filter by club IDs. Special value "OPEN" includes all open series.
+  // If empty, returns all series. Example: ["98463678", "OPEN"] returns 
+  // series for club 98463678 plus all open series.
+  repeated string club_filter = 5;
 }
 
 // Response containing list of series and cursor pagination info
