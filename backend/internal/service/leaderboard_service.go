@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
 	"time"
 
@@ -230,8 +231,8 @@ func calculateELO(ratingA, ratingB float64, scoreA, scoreB int32) (float64, floa
 	const K = 32
 
 	// Expected scores
-	expectedA := 1 / (1 + pow(10, (ratingB-ratingA)/400))
-	expectedB := 1 / (1 + pow(10, (ratingA-ratingB)/400))
+	expectedA := 1 / (1 + math.Pow(10, (ratingB-ratingA)/400))
+	expectedB := 1 / (1 + math.Pow(10, (ratingA-ratingB)/400))
 
 	// Actual scores (1 for win, 0 for loss)
 	var actualA, actualB float64
@@ -246,17 +247,4 @@ func calculateELO(ratingA, ratingB float64, scoreA, scoreB int32) (float64, floa
 	newRatingB := ratingB + K*(actualB-expectedB)
 
 	return newRatingA, newRatingB
-}
-
-// Simple power function
-func pow(base, exp float64) float64 {
-	result := 1.0
-	for exp > 0 {
-		if int(exp)%2 == 1 {
-			result *= base
-		}
-		base *= base
-		exp /= 2
-	}
-	return result
 }
