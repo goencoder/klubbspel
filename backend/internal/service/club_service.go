@@ -12,6 +12,7 @@ import (
 )
 
 type ClubService struct {
+	pb.UnimplementedClubServiceServer
 	Clubs   *repo.ClubRepo
 	Players *repo.PlayerRepo
 	Series  *repo.SeriesRepo
@@ -193,5 +194,3 @@ func (s *ClubService) ListClubs(ctx context.Context, in *pb.ListClubsRequest) (*
 		HasPreviousPage: hasPrev,
 	}, nil
 }
-
-func (s *ClubService) mustEmbedUnimplementedClubServiceServer() {}

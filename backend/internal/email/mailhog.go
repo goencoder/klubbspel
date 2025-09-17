@@ -133,7 +133,7 @@ func (s *MailHogService) sendWithTLS(addr string, auth smtp.Auth, to []string, m
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
-			// Log but don't return error as it's in cleanup
+			fmt.Printf("[EMAIL] Failed to close TLS connection: %v\n", err)
 		}
 	}()
 
@@ -143,7 +143,7 @@ func (s *MailHogService) sendWithTLS(addr string, auth smtp.Auth, to []string, m
 	}
 	defer func() {
 		if err := client.Quit(); err != nil {
-			// Log but don't return error as it's in cleanup
+			fmt.Printf("[EMAIL] Failed to quit SMTP client: %v\n", err)
 		}
 	}()
 
@@ -189,7 +189,7 @@ func (s *MailHogService) sendWithStartTLS(addr string, auth smtp.Auth, to []stri
 	}
 	defer func() {
 		if err := client.Quit(); err != nil {
-			// Log but don't return error as it's in cleanup
+			fmt.Printf("[EMAIL] Failed to quit SMTP client: %v\n", err)
 		}
 	}()
 

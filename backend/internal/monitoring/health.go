@@ -191,7 +191,9 @@ func (e *ExternalAPIHealthCheck) Check(ctx context.Context) HealthStatus {
 			Duration:    time.Since(start),
 		}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return HealthStatus{
@@ -460,13 +462,11 @@ func (hc *HealthChecker) handleHealthCheck(w http.ResponseWriter, r *http.Reques
 	status := hc.GetStatus()
 
 	// Set HTTP status code based on health
-	httpStatus := http.StatusOK
+	var httpStatus int
 	switch status.Status {
 	case StatusUnhealthy:
 		httpStatus = http.StatusServiceUnavailable
-	case StatusDegraded:
-		httpStatus = http.StatusOK // Still accepting traffic
-	case StatusHealthy:
+	case StatusDegraded, StatusHealthy:
 		httpStatus = http.StatusOK
 	default:
 		httpStatus = http.StatusServiceUnavailable
@@ -486,10 +486,14 @@ func (hc *HealthChecker) handleReadiness(w http.ResponseWriter, r *http.Request)
 
 	if status.Status == StatusHealthy || status.Status == StatusDegraded {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			hc.logger.Error().Err(err).Msg("failed to write readiness response")
+		}
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("NOT READY"))
+		if _, err := w.Write([]byte("NOT READY")); err != nil {
+			hc.logger.Error().Err(err).Msg("failed to write readiness response")
+		}
 	}
 }
 
@@ -512,10 +516,14 @@ func (hc *HealthChecker) handleLiveness(w http.ResponseWriter, r *http.Request) 
 
 	if criticalFailure {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("NOT ALIVE"))
+		if _, err := w.Write([]byte("NOT ALIVE")); err != nil {
+			hc.logger.Error().Err(err).Msg("failed to write liveness response")
+		}
 	} else {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			hc.logger.Error().Err(err).Msg("failed to write liveness response")
+		}
 	}
 }
 

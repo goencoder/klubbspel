@@ -176,7 +176,7 @@ func Bootstrap(ctx context.Context, cfg config.Config, mc *mongo.Client) (*GRPCS
 	)
 
 	// Create gateway with allowCORS middleware applied to the mux
-	gatewayHandler := allowCORS(mux)
+	gatewayHandler := allowCORS(withActor(mux))
 
 	gateway := &Gateway{
 		http: &http.Server{
@@ -209,23 +209,31 @@ func Bootstrap(ctx context.Context, cfg config.Config, mc *mongo.Client) (*GRPCS
 		}
 
 		w.WriteHeader(httpStatus)
-		json.NewEncoder(w).Encode(status)
+		if err := json.NewEncoder(w).Encode(status); err != nil {
+			logger.Error().Err(err).Msg("failed to encode health status")
+		}
 	})
 
 	r.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
 		status := healthChecker.GetStatus()
 		if status.Status == "healthy" || status.Status == "degraded" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
+			if _, err := w.Write([]byte("OK")); err != nil {
+				logger.Error().Err(err).Msg("failed to write readiness response")
+			}
 		} else {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("NOT READY"))
+			if _, err := w.Write([]byte("NOT READY")); err != nil {
+				logger.Error().Err(err).Msg("failed to write readiness response")
+			}
 		}
 	})
 
 	r.Get("/live", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			logger.Error().Err(err).Msg("failed to write liveness response")
+		}
 	})
 
 	// Health check provides system monitoring - dedicated metrics endpoint removed
@@ -246,7 +254,9 @@ func Bootstrap(ctx context.Context, cfg config.Config, mc *mongo.Client) (*GRPCS
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+		if _, err := w.Write(data); err != nil {
+			logger.Error().Err(err).Msg("failed to write swagger response")
+		}
 	})
 
 	httpSrv := &http.Server{

@@ -43,7 +43,9 @@ func (r *SeriesRepo) List(ctx context.Context, pageSize int32, pageToken string)
 	if err != nil {
 		return nil, "", err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var series []*Series
 	for cursor.Next(ctx) {
@@ -74,12 +76,14 @@ func (r *SeriesRepo) ListWithCursor(ctx context.Context, pageSize int32, cursor 
 	}
 
 	// Get pageSize + 1 items to determine if there's a next page
-	opts := options.Find().SetLimit(int64(pageSize + 1)).SetSort(bson.D{{"_id", 1}})
+	opts := options.Find().SetLimit(int64(pageSize + 1)).SetSort(bson.D{{Key: "_id", Value: 1}})
 	cursor_result, err := r.c.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, false, false, err
 	}
-	defer cursor_result.Close(ctx)
+	defer func() {
+		_ = cursor_result.Close(ctx)
+	}()
 
 	var series []*Series
 	for cursor_result.Next(ctx) {
@@ -144,7 +148,7 @@ func (r *SeriesRepo) DeleteByClubID(ctx context.Context, clubID string) error {
 	// Only delete series that are club-specific (not open to all clubs)
 	// Assuming visibility 0 = club-specific, visibility 1 = open to all
 	_, err := r.c.DeleteMany(ctx, bson.M{
-		"club_id": clubID,
+		"club_id":    clubID,
 		"visibility": bson.M{"$ne": 1}, // Only delete non-open series
 	})
 	return err

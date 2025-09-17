@@ -75,14 +75,16 @@ func (r *MatchRepo) ListBySeriesID(ctx context.Context, seriesID string, pageSiz
 
 	// Apply pagination with limit and sorting
 	findOptions := options.Find().
-		SetLimit(int64(pageSize + 1)).                 // +1 to check for more results
-		SetSort(bson.D{{"played_at", -1}, {"_id", 1}}) // Sort by played_at descending, then ID ascending
+		SetLimit(int64(pageSize + 1)).                                         // +1 to check for more results
+		SetSort(bson.D{{Key: "played_at", Value: -1}, {Key: "_id", Value: 1}}) // Sort by played_at descending, then ID ascending
 
 	cursor, err := r.c.Find(ctx, filter, findOptions)
 	if err != nil {
 		return nil, "", err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	// First, collect all matches and unique player IDs
 	var matches []*Match
@@ -165,7 +167,9 @@ func (r *MatchRepo) FindBySeriesID(ctx context.Context, seriesID string) ([]*Mat
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var matches []*Match
 	for cursor.Next(ctx) {
