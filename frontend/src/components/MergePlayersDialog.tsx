@@ -83,15 +83,15 @@ export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: 
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Merge Players</DialogTitle>
+          <DialogTitle>{t('players.merge.title')}</DialogTitle>
           <DialogDescription>
-            Merge two player records into one. All matches and data from the source player will be transferred to the target player.
+            {t('players.merge.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           <div className="space-y-2">
-            <Label htmlFor="target-player">Target Player (Keep This One)</Label>
+            <Label htmlFor="target-player">{t('players.merge.targetPlayer')}</Label>
             <Select
               value={targetPlayerId}
               onValueChange={setTargetPlayerId}
@@ -187,7 +187,7 @@ export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: 
             disabled={isLoading || !targetPlayerId || !sourcePlayerId}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isLoading ? 'Merging...' : 'Merge Players'}
+            {isLoading ? t('players.merge.merging') : t('players.merge.title')}
           </Button>
         </DialogFooter>
       </DialogContent>

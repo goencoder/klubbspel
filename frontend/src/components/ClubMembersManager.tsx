@@ -175,10 +175,10 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
           <div>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Club Members
+              {t('clubs.members.title')}
             </CardTitle>
             <CardDescription>
-              Manage members of {clubName} ({members.length} total)
+              {t('clubs.members.manage')} {clubName} ({members.length} {t('clubs.members.total')})
             </CardDescription>
           </div>
 

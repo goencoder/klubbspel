@@ -84,6 +84,12 @@
     "createNew": "Create New",
     "noManageableClubs": "You have no clubs you can manage",
     "needClubAdmin": "You must be a club administrator or platform owner to create players",
+    "merge": {
+      "title": "Merge Players",
+      "description": "Merge two player records into one. All matches and data from the source player will be transferred to the target player.",
+      "targetPlayer": "Target Player (Keep This One)",
+      "merging": "Merging..."
+    },
     "validation": {
       "nameRequired": "Player name is required",
       "clubRequired": "Club must be selected"
@@ -134,7 +140,8 @@
     "playMatches": "Report some matches to see rankings",
     "empty": "No rankings available yet",
     "select": {
-      "series": "Select series"
+      "series": "Select series",
+      "help": "Choose a series to view its leaderboard"
     }
   },
   "clubs": {
@@ -154,6 +161,37 @@
     "updated": "Club updated successfully",
     "deleted": "Club deleted successfully",
     "playersInClub": "Players in this club",
+    "navigation": {
+      "allClubs": "All Clubs",
+      "myClubs": "My Clubs"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "Overview",
+        "series": "Series",
+        "members": "Members",
+        "mergeePlayers": "Merge Players"
+      },
+      "stats": {
+        "activeSeries": "Active Series",
+        "currentlyRunning": "Currently running tournaments",
+        "totalSeries": "Total Series",
+        "allTimeTournaments": "All-time tournaments",
+        "clubType": "Club Type",
+        "open": "Open",
+        "anyoneCanJoin": "Anyone can join"
+      },
+      "series": {
+        "noSeries": "No series yet",
+        "createFirst": "Create the first tournament series for this club.",
+        "noneCreated": "This club hasn't created any tournament series yet."
+      }
+    },
+    "members": {
+      "title": "Club Members",
+      "manage": "Manage members of",
+      "total": "total"
+    },
     "validation": {
       "nameRequired": "Club name is required",
       "nameMinLength": "Club name must be at least 2 characters",

@@ -84,6 +84,12 @@
     "createNew": "Skapa ny",
     "noManageableClubs": "Du har inga klubbar du kan hantera",
     "needClubAdmin": "Du måste vara klubbadministratör eller plattformsägare för att skapa spelare",
+    "merge": {
+      "title": "Slå ihop spelare",
+      "description": "Slå ihop två spelarregister till ett. Alla matcher och data från källspelaren kommer att överföras till målspelaren.",
+      "targetPlayer": "Målspelare (behåll denna)",
+      "merging": "Slår ihop..."
+    },
     "validation": {
       "nameRequired": "Spelarnamn krävs",
       "clubRequired": "Klubb måste väljas"
@@ -134,7 +140,8 @@
     "playMatches": "Rapportera några matcher för att se rankningar",
     "empty": "Inga rankningar tillgängliga än",
     "select": {
-      "series": "Välj serie"
+      "series": "Välj serie",
+      "help": "Välj en serie för att visa dess resultattabell"
     }
   },
   "clubs": {
@@ -154,6 +161,37 @@
     "updated": "Klubb uppdaterad framgångsrikt",
     "deleted": "Klubb borttagen framgångsrikt",
     "playersInClub": "Spelare i denna klubb",
+    "navigation": {
+      "allClubs": "Alla klubbar",
+      "myClubs": "Mina klubbar"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "Översikt",
+        "series": "Serier",
+        "members": "Medlemmar",
+        "mergeePlayers": "Slå ihop spelare"
+      },
+      "stats": {
+        "activeSeries": "Aktiva serier",
+        "currentlyRunning": "Pågående turneringar",
+        "totalSeries": "Totalt antal serier",
+        "allTimeTournaments": "Alla turneringar",
+        "clubType": "Klubbtyp",
+        "open": "Öppen",
+        "anyoneCanJoin": "Vem som helst kan gå med"
+      },
+      "series": {
+        "noSeries": "Inga serier än",
+        "createFirst": "Skapa den första turneringsserien för denna klubb.",
+        "noneCreated": "Denna klubb har inte skapat några turneringsserier än."
+      }
+    },
+    "members": {
+      "title": "Klubbmedlemmar",
+      "manage": "Hantera medlemmar i",
+      "total": "totalt"
+    },
     "validation": {
       "nameRequired": "Klubbnamn krävs",
       "nameMinLength": "Klubbnamn måste vara minst 2 tecken",
