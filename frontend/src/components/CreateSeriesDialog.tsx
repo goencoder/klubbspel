@@ -227,9 +227,7 @@ export function CreateSeriesDialog({
                     return nextState
                   }
 
-                  const clubFromContext = selectedClubId && clubs.some(club => club.id === selectedClubId)
-                    ? selectedClubId
-                    : undefined
+                  const clubFromContext = clubs.find((club) => club.id === selectedClubId)?.id
 
                   if (clubFromContext && prev.clubId !== clubFromContext) {
                     return { ...nextState, clubId: clubFromContext }

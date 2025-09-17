@@ -139,14 +139,18 @@ export function ClubDetailPage() {
   const isMember = isAuthenticated() && user && isClubMember(club.id)
   const isAdmin = isAuthenticated() && user && isClubAdmin(club.id)
 
+  const selectCurrentClub = () => {
+    if (club) {
+      useAuthStore.getState().selectClub(club.id)
+    }
+  }
+
   const openCreateSeriesDialog = () => {
-    useAuthStore.getState().selectClub(club.id)
+    selectCurrentClub()
     setShowCreateSeriesDialog(true)
   }
 
   const handleSeriesCreated = (createdSeries: Series) => {
-    useAuthStore.getState().selectClub(club.id)
-
     if (createdSeries.clubId === club.id || createdSeries.visibility === 'SERIES_VISIBILITY_OPEN') {
       setSeries(prev => [createdSeries, ...prev.filter(s => s.id !== createdSeries.id)])
     }
@@ -367,7 +371,7 @@ export function ClubDetailPage() {
         open={showCreateSeriesDialog}
         onOpenChange={(nextOpen) => {
           if (nextOpen) {
-            useAuthStore.getState().selectClub(club.id)
+            selectCurrentClub()
           }
           setShowCreateSeriesDialog(nextOpen)
         }}
