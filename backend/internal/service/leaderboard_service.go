@@ -16,6 +16,7 @@ import (
 const LEADERBOARD_VERSION = 6
 
 type LeaderboardService struct {
+	pb.UnimplementedLeaderboardServiceServer
 	Matches *repo.MatchRepo
 	Players *repo.PlayerRepo
 }
@@ -259,5 +260,3 @@ func pow(base, exp float64) float64 {
 	}
 	return result
 }
-
-func (s *LeaderboardService) mustEmbedUnimplementedLeaderboardServiceServer() {}

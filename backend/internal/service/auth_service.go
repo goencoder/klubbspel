@@ -371,7 +371,9 @@ func (ls *LazySubject) ensureLoaded(ctx context.Context) error {
 
 	// Update last used timestamp (async, don't block)
 	go func() {
-		ls.tokenRepo.UpdateLastUsed(context.Background(), ls.token)
+		if err := ls.tokenRepo.UpdateLastUsed(context.Background(), ls.token); err != nil {
+			fmt.Printf("Warning: Failed to update token last used: %v\n", err)
+		}
 	}()
 
 	return nil

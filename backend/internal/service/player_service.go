@@ -14,6 +14,7 @@ import (
 )
 
 type PlayerService struct {
+	pb.UnimplementedPlayerServiceServer
 	Players *repo.PlayerRepo
 }
 
@@ -319,5 +320,3 @@ func (s *PlayerService) FindMergeCandidates(ctx context.Context, in *pb.FindMerg
 		Candidates: pbCandidates,
 	}, nil
 }
-
-func (s *PlayerService) mustEmbedUnimplementedPlayerServiceServer() {}
