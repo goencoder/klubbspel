@@ -39,7 +39,7 @@ export function CreateSeriesDialog({
   const { t } = useTranslation()
   const { isPlatformOwner, isClubAdmin, selectedClubId } = useAuthStore()
   const [loading, setLoading] = useState(false)
-  const [clubs, setClubs] = useState<Club[]>([])
+  const [manageableClubs, setManageableClubs] = useState<Club[]>([])
   const [formData, setFormData] = useState<{
     title: string
     visibility: SeriesVisibility
@@ -59,21 +59,21 @@ export function CreateSeriesDialog({
     try {
       const response = await apiClient.listClubs({ pageSize: 100 })
 
-      const manageableClubs: Club[] = []
+      const nextManageableClubs: Club[] = []
       const userIsPlatformOwner = isPlatformOwner()
 
       for (const club of response.items) {
         if (userIsPlatformOwner || isClubAdmin(club.id)) {
-          manageableClubs.push(club)
+          nextManageableClubs.push(club)
         }
       }
 
-      setClubs(manageableClubs)
+      setManageableClubs(nextManageableClubs)
 
       if (!hasManualClubSelection) {
         setFormData(prev => {
           const selectedClubExists = selectedClubId
-            ? manageableClubs.some(club => club.id === selectedClubId)
+            ? nextManageableClubs.some(club => club.id === selectedClubId)
             : false
 
           if (selectedClubExists) {
@@ -82,14 +82,14 @@ export function CreateSeriesDialog({
               : { ...prev, clubId: selectedClubId }
           }
 
-          if (manageableClubs.length === 1) {
-            const [onlyClub] = manageableClubs
+          if (nextManageableClubs.length === 1) {
+            const [onlyClub] = nextManageableClubs
             return prev.clubId === onlyClub.id
               ? prev
               : { ...prev, clubId: onlyClub.id }
           }
 
-          if (prev.clubId && !manageableClubs.some(club => club.id === prev.clubId)) {
+          if (prev.clubId && !nextManageableClubs.some(club => club.id === prev.clubId)) {
             return { ...prev, clubId: '' }
           }
 
@@ -114,7 +114,7 @@ export function CreateSeriesDialog({
         startsAt: '',
         endsAt: '',
       })
-      setClubs([])
+      setManageableClubs([])
       setHasManualClubSelection(false)
     }
   }, [open, loadManageableClubs])
@@ -228,17 +228,15 @@ export function CreateSeriesDialog({
                     return nextState
                   }
 
-                  const clubFromContext = clubs.find((club) => club.id === selectedClubId)?.id
-
-                  if (clubFromContext && prev.clubId !== clubFromContext) {
-                    return { ...nextState, clubId: clubFromContext }
+                  if (selectedClubId && prev.clubId !== selectedClubId) {
+                    return { ...nextState, clubId: selectedClubId }
                   }
 
-                  if (!prev.clubId && clubs.length === 1) {
-                    return { ...nextState, clubId: clubs[0].id }
+                  if (!prev.clubId && manageableClubs.length === 1) {
+                    return { ...nextState, clubId: manageableClubs[0].id }
                   }
 
-                  if (prev.clubId && clubs.some(club => club.id === prev.clubId)) {
+                  if (prev.clubId && manageableClubs.some(club => club.id === prev.clubId)) {
                     return { ...nextState, clubId: prev.clubId }
                   }
 
@@ -265,7 +263,7 @@ export function CreateSeriesDialog({
             <div className="space-y-2">
               <Label>{t('players.club')} *</Label>
               <ClubSelector
-                clubs={clubs}
+                clubs={manageableClubs}
                 selectedClubId={formData.clubId}
                 onClubSelected={handleClubSelected}
                 disabled={loading}
