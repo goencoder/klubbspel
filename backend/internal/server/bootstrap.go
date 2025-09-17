@@ -180,8 +180,12 @@ func Bootstrap(ctx context.Context, cfg config.Config, mc *mongo.Client) (*GRPCS
 
 	gateway := &Gateway{
 		http: &http.Server{
-			Addr:    cfg.HTTPAddr,
-			Handler: gatewayHandler,
+			Addr:              cfg.HTTPAddr,
+			Handler:           gatewayHandler,
+			ReadHeaderTimeout: 10 * time.Second, // G112 fix: prevent Slowloris attacks
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       120 * time.Second,
 		},
 		mux:         mux,
 		environment: cfg.Environment,

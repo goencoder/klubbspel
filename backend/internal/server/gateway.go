@@ -30,8 +30,11 @@ func (g *Gateway) RegisterHandlers(ctx context.Context, grpcEndpoint string) err
 
 	// Use secure credentials in production, insecure for development/testing
 	if g.environment == "production" {
-		// Use TLS credentials for production
-		creds := credentials.NewTLS(&tls.Config{ServerName: "localhost"})
+		// Use TLS credentials for production with secure configuration (G402 fix)
+		creds := credentials.NewTLS(&tls.Config{
+			ServerName: "localhost",
+			MinVersion: tls.VersionTLS12, // Minimum TLS 1.2 for security
+		})
 		opts = []grpc.DialOption{grpc.WithTransportCredentials(creds)}
 		log.Info().Msg("Using TLS credentials for gRPC gateway connection")
 	} else {
