@@ -17,14 +17,12 @@ import apiClient from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import type { ApiError, Club, Series } from '@/types/api'
 import { ArrowLeft, Calendar, Trophy, Users, UserMinus } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 export function ClubDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { t } = useTranslation()
   const { user, isAuthenticated, isClubMember, isClubAdmin } = useAuthStore()
   const [club, setClub] = useState<Club | null>(null)
   const [series, setSeries] = useState<Series[]>([])
@@ -33,13 +31,7 @@ export function ClubDetailPage() {
   const [leaving, setLeaving] = useState(false)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
 
-  useEffect(() => {
-    if (id) {
-      loadClubDetails()
-    }
-  }, [id])
-
-  const loadClubDetails = async () => {
+  const loadClubDetails = useCallback(async () => {
     if (!id) return
 
     try {
@@ -66,7 +58,13 @@ export function ClubDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    if (id) {
+      loadClubDetails()
+    }
+  }, [id, loadClubDetails])
 
   const handleJoinClub = async () => {
     if (!id || !user) return
@@ -213,7 +211,7 @@ export function ClubDetailPage() {
 
               {!isAuthenticated() && (
                 <Button asChild>
-                  <Link to={`/login?returnTo=${encodeURIComponent(location.pathname)}`}>
+                  <Link to={`/login?returnTo=${encodeURIComponent(window.location.pathname)}`}>
                     Sign In to Join
                   </Link>
                 </Button>

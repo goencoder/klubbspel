@@ -32,8 +32,8 @@ export function ClubNavigation({ showAllOption = true, onClubChange }: ClubNavig
         // Sort clubs alphabetically by name
         const sortedClubs = response.items.sort((a, b) => a.name.localeCompare(b.name))
         setAllClubs(sortedClubs)
-      } catch (error) {
-        console.error('Failed to load clubs for navigation:', error)
+      } catch (_error) {
+        // Failed to load clubs for navigation - silently fail
       } finally {
         setLoading(false)
       }

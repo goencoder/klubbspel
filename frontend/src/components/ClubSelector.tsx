@@ -56,7 +56,7 @@ export function ClubSelector({
   const selectedClub = clubs.find((club) => club.id === selectedClubId) || null
 
   const loadClubs = useCallback(
-    async (search?: string) => {
+    async (_search?: string) => {
       try {
         setLoading(true)
         // Note: This component now receives clubs as props, so we don't need to load them here

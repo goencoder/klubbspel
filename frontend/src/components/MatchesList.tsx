@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { apiClient } from '@/services/api'
 import type { MatchView } from '@/types/api'
 import { CloseCircle, Cup, TickCircle } from 'iconsax-reactjs'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { SharedEmptyState } from './Styles'
@@ -32,11 +32,7 @@ export function MatchesList({ seriesId }: MatchesListProps) {
   const [hasNextPage, setHasNextPage] = useState(false)
   const [nextPageToken, setNextPageToken] = useState<string | undefined>()
 
-  useEffect(() => {
-    loadMatches()
-  }, [seriesId])
-
-  const loadMatches = async (pageToken?: string) => {
+  const loadMatches = useCallback(async (pageToken?: string) => {
     try {
       setLoading(true)
       const response = await apiClient.listMatches({
@@ -52,12 +48,16 @@ export function MatchesList({ seriesId }: MatchesListProps) {
       }
       setNextPageToken(response.endCursor)
       setHasNextPage(response.hasNextPage)
-    } catch (error: any) {
-      toast.error(error.message || t('error.generic'))
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('error.generic'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [seriesId, t])
+
+  useEffect(() => {
+    loadMatches()
+  }, [loadMatches])
 
   const getWinner = (match: MatchView) => {
     return match.scoreA > match.scoreB ? match.playerAName : match.playerBName

@@ -40,7 +40,7 @@ export function ProfileCompletionModal({
       toast.success(t('settings.profile.updated'))
       onProfileUpdated()
       onClose()
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('settings.profile.update.failed'))
     } finally {
       setIsUpdating(false)

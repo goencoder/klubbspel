@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { apiClient } from '@/services/api'
 import type { Series, SeriesVisibility } from '@/types/api'
 import { Add, ArrowLeft2, Calendar, Chart, ClipboardTick, Cup } from 'iconsax-reactjs'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -21,41 +21,40 @@ export function SeriesDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showReportDialog, setShowReportDialog] = useState(false)
 
-  useEffect(() => {
-    if (id) {
-      loadSeries(id)
-    }
-  }, [id])
-
-  const loadSeries = async (seriesId: string) => {
+  const loadSeries = useCallback(async (seriesId: string) => {
     try {
       setLoading(true)
       const seriesData = await apiClient.getSeries(seriesId)
       setSeries(seriesData)
 
-      // Load club name if series has a club ID
+      // Load club name if clubId is present
       if (seriesData.clubId) {
         loadClubName(seriesData.clubId)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = (error as Error).message || '';
       // If getSeries is not implemented, show a helpful error
-      if (error.message && error.message.includes('not implemented')) {
+      if (errorMessage.includes('not implemented')) {
         toast.error('Series details endpoint not yet implemented in backend')
       } else {
-        toast.error(error.message || t('errors.generic'))
+        toast.error(errorMessage || t('errors.generic'))
       }
-      console.error('Failed to load series:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    if (id) {
+      loadSeries(id)
+    }
+  }, [id, loadSeries])
 
   const loadClubName = async (clubId: string) => {
     try {
       const club = await apiClient.getClub(clubId)
       setClubName(club.name)
-    } catch (error: any) {
-      console.error('Failed to load club name:', error)
+    } catch (_error: unknown) {
       // Keep the ID as fallback if club name fetch fails
       setClubName(clubId)
     }
@@ -80,8 +79,7 @@ export function SeriesDetailPage() {
       }
 
       return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`
-    } catch (error) {
-      console.error('Date parsing error:', error, { startDate, endDate })
+    } catch (_error) {
       return t('errors.invalidDates')
     }
   }

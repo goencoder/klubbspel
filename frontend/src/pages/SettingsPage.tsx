@@ -42,7 +42,7 @@ export function SettingsPage() {
       setLanguage(newLanguage)
       await i18n.changeLanguage(newLanguage)
       toast.success(t('common.success'))
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to change language')
     }
   }
@@ -64,7 +64,7 @@ export function SettingsPage() {
       await refreshUser()
       
       toast.success(t('settings.profile.updated'))
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('settings.profile.update.failed'))
     } finally {
       setIsUpdatingProfile(false)

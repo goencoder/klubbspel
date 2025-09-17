@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, ContentGrid, LoadingGrid, SharedEmptyState, ActionGroup, HoverCard } from './Styles'
+import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, LoadingGrid, SharedEmptyState, ActionGroup } from './Styles'
 
 export function ClubsPage() {
   const { t } = useTranslation()
@@ -82,22 +82,13 @@ export function ClubsPage() {
         const userClubIds = user?.memberships
             ?.filter(m => m.active === true)
             ?.map(m => m.clubId) || []
-        console.log('[ClubsPage] Filtering for my-clubs:', {
-          userClubIds,
-          allClubIds: response.items.map(club => club.id),
-        })
         filteredClubs = response.items.filter(club => {
-          const shouldShow = userClubIds.includes(club.id)
-          console.log(`[ClubsPage] Club ${club.id}: userClubIds.includes ->`, shouldShow)
-          return shouldShow
+          return userClubIds.includes(club.id)
         })
       } else if (selectedClubId) {
         // Show specific club
-        console.log('[ClubsPage] Filtering for specific club:', selectedClubId)
         filteredClubs = response.items.filter(club => {
-          const shouldShow = club.id === selectedClubId
-          console.log(`[ClubsPage] Club ${club.id}: club.id === selectedClubId ->`, shouldShow)
-          return shouldShow
+          return club.id === selectedClubId
         })
       }
       // If selectedClubId is null (All Clubs), show all clubs
