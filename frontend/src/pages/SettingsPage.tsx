@@ -43,7 +43,7 @@ export function SettingsPage() {
       await i18n.changeLanguage(newLanguage)
       toast.success(t('common.success'))
     } catch (_error) {
-      toast.error('Failed to change language')
+      toast.error(t('settings.language.failed'))
     }
   }
 

@@ -39,6 +39,7 @@
     "title": "Tournament Series",
     "subtitle": "Manage table tennis tournaments and leagues",
     "createNew": "Create New Series",
+    "create_help": "Create a new tournament series.",
     "name": "Series Name",
     "name_placeholder": "Enter series name",
     "clubName": "Club Name",
@@ -96,7 +97,11 @@
       "title": "Merge Players",
       "description": "Merge two player records into one. All matches and data from the source player will be transferred to the target player.",
       "targetPlayer": "Target Player (Keep This One)",
-      "merging": "Merging..."
+      "sourcePlayer": "Source Player (Delete After Merge)",
+      "merging": "Merging...",
+      "selectBothRequired": "Please select both players to merge",
+      "selectTargetPlaceholder": "Select the player to keep...",
+      "selectSourcePlaceholder": "Select the player to merge from..."
     },
     "validation": {
       "nameRequired": "Player name is required",
@@ -133,11 +138,14 @@
       "bestOfFive": "Winner must reach 3 games (best of five)",
       "samePlayer": "A player cannot play against themselves",
       "invalidScore": "Scores must be between 0 and 5",
-      "seriesWindow": "Match date must be within the series period"
+      "seriesWindow": "Match date must be within the series period",
+      "scoresRange": "Scores must be between 0 and 5",
+      "noTie": "A match cannot end in a tie"
     }
   },
   "leaderboard": {
     "title": "Leaderboard",
+    "subtitle": "Player rankings and statistics",
     "rank": "Rank",
     "player": "Player",
     "rating": "Rating",
@@ -149,6 +157,7 @@
     "noData": "No rankings available yet",
     "playMatches": "Report some matches to see rankings",
     "empty": "No rankings available yet",
+    "empty_help": "No matches have been reported for this series yet.",
     "select": {
       "series": "Select series",
       "help": "Choose a series to view its leaderboard"
@@ -158,6 +167,8 @@
     "title": "Clubs",
     "subtitle": "Manage table tennis clubs in your organization",
     "createNew": "Create New Club",
+    "createHelp": "Create a new table tennis club.",
+    "selectClub": "Select club...",
     "name": "Club Name",
     "description": "Description",
     "searchClubs": "Search clubs...",
@@ -171,6 +182,11 @@
     "updated": "Club updated successfully",
     "deleted": "Club deleted successfully",
     "playersInClub": "Players in this club",
+    "joinFailed": "Failed to join club",
+    "leaveFailed": "Failed to leave club",
+    "leaving": "Leaving...",
+    "leaveClub": "Leave Club",
+    "leaveUserNotFound": "User not found in club",
     "navigation": {
       "allClubs": "All Clubs",
       "myClubs": "My Clubs"
@@ -201,7 +217,11 @@
         "description": "Find and merge club registrations that were created without an email address into your authenticated account.",
         "noMatches": "No potential account matches found in this club.",
         "noMatchesHelp": "If you were added to this club before signing up, those accounts may not match your current name.",
-        "loadingMatches": "Loading potential matches..."
+        "loadingMatches": "Loading potential matches...",
+        "loadFailed": "Failed to load merge candidates",
+        "mergeFailed": "Failed to merge player",
+        "merging": "Merging...",
+        "confirm": "Confirm Merge"
       },
       "description": "Table Tennis Club",
       "notFound": "Club not found",
@@ -214,7 +234,19 @@
       "manage": "Manage members of",
       "total": "total",
       "emailAddress": "Email Address",
-      "joined": "Joined"
+      "joined": "Joined",
+      "inviteFailed": "Failed to invite player",
+      "roleUpdated": "Member role updated successfully",
+      "roleUpdateFailed": "Failed to update member role",
+      "removeFailed": "Failed to remove member",
+      "admin": "Admin",
+      "member": "Member",
+      "unknown": "Unknown",
+      "sending": "Sending...",
+      "sendInvitation": "Send Invitation",
+      "promoteToAdmin": "Promote to Admin",
+      "demoteToMember": "Demote to Member",
+      "removeFromClub": "Remove from Club"
     },
     "validation": {
       "nameRequired": "Club name is required",
@@ -257,6 +289,7 @@
     "profile.validation.required": "Both first and last name are required",
     "language.sv": "Svenska",
     "language.en": "English",
+    "language.failed": "Failed to change language",
     "actor.description": "Manage your account settings and preferences"
   },
   "login": {
@@ -271,7 +304,11 @@
     "checkEmailInstructions": "Click the link in your email to sign in.",
     "useDifferent": "Use a different email",
     "successfullyLoggedIn": "Successfully logged in",
-    "description2": "We'll send you a secure link to sign in without a password."
+    "description2": "We'll send you a secure link to sign in without a password.",
+    "welcome": "Welcome! You have been successfully logged in.",
+    "invalidLink": "Invalid or expired login link. Please try again.",
+    "magicLinkSent": "Magic link sent! Check your email.",
+    "magicLinkFailed": "Failed to send magic link. Please try again."
   },
   "auth": {
     "loginRequired": "You must be logged in to create clubs",

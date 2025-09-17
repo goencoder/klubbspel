@@ -104,7 +104,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
       }
     } catch (error) {
       const apiError = error as ApiError
-      toast.error(apiError.message || 'Failed to invite player')
+      toast.error(apiError.message || t('clubs.members.inviteFailed'))
     } finally {
       setInviting(false)
     }
@@ -119,11 +119,11 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
       }
 
       await apiClient.updateMemberRole(request)
-      toast.success('Member role updated successfully')
+      toast.success(t('clubs.members.roleUpdated'))
       await loadMembers()
     } catch (error) {
       const apiError = error as ApiError
-      toast.error(apiError.message || 'Failed to update member role')
+      toast.error(apiError.message || t('clubs.members.roleUpdateFailed'))
     }
   }
 
@@ -138,7 +138,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
       await loadMembers()
     } catch (error) {
       const apiError = error as ApiError
-      toast.error(apiError.message || 'Failed to remove member')
+      toast.error(apiError.message || t('clubs.members.removeFailed'))
     }
   }
 
@@ -156,11 +156,11 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
   const getRoleDisplayName = (role: MembershipRole) => {
     switch (role) {
       case 'MEMBERSHIP_ROLE_ADMIN':
-        return 'Admin'
+        return t('clubs.members.admin')
       case 'MEMBERSHIP_ROLE_MEMBER':
-        return 'Member'
+        return t('clubs.members.member')
       default:
-        return 'Unknown'
+        return t('clubs.members.unknown')
     }
   }
 
@@ -233,7 +233,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
                     Cancel
                   </Button>
                   <Button onClick={handleInvitePlayer} disabled={inviting}>
-                    {inviting ? 'Sending...' : 'Send Invitation'}
+                    {inviting ? t('clubs.members.sending') : t('clubs.members.sendInvitation')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -301,7 +301,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleUpdateRole(member.playerId, 'MEMBERSHIP_ROLE_ADMIN')}
-                                title="Promote to Admin"
+                                title={t('clubs.members.promoteToAdmin')}
                               >
                                 <Shield className="h-4 w-4" />
                               </Button>
@@ -310,7 +310,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleUpdateRole(member.playerId, 'MEMBERSHIP_ROLE_MEMBER')}
-                                title="Demote to Member"
+                                title={t('clubs.members.demoteToMember')}
                               >
                                 <User className="h-4 w-4" />
                               </Button>
@@ -319,7 +319,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
                               variant="ghost"
                               size="sm"
                               onClick={() => handleRemoveMember(member.playerId, member.displayName)}
-                              title="Remove from Club"
+                              title={t('clubs.members.removeFromClub')}
                             >
                               <UserX className="h-4 w-4" />
                             </Button>

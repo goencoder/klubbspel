@@ -30,13 +30,13 @@ export function LoginPage() {
     try {
       setIsLoading(true)
       await validateToken(token)
-      toast.success('Welcome! You have been successfully logged in.')
+      toast.success(t('login.welcome'))
     } catch (_error) {
-      toast.error('Invalid or expired login link. Please try again.')
+      toast.error(t('login.invalidLink'))
     } finally {
       setIsLoading(false)
     }
-  }, [validateToken])
+  }, [validateToken, t])
 
   // Check for token in URL on mount
   useEffect(() => {
@@ -72,9 +72,9 @@ export function LoginPage() {
 
       await sendMagicLink(email.trim(), returnUrl)
       setMagicLinkSent(true)
-      toast.success('Magic link sent! Check your email.')
+      toast.success(t('login.magicLinkSent'))
     } catch (_error) {
-      toast.error('Failed to send magic link. Please try again.')
+      toast.error(t('login.magicLinkFailed'))
     } finally {
       setIsLoading(false)
     }

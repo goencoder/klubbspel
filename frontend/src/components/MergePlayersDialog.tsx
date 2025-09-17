@@ -19,6 +19,7 @@ import { apiClient } from '@/services/api'
 import type { Player } from '@/types/api'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 interface MergePlayersDialogProps {
   open: boolean
@@ -28,13 +29,14 @@ interface MergePlayersDialogProps {
 }
 
 export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: MergePlayersDialogProps) {
+  const { t } = useTranslation()
   const [targetPlayerId, setTargetPlayerId] = useState<string>('')
   const [sourcePlayerId, setSourcePlayerId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleMerge = async () => {
     if (!targetPlayerId || !sourcePlayerId) {
-      toast.error('Please select both players to merge')
+      toast.error(t('players.merge.selectBothRequired'))
       return
     }
 
@@ -96,7 +98,7 @@ export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: 
               disabled={isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select the player to keep..." />
+                <SelectValue placeholder={t('players.merge.selectTargetPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {players.map((player) => (
@@ -121,14 +123,14 @@ export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="source-player">Source Player (Delete After Merge)</Label>
+            <Label htmlFor="source-player">{t('players.merge.sourcePlayer')}</Label>
             <Select
               value={sourcePlayerId}
               onValueChange={setSourcePlayerId}
               disabled={isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select the player to merge from..." />
+                <SelectValue placeholder={t('players.merge.selectSourcePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {players

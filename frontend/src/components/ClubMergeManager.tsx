@@ -13,6 +13,7 @@ import { apiClient } from '@/services/api'
 import type { MergeCandidate } from '@/types/api'
 import { useAuthStore } from '@/store/auth'
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { User, Mail, UserPlus } from 'lucide-react'
 
@@ -23,6 +24,7 @@ interface ClubMergeManagerProps {
 
 export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerProps) {
   const { user } = useAuthStore()
+  const { t } = useTranslation()
   const [mergeCandidates, setMergeCandidates] = useState<MergeCandidate[]>([])
   const [loading, setLoading] = useState(false)
   const [showMergeDialog, setShowMergeDialog] = useState(false)
@@ -43,11 +45,11 @@ export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerPr
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to load merge candidates:', error)
-      toast.error('Failed to load merge candidates')
+      toast.error(t('clubs.detail.merge.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [clubId, canUseMergeFeature])
+  }, [clubId, canUseMergeFeature, t])
 
   useEffect(() => {
     loadMergeCandidates()
@@ -77,7 +79,7 @@ export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerPr
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Merge failed:', error)
-      toast.error('Failed to merge player')
+      toast.error(t('clubs.detail.merge.mergeFailed'))
     } finally {
       setMerging(false)
     }
@@ -232,7 +234,7 @@ export function ClubMergeManager({ clubId, onMergeComplete }: ClubMergeManagerPr
               disabled={merging}
               className="bg-red-600 hover:bg-red-700"
             >
-              {merging ? 'Merging...' : 'Confirm Merge'}
+              {merging ? t('clubs.detail.merge.merging') : t('clubs.detail.merge.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -29,10 +29,12 @@ fe.dev:
 fe.lint:
 	cd frontend && $(NPM) run lint
 
-# Check for hardcoded strings that need translation
+# Check for hardcoded strings that need translation (manual inspection)
 i18n.check:
 	@echo "🔍 Checking for hardcoded strings that need translation..."
-	python3 scripts/find_hardcoded_strings.py
+	@echo "📝 This is a manual inspection tool - review the output below:"
+	@echo ""
+	python3 scripts/validate_i18n.py --report
 
 # Start full host development environment (MongoDB + MailHog in Docker, BE+FE on host)
 host-dev: host-services host-install be.build

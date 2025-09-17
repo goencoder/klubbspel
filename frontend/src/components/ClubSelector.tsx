@@ -138,7 +138,7 @@ export function ClubSelector({
             <div className="flex items-center space-x-2">
               <Buildings2 size={16} />
               <span className="truncate">
-                {selectedClub ? selectedClub.name : placeholder}
+                {selectedClub ? selectedClub.name : (placeholder || t('clubs.selectClub'))}
               </span>
             </div>
             <ArrowDown2 size={16} className="ml-2 h-4 w-4 shrink-0 opacity-50" />

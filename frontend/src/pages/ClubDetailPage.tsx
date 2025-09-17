@@ -18,10 +18,12 @@ import { useAuthStore } from '@/store/auth'
 import type { ApiError, Club, Series } from '@/types/api'
 import { ArrowLeft, Calendar, Trophy, Users, UserMinus } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 export function ClubDetailPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const { user, isAuthenticated, isClubMember, isClubAdmin } = useAuthStore()
   const [club, setClub] = useState<Club | null>(null)
@@ -78,7 +80,7 @@ export function ClubDetailPage() {
       useAuthStore.getState().refreshUserMemberships()
     } catch (error) {
       const apiError = error as ApiError
-      toast.error(apiError.message || 'Failed to join club')
+      toast.error(apiError.message || t('clubs.joinFailed'))
     } finally {
       setJoining(false)
     }
@@ -88,7 +90,7 @@ export function ClubDetailPage() {
     if (!id || !user) return
 
     if (!user.playerId) {
-      toast.error('Unable to leave club: User ID not found. Please try logging in again.')
+      toast.error(t('clubs.leaveUserNotFound'))
       return
     }
 
@@ -102,7 +104,7 @@ export function ClubDetailPage() {
       useAuthStore.getState().refreshUserMemberships()
     } catch (error) {
       const apiError = error as ApiError
-      toast.error(apiError.message || 'Failed to leave club')
+      toast.error(apiError.message || t('clubs.leaveFailed'))
     } finally {
       setLeaving(false)
     }
@@ -195,7 +197,7 @@ export function ClubDetailPage() {
                           onClick={handleLeaveClub}
                           disabled={leaving}
                         >
-                          {leaving ? 'Leaving...' : 'Leave Club'}
+                          {leaving ? t('clubs.leaving') : t('clubs.leaveClub')}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
