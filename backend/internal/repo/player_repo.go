@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -11,6 +12,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// safeInt32 safely converts int64 to int32 with overflow protection
+// This function helps resolve G115 security issues by preventing integer overflow
+func safeInt32(value int64) (int32, error) {
+	if value > math.MaxInt32 {
+		return 0, fmt.Errorf("value %d exceeds int32 maximum %d", value, math.MaxInt32)
+	}
+	if value < math.MinInt32 {
+		return 0, fmt.Errorf("value %d is below int32 minimum %d", value, math.MinInt32)
+	}
+	return int32(value), nil
+}
 
 // ClubMembership represents a player's membership in a club
 type ClubMembership struct {
@@ -618,7 +631,12 @@ func (r *PlayerRepo) MergePlayer(ctx context.Context, targetID, sourceID string)
 			return fmt.Errorf("failed to update player_b_id references: %w", err)
 		}
 
-		matchesUpdated = int32(resultA.ModifiedCount + resultB.ModifiedCount)
+		// Safe conversion with overflow check for G115 security fix
+		total := resultA.ModifiedCount + resultB.ModifiedCount
+		matchesUpdated, err = safeInt32(total)
+		if err != nil {
+			return fmt.Errorf("match update count conversion failed: %w", err)
+		}
 
 		// Update all API tokens that reference the source player
 		tokensCollection := r.c.Database().Collection("api_tokens")
@@ -629,7 +647,11 @@ func (r *PlayerRepo) MergePlayer(ctx context.Context, targetID, sourceID string)
 			return fmt.Errorf("failed to update token references: %w", err)
 		}
 
-		tokensUpdated = int32(tokenResult.ModifiedCount)
+		// Safe conversion with overflow check for G115 security fix
+		tokensUpdated, err = safeInt32(tokenResult.ModifiedCount)
+		if err != nil {
+			return fmt.Errorf("token update count conversion failed: %w", err)
+		}
 
 		// INTELLIGENT FIELD MERGING - Following detailed merge rules:
 

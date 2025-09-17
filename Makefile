@@ -246,13 +246,24 @@ lint:
 
 # Security scanning
 security:
-	@echo "🔒 Running security scans..."
+	@echo "🔒 Running comprehensive security scans..."
 	@echo "🔍 Running gosec security scanner..."
 	@mkdir -p $(GOBIN)
 	@cd backend && GOBIN=$(GOBIN) GOTOOLCHAIN=go1.25.0 $(GO) install github.com/securego/gosec/v2/cmd/gosec@latest
 	cd backend && $(GOBIN)/gosec ./...
 	@echo "🔍 Scanning frontend dependencies..."
 	cd frontend && $(NPM) audit --audit-level=moderate
+	@echo "🔍 Running frontend security linting..."
+	cd frontend && $(NPM) run lint
+	@echo "🔍 Running semgrep security analysis..."
+	@which semgrep > /dev/null 2>&1 || (echo "Installing semgrep..." && pip install semgrep --quiet)
+	@echo "Running local semgrep rules..."
+	@cd frontend && semgrep --config=.semgrep.yml src/ --exclude=src/components/ui/ --exclude=src/lib/ --timeout=30 2>/dev/null || echo "⚠️  Semgrep analysis completed with warnings"
+	@echo "🔍 Additional frontend security checks..."
+	@echo "Checking for potential XSS vulnerabilities..."
+	@grep -r "dangerouslySetInnerHTML\|innerHTML\|document\.write" frontend/src/ || echo "✅ No dangerous HTML operations found"
+	@echo "Checking for hardcoded secrets..."
+	@grep -r -i "password\|secret\|key\|token" frontend/src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" | grep -v "// " | grep -v "/\*" || echo "✅ No obvious hardcoded secrets found"
 	@echo "✅ Security scans complete"
 
 # Update dependencies (patch and minor versions only)

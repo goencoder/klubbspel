@@ -1,0 +1,53 @@
+rules:
+  - id: react-dangerous-html
+    patterns:
+      - pattern: 'dangerouslySetInnerHTML={{__html: $X}}'
+    message: "Potential XSS vulnerability with dangerouslySetInnerHTML"
+    languages: [ts, typescript, js, javascript]
+    severity: WARNING
+    
+  - id: hardcoded-secrets
+    patterns:
+      - pattern: $PASSWORD = "..."
+      - pattern: $SECRET = "..."
+      - pattern: $API_KEY = "..."
+      - pattern: $TOKEN = "..."
+    message: "Potential hardcoded secret detected"
+    languages: [ts, typescript, js, javascript]
+    severity: ERROR
+    
+  - id: eval-usage
+    patterns:
+      - pattern: eval($X)
+      - pattern: Function($X)
+      - pattern: setTimeout($X, ...)
+      - pattern: setInterval($X, ...)
+    message: "Avoid eval and function constructors"
+    languages: [ts, typescript, js, javascript]
+    severity: ERROR
+    
+  - id: direct-dom-manipulation
+    patterns:
+      - pattern: document.write($X)
+      - pattern: document.writeln($X)
+      - pattern: $EL.innerHTML = $X
+    message: "Direct DOM manipulation can lead to XSS"
+    languages: [ts, typescript, js, javascript]
+    severity: WARNING
+    
+  - id: insecure-random
+    patterns:
+      - pattern: Math.random()
+    message: "Math.random() is not cryptographically secure"
+    languages: [ts, typescript, js, javascript]
+    severity: INFO
+    
+  - id: console-log
+    patterns:
+      - pattern: console.log($X)
+      - pattern: console.debug($X)
+      - pattern: console.warn($X)
+      - pattern: console.error($X)
+    message: "Remove console statements in production"
+    languages: [ts, typescript, js, javascript]
+    severity: INFO

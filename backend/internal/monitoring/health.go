@@ -443,8 +443,12 @@ func (hc *HealthChecker) startHTTPEndpoint() {
 	mux.HandleFunc("/live", hc.handleLiveness)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", hc.config.HTTPPort),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", hc.config.HTTPPort),
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second, // G112 fix: prevent Slowloris attacks
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	hc.logger.Info().

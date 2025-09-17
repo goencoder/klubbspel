@@ -121,10 +121,11 @@ func (s *MailHogService) buildSMTPMessage(toEmail, subject, body string) []byte 
 
 // sendWithTLS sends email over TLS connection
 func (s *MailHogService) sendWithTLS(addr string, auth smtp.Auth, to []string, msg []byte) error {
-	// Create TLS connection
+	// Create TLS connection with secure configuration (G402 fix)
 	tlsConfig := &tls.Config{
 		ServerName:         s.config.SMTPHost,
 		InsecureSkipVerify: false,
+		MinVersion:         tls.VersionTLS12, // Minimum TLS 1.2 for security
 	}
 
 	conn, err := tls.Dial("tcp", addr, tlsConfig)
@@ -198,6 +199,7 @@ func (s *MailHogService) sendWithStartTLS(addr string, auth smtp.Auth, to []stri
 		tlsConfig := &tls.Config{
 			ServerName:         s.config.SMTPHost,
 			InsecureSkipVerify: false,
+			MinVersion:         tls.VersionTLS12, // Minimum TLS 1.2 for security (G402 fix)
 		}
 		if err := client.StartTLS(tlsConfig); err != nil {
 			return fmt.Errorf("failed to start TLS: %w", err)

@@ -105,7 +105,37 @@ export default [
       'no-eval': 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error',
-      'no-script-url': 'error'
+      'no-script-url': 'error',
+      
+      // Additional security rules
+      'no-global-assign': 'error',
+      'no-implicit-globals': 'error',
+      'no-proto': 'error',
+      'no-caller': 'error',
+      'no-extend-native': 'error',
+      'no-iterator': 'error',
+      'no-labels': 'error',
+      'no-lone-blocks': 'error',
+      'no-loop-func': 'error',
+      'no-multi-str': 'error',
+      'no-new-wrappers': 'error',
+      'no-object-constructor': 'error',
+      'no-octal': 'error',
+      'no-octal-escape': 'error',
+      'no-redeclare': 'error',
+      'no-return-assign': 'error',
+      'no-self-assign': 'error',
+      'no-self-compare': 'error',
+      'no-sequences': 'error',
+      'no-throw-literal': 'error',
+      'no-unmodified-loop-condition': 'error',
+      'no-unused-expressions': 'error',
+      'no-useless-call': 'error',
+      'no-useless-concat': 'error',
+      'no-void': 'error',
+      'no-with': 'error',
+      'radix': 'error',
+      'yoda': 'error'
     },
     settings: {
       react: {
