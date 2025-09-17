@@ -18,7 +18,6 @@ import {
 import { apiClient } from '@/services/api'
 import type { Player } from '@/types/api'
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 interface MergePlayersDialogProps {
@@ -29,7 +28,6 @@ interface MergePlayersDialogProps {
 }
 
 export function MergePlayersDialog({ open, onClose, players, onMergeComplete }: MergePlayersDialogProps) {
-  const { t } = useTranslation()
   const [targetPlayerId, setTargetPlayerId] = useState<string>('')
   const [sourcePlayerId, setSourcePlayerId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)

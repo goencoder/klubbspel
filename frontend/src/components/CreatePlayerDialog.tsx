@@ -20,7 +20,7 @@ interface CreatePlayerDialogProps {
 
 export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: CreatePlayerDialogProps) {
   const { t } = useTranslation()
-  const { user, isPlatformOwner, isClubAdmin } = useAuthStore()
+  const { isPlatformOwner, isClubAdmin } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [clubs, setClubs] = useState<Club[]>([])
   const [formData, setFormData] = useState({

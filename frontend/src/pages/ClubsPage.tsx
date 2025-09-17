@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, ContentGrid, LoadingGrid, SharedEmptyState, ActionGroup, HoverCard } from './Styles'
+import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, LoadingGrid, SharedEmptyState, ActionGroup } from './Styles'
 
 export function ClubsPage() {
   const { t } = useTranslation()

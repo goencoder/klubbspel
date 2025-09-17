@@ -128,7 +128,7 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
   }
 
   const handleRemoveMember = async (playerId: string, playerName: string) => {
-    if (!confirm(`Are you sure you want to remove ${playerName} from ${clubName}?`)) {
+    if (!window.confirm(`Are you sure you want to remove ${playerName} from ${clubName}?`)) {
       return
     }
 

@@ -55,7 +55,7 @@ class ApiClient {
   private abortControllers = new Map<string, AbortController>()
 
   private getHeaders(): HeadersInit {
-    const { language, actor } = useAppStore.getState()
+    const { language } = useAppStore.getState()
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

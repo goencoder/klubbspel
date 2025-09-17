@@ -12,7 +12,7 @@ import { Add, People, SearchNormal1 } from 'iconsax-reactjs'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, ContentGrid } from './Styles'
+import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection } from './Styles'
 
 export function PlayersPage() {
   const { t } = useTranslation()

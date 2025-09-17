@@ -12,7 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { apiClient } from '@/services/api'
 import type { Series, SeriesVisibility } from '@/types/api'
 import { toast } from 'sonner'
-import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, ContentGrid } from './Styles'
+import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection } from './Styles'
 
 export function SeriesListPage() {
   const { t } = useTranslation()
