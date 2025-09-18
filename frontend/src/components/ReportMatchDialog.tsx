@@ -15,6 +15,8 @@ interface ReportMatchDialogProps {
   onOpenChange: (open: boolean) => void
   seriesId: string
   clubId?: string
+  seriesStartDate?: string
+  seriesEndDate?: string
   onMatchReported: () => void
 }
 
@@ -23,6 +25,8 @@ export function ReportMatchDialog({
   onOpenChange, 
   seriesId, 
   clubId,
+  seriesStartDate,
+  seriesEndDate,
   onMatchReported 
 }: ReportMatchDialogProps) {
   const { t } = useTranslation()
@@ -86,7 +90,24 @@ export function ReportMatchDialog({
       return
     }
 
-    try {
+    // Validate that match date is within series time window (inclusive)
+    if (seriesStartDate && seriesEndDate) {
+      const matchDate = new Date(formData.played_at)
+      const seriesStart = new Date(seriesStartDate)
+      const seriesEnd = new Date(seriesEndDate)
+      
+      // Set times to compare only dates (start of day for start, end of day for end)
+      seriesStart.setHours(0, 0, 0, 0)
+      seriesEnd.setHours(23, 59, 59, 999)
+      matchDate.setHours(12, 0, 0, 0) // Set to middle of day for comparison
+      
+      if (matchDate < seriesStart || matchDate > seriesEnd) {
+        toast.error(
+          `${t('matches.validation.seriesWindow')} (${seriesStart.toLocaleDateString()} - ${seriesEnd.toLocaleDateString()})`
+        )
+        return
+      }
+    }    try {
       setLoading(true)
       
       const reportRequest = {

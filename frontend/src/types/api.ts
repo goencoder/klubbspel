@@ -242,6 +242,34 @@ export interface ListMatchesResponse {
   hasPreviousPage: boolean
 }
 
+export interface UpdateMatchRequest {
+  matchId: string
+  scoreA?: number
+  scoreB?: number
+  playedAt?: string
+}
+
+export interface UpdateMatchResponse {
+  match: MatchView
+}
+
+export interface DeleteMatchRequest {
+  matchId: string
+}
+
+export interface DeleteMatchResponse {
+  // Empty response
+}
+
+export interface ReorderMatchesRequest {
+  seriesId: string
+  matchIds: string[]
+}
+
+export interface ReorderMatchesResponse {
+  matches: MatchView[]
+}
+
 // Leaderboard types
 export interface LeaderboardEntry {
   rank: number

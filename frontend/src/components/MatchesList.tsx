@@ -4,13 +4,15 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/services/api'
 import type { MatchView } from '@/types/api'
-import { CloseCircle, Cup, TickCircle } from 'iconsax-reactjs'
+import { CloseCircle, Cup, Edit2, TickCircle, Trash } from 'iconsax-reactjs'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { SharedEmptyState } from './Styles'
 import styled from 'styled-components'
 import { colors } from '@/Styles'
+import { EditMatchDialog } from './EditMatchDialog'
+import { DeleteMatchDialog } from './DeleteMatchDialog'
 
 // Status Icons with semantic colors using tokens
 const SuccessIcon = styled(TickCircle)`
@@ -23,14 +25,18 @@ const DangerIcon = styled(CloseCircle)`
 
 interface MatchesListProps {
   seriesId: string
+  seriesStartDate?: string
+  seriesEndDate?: string
 }
 
-export function MatchesList({ seriesId }: MatchesListProps) {
+export function MatchesList({ seriesId, seriesStartDate, seriesEndDate }: MatchesListProps) {
   const { t } = useTranslation()
   const [matches, setMatches] = useState<MatchView[]>([])
   const [loading, setLoading] = useState(true)
   const [hasNextPage, setHasNextPage] = useState(false)
   const [nextPageToken, setNextPageToken] = useState<string | undefined>()
+  const [editingMatch, setEditingMatch] = useState<MatchView | null>(null)
+  const [deletingMatch, setDeletingMatch] = useState<MatchView | null>(null)
 
   const loadMatches = useCallback(async (pageToken?: string) => {
     try {
@@ -63,6 +69,22 @@ export function MatchesList({ seriesId }: MatchesListProps) {
     return match.scoreA > match.scoreB ? match.playerAName : match.playerBName
   }
 
+  const handleMatchUpdated = (updatedMatch: MatchView) => {
+    setMatches(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m))
+  }
+
+  const handleMatchDeleted = (matchId: string) => {
+    setMatches(prev => prev.filter(m => m.id !== matchId))
+  }
+
+  const handleEditMatch = (match: MatchView) => {
+    setEditingMatch(match)
+  }
+
+  const handleDeleteMatch = (match: MatchView) => {
+    setDeletingMatch(match)
+  }
+
   if (loading && matches.length === 0) {
     return <LoadingSpinner />
   }
@@ -92,6 +114,7 @@ export function MatchesList({ seriesId }: MatchesListProps) {
                 <TableHead className="text-center">Score</TableHead>
                 <TableHead>{t('matches.player_b')}</TableHead>
                 <TableHead>{t('matches.played_at')}</TableHead>
+                <TableHead className="text-center">{t('matches.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,6 +161,26 @@ export function MatchesList({ seriesId }: MatchesListProps) {
                     <TableCell className="text-muted-foreground">
                       {new Date(match.playedAt).toLocaleDateString()}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditMatch(match)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteMatch(match)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 )
               })}
@@ -157,6 +200,22 @@ export function MatchesList({ seriesId }: MatchesListProps) {
           </Button>
         </div>
       )}
+
+      <EditMatchDialog
+        match={editingMatch}
+        isOpen={!!editingMatch}
+        onClose={() => setEditingMatch(null)}
+        onMatchUpdated={handleMatchUpdated}
+        seriesStartDate={seriesStartDate}
+        seriesEndDate={seriesEndDate}
+      />
+
+      <DeleteMatchDialog
+        match={deletingMatch}
+        isOpen={!!deletingMatch}
+        onClose={() => setDeletingMatch(null)}
+        onMatchDeleted={handleMatchDeleted}
+      />
     </div>
   )
 }

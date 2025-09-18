@@ -7,6 +7,8 @@ import type {
   CreatePlayerRequest,
   CreatePlayerResponse,
   CreateSeriesRequest,
+  DeleteMatchRequest,
+  DeleteMatchResponse,
   FindMergeCandidatesRequest,
   FindMergeCandidatesResponse,
   GetLeaderboardRequest,
@@ -22,10 +24,14 @@ import type {
   MergePlayerRequest,
   MergePlayerResponse,
   Player,
+  ReorderMatchesRequest,
+  ReorderMatchesResponse,
   ReportMatchRequest,
   ReportMatchResponse,
   Series,
   UpdateClubRequest,
+  UpdateMatchRequest,
+  UpdateMatchResponse,
   UpdatePlayerRequest,
   UpdateSeriesRequest
 } from '@/types/api'
@@ -330,6 +336,18 @@ class ApiClient {
 
   async reportMatch(data: ReportMatchRequest): Promise<ReportMatchResponse> {
     return this.post<ReportMatchResponse>('/v1/matches:report', data)
+  }
+
+  async updateMatch(data: UpdateMatchRequest): Promise<UpdateMatchResponse> {
+    return this.patch<UpdateMatchResponse>(`/v1/matches/${data.matchId}`, data)
+  }
+
+  async deleteMatch(data: DeleteMatchRequest): Promise<DeleteMatchResponse> {
+    return this.delete<DeleteMatchResponse>(`/v1/matches/${data.matchId}`)
+  }
+
+  async reorderMatches(data: ReorderMatchesRequest): Promise<ReorderMatchesResponse> {
+    return this.post<ReorderMatchesResponse>('/v1/matches:reorder', data)
   }
 
   // Leaderboard API methods

@@ -191,7 +191,11 @@ export function SeriesDetailPage() {
         </TabsList>
 
         <TabsContent value="matches" className="space-y-6">
-          <MatchesList seriesId={series.id} />
+          <MatchesList 
+            seriesId={series.id} 
+            seriesStartDate={series.startsAt}
+            seriesEndDate={series.endsAt}
+          />
         </TabsContent>
 
         <TabsContent value="leaderboard" className="space-y-6">
@@ -214,6 +218,8 @@ export function SeriesDetailPage() {
         onOpenChange={setShowReportDialog}
         seriesId={series.id}
         clubId={series.visibility === 'SERIES_VISIBILITY_CLUB_ONLY' ? series.clubId : undefined}
+        seriesStartDate={series.startsAt}
+        seriesEndDate={series.endsAt}
         onMatchReported={handleMatchReported}
       />
     </div>

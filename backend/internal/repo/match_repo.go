@@ -182,3 +182,103 @@ func (r *MatchRepo) FindBySeriesID(ctx context.Context, seriesID string) ([]*Mat
 
 	return matches, nil
 }
+
+func (r *MatchRepo) FindByID(ctx context.Context, matchID string) (*Match, error) {
+	objID, err := primitive.ObjectIDFromHex(matchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var match Match
+	err = r.c.FindOne(ctx, bson.M{"_id": objID}).Decode(&match)
+	if err != nil {
+		return nil, err
+	}
+
+	return &match, nil
+}
+
+func (r *MatchRepo) Update(ctx context.Context, matchID string, scoreA, scoreB *int32, playedAt *time.Time) (*Match, error) {
+	objID, err := primitive.ObjectIDFromHex(matchID)
+	if err != nil {
+		return nil, err
+	}
+
+	update := bson.M{}
+	if scoreA != nil {
+		update["score_a"] = *scoreA
+	}
+	if scoreB != nil {
+		update["score_b"] = *scoreB
+	}
+	if playedAt != nil {
+		update["played_at"] = *playedAt
+	}
+
+	if len(update) == 0 {
+		// No updates provided, just return the existing match
+		return r.FindByID(ctx, matchID)
+	}
+
+	_, err = r.c.UpdateOne(ctx, bson.M{"_id": objID}, bson.M{"$set": update})
+	if err != nil {
+		return nil, err
+	}
+
+	return r.FindByID(ctx, matchID)
+}
+
+func (r *MatchRepo) Delete(ctx context.Context, matchID string) error {
+	objID, err := primitive.ObjectIDFromHex(matchID)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.c.DeleteOne(ctx, bson.M{"_id": objID})
+	return err
+}
+
+func (r *MatchRepo) ReorderMatches(ctx context.Context, matchIDs []string) error {
+	// Get all matches first to validate they exist and get their current played_at dates
+	var matches []*Match
+	for _, matchID := range matchIDs {
+		match, err := r.FindByID(ctx, matchID)
+		if err != nil {
+			return err
+		}
+		matches = append(matches, match)
+	}
+
+	// Validate all matches are on the same date
+	if len(matches) < 2 {
+		return nil // Nothing to reorder
+	}
+
+	baseDate := matches[0].PlayedAt.Truncate(24 * time.Hour)
+	for _, match := range matches {
+		matchDate := match.PlayedAt.Truncate(24 * time.Hour)
+		if !baseDate.Equal(matchDate) {
+			return mongo.ErrNoDocuments // Use as "invalid operation" error
+		}
+	}
+
+	// Update each match with a new timestamp that preserves the desired order
+	for i, matchID := range matchIDs {
+		// Add minutes to preserve order within the day
+		newTime := baseDate.Add(time.Duration(i) * time.Minute)
+
+		objID, err := primitive.ObjectIDFromHex(matchID)
+		if err != nil {
+			return err
+		}
+
+		_, err = r.c.UpdateOne(ctx,
+			bson.M{"_id": objID},
+			bson.M{"$set": bson.M{"played_at": newTime}})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

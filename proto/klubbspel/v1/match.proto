@@ -45,6 +45,60 @@ message ReportMatchResponse {
   string match_id = 1; 
 }
 
+// Request to update an existing match
+message UpdateMatchRequest {
+  // ID of the match to update
+  string match_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Number of games won by player A (0-5 in best-of-5 format) - optional
+  optional int32 score_a = 2;
+  // Number of games won by player B (0-5 in best-of-5 format) - optional
+  optional int32 score_b = 3;
+  // When the match was played - optional
+  optional google.protobuf.Timestamp played_at = 4;
+  
+  // Business rule validations using CEL (only applied if both scores are provided)
+  option (buf.validate.message).cel = {
+    id: "update_match_no_tie"
+    expression: "has(this.score_a) && has(this.score_b) ? this.score_a != this.score_b : true"
+    message: "A match cannot end in a tie"
+  };
+  option (buf.validate.message).cel = {
+    id: "update_match_best_of_five"
+    expression: "has(this.score_a) && has(this.score_b) ? (int(this.score_a) > int(this.score_b) ? this.score_a >= 3 : this.score_b >= 3) : true"
+    message: "Winner must reach at least 3 games (best of five)"
+  };
+}
+
+// Response after successfully updating a match
+message UpdateMatchResponse {
+  // Updated match information
+  MatchView match = 1;
+}
+
+// Request to delete a match
+message DeleteMatchRequest {
+  // ID of the match to delete
+  string match_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response after successfully deleting a match
+message DeleteMatchResponse {
+  // Whether the deletion was successful
+  bool success = 1;
+}
+
+// Request to reorder matches played on the same day
+message ReorderMatchesRequest {
+  // List of match IDs in the desired order (first = earliest in day)
+  repeated string match_ids = 1 [(buf.validate.field).repeated.min_items = 2];
+}
+
+// Response after successfully reordering matches
+message ReorderMatchesResponse {
+  // Whether the reordering was successful
+  bool success = 1;
+}
+
 // Request to list matches in a tournament series with cursor-based pagination
 message ListMatchesRequest { 
   // ID of the tournament series to get matches for
@@ -123,5 +177,38 @@ service MatchService {
   // DATA MODEL CHANGES: None (read-only operation with player name joins)
   rpc ListMatches(ListMatchesRequest) returns (ListMatchesResponse) {
     option (google.api.http) = { get: "/v1/series/{series_id}/matches" };
+  }
+
+  // Update an existing match (date, scores, etc.)
+  //
+  // AUTHORIZATION: Should require authentication and admin/player rights
+  //
+  // PURPOSE: Allow correction of match data (wrong dates, scores)
+  //
+  // DATA MODEL CHANGES: Updates existing Match document in MongoDB
+  rpc UpdateMatch(UpdateMatchRequest) returns (UpdateMatchResponse) {
+    option (google.api.http) = { patch: "/v1/matches/{match_id}" body: "*" };
+  }
+
+  // Delete a match
+  //
+  // AUTHORIZATION: Should require authentication and admin rights
+  //
+  // PURPOSE: Remove incorrectly reported matches
+  //
+  // DATA MODEL CHANGES: Removes Match document from MongoDB
+  rpc DeleteMatch(DeleteMatchRequest) returns (DeleteMatchResponse) {
+    option (google.api.http) = { delete: "/v1/matches/{match_id}" };
+  }
+
+  // Reorder matches played on the same day
+  //
+  // AUTHORIZATION: Should require authentication and admin rights
+  //
+  // PURPOSE: Correct the temporal order of matches for accurate ELO calculations
+  //
+  // DATA MODEL CHANGES: Updates played_at timestamps to preserve order within day
+  rpc ReorderMatches(ReorderMatchesRequest) returns (ReorderMatchesResponse) {
+    option (google.api.http) = { post: "/v1/matches:reorder" body: "*" };
   }
 }

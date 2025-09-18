@@ -650,6 +650,112 @@
         ]
       }
     },
+    "/v1/matches/{matchId}": {
+      "delete": {
+        "summary": "Delete a match",
+        "description": "AUTHORIZATION: Should require authentication and admin rights\n\nPURPOSE: Remove incorrectly reported matches\n\nDATA MODEL CHANGES: Removes Match document from MongoDB",
+        "operationId": "MatchService_DeleteMatch",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteMatchResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "matchId",
+            "description": "ID of the match to delete",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      },
+      "patch": {
+        "summary": "Update an existing match (date, scores, etc.)",
+        "description": "AUTHORIZATION: Should require authentication and admin/player rights\n\nPURPOSE: Allow correction of match data (wrong dates, scores)\n\nDATA MODEL CHANGES: Updates existing Match document in MongoDB",
+        "operationId": "MatchService_UpdateMatch",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateMatchResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "matchId",
+            "description": "ID of the match to update",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MatchServiceUpdateMatchBody"
+            }
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      }
+    },
+    "/v1/matches:reorder": {
+      "post": {
+        "summary": "Reorder matches played on the same day",
+        "description": "AUTHORIZATION: Should require authentication and admin rights\n\nPURPOSE: Correct the temporal order of matches for accurate ELO calculations\n\nDATA MODEL CHANGES: Updates played_at timestamps to preserve order within day",
+        "operationId": "MatchService_ReorderMatches",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReorderMatchesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReorderMatchesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      }
+    },
     "/v1/matches:report": {
       "post": {
         "summary": "Report the result of a completed match with automatic ELO rating updates",
@@ -1380,6 +1486,27 @@
       },
       "title": "Request to update a member's role"
     },
+    "MatchServiceUpdateMatchBody": {
+      "type": "object",
+      "properties": {
+        "scoreA": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of games won by player A (0-5 in best-of-5 format) - optional"
+        },
+        "scoreB": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of games won by player B (0-5 in best-of-5 format) - optional"
+        },
+        "playedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the match was played - optional"
+        }
+      },
+      "title": "Request to update an existing match"
+    },
     "PlayerServiceMergePlayerBody": {
       "type": "object",
       "properties": {
@@ -1653,6 +1780,16 @@
         }
       },
       "title": "Response after deleting a club"
+    },
+    "v1DeleteMatchResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Whether the deletion was successful"
+        }
+      },
+      "title": "Response after successfully deleting a match"
     },
     "v1DeletePlayerResponse": {
       "type": "object",
@@ -2172,6 +2309,29 @@
       },
       "title": "Player membership information"
     },
+    "v1ReorderMatchesRequest": {
+      "type": "object",
+      "properties": {
+        "matchIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "List of match IDs in the desired order (first = earliest in day)"
+        }
+      },
+      "title": "Request to reorder matches played on the same day"
+    },
+    "v1ReorderMatchesResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Whether the reordering was successful"
+        }
+      },
+      "title": "Response after successfully reordering matches"
+    },
     "v1ReportMatchRequest": {
       "type": "object",
       "properties": {
@@ -2341,6 +2501,16 @@
         }
       },
       "title": "Response containing the updated club"
+    },
+    "v1UpdateMatchResponse": {
+      "type": "object",
+      "properties": {
+        "match": {
+          "$ref": "#/definitions/v1MatchView",
+          "title": "Updated match information"
+        }
+      },
+      "title": "Response after successfully updating a match"
     },
     "v1UpdateMemberRoleResponse": {
       "type": "object",
