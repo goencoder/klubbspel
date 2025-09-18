@@ -195,6 +195,7 @@ export function SeriesDetailPage() {
             seriesId={series.id} 
             seriesStartDate={series.startsAt}
             seriesEndDate={series.endsAt}
+            seriesName={series.title}
           />
         </TabsContent>
 

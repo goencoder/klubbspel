@@ -1,5 +1,6 @@
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle
 } from '@/components/ui/card'
@@ -13,11 +14,12 @@ import {
 import { apiClient } from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import type { Series, Club } from '@/types/api'
-import { Chart, CloseCircle, Cup, Medal, TickCircle } from 'iconsax-reactjs'
+import { Chart, CloseCircle, Cup, Export, Medal, TickCircle } from 'iconsax-reactjs'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { exportLeaderboardToCSV, type LeaderboardCSVData } from '@/utils/csvExport'
 
 interface SeriesByClub {
   [clubId: string]: {
@@ -172,6 +174,21 @@ export function LeaderboardPage() {
     return Math.round((wins / games) * 100)
   }
 
+  const handleExportCSV = () => {
+    const csvData: LeaderboardCSVData[] = leaderboard.map((row) => ({
+      rank: row.rank,
+      player: row.displayName,
+      rating: Math.round(row.rating),
+      games: row.games,
+      wins: row.wins,
+      losses: row.losses,
+      winRate: `${calculateWinRate(row.wins, row.games)}%`
+    }))
+    
+    exportLeaderboardToCSV(csvData, selectedSeries?.title)
+    toast.success(t('leaderboard.exportSuccess'))
+  }
+
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Medal size={20} className="text-yellow-500" variant="Bold" />
     if (rank === 2) return <Medal size={20} className="text-gray-400" variant="Bold" />
@@ -273,11 +290,22 @@ export function LeaderboardPage() {
       {/* Leaderboard */}
       {selectedSeriesId && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="flex items-center space-x-2">
               <Chart size={20} className="text-blue-600" />
               <span>{t('leaderboard.rankings', 'Rankings')}</span>
             </CardTitle>
+            {leaderboard.length > 0 && !loadingLeaderboard && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                className="flex items-center gap-2"
+              >
+                <Export size={16} />
+                {t('leaderboard.exportCSV')}
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {loadingLeaderboard ? (

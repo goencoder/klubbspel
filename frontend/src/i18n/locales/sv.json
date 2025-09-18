@@ -130,6 +130,8 @@
     "player_a": "Spelare A",
     "player_b": "Spelare B",
     "played_at": "Matchdatum",
+    "played_at_date": "Datum",
+    "played_at_time": "Klockslag",
     "playerA": "Spelare A",
     "playerB": "Spelare B",
     "scoreA": "Spelare A poäng",
@@ -152,6 +154,8 @@
     "deleteConfirm": "Är du säker på att du vill ta bort denna match?",
     "reorderMatches": "Ordna om matcher",
     "actions": "Åtgärder",
+    "exportCSV": "Exportera CSV",
+    "exportSuccess": "CSV-fil exporterad framgångsrikt",
     "score_a": "Spelare A poäng",
     "score_b": "Spelare B poäng",
     "validation": {
@@ -179,6 +183,8 @@
     "playMatches": "Rapportera några matcher för att se rankningar",
     "empty": "Inga rankningar tillgängliga än",
     "empty_help": "Inga matcher har rapporterats för denna serie än.",
+    "exportCSV": "Exportera CSV",
+    "exportSuccess": "CSV-fil exporterad framgångsrikt",
     "select": {
       "series": "Välj serie",
       "help": "Välj en serie för att visa dess resultattabell"

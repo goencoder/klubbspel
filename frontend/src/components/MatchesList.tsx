@@ -1,10 +1,10 @@
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/services/api'
 import type { MatchView } from '@/types/api'
-import { CloseCircle, Cup, Edit2, TickCircle, Trash } from 'iconsax-reactjs'
+import { CloseCircle, Cup, Edit2, Export, TickCircle, Trash } from 'iconsax-reactjs'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -13,6 +13,7 @@ import styled from 'styled-components'
 import { colors } from '@/Styles'
 import { EditMatchDialog } from './EditMatchDialog'
 import { DeleteMatchDialog } from './DeleteMatchDialog'
+import { exportMatchesToCSV, type MatchCSVData } from '@/utils/csvExport'
 
 // Status Icons with semantic colors using tokens
 const WinnerIcon = styled(TickCircle)`
@@ -27,9 +28,10 @@ interface MatchesListProps {
   seriesId: string
   seriesStartDate?: string
   seriesEndDate?: string
+  seriesName?: string
 }
 
-export function MatchesList({ seriesId, seriesStartDate, seriesEndDate }: MatchesListProps) {
+export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesName }: MatchesListProps) {
   const { t } = useTranslation()
   const [matches, setMatches] = useState<MatchView[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,6 +87,26 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate }: Matche
     setDeletingMatch(match)
   }
 
+  const handleExportCSV = () => {
+    const csvData: MatchCSVData[] = matches.map((match, index) => ({
+      sequence: index + 1,
+      playerA: match.playerAName,
+      scoreA: match.scoreA,
+      scoreB: match.scoreB,
+      playerB: match.playerBName,
+      winner: getWinner(match),
+      date: new Date(match.playedAt).toLocaleDateString(),
+      time: new Date(match.playedAt).toLocaleTimeString('sv-SE', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      playedAt: match.playedAt
+    }))
+    
+    exportMatchesToCSV(csvData, seriesName)
+    toast.success(t('matches.exportSuccess'))
+  }
+
   if (loading && matches.length === 0) {
     return <LoadingSpinner />
   }
@@ -106,10 +128,25 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate }: Matche
   return (
     <div className="space-y-6">
       <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle>{t('matches.title')}</CardTitle>
+          {matches.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              className="flex items-center gap-2"
+            >
+              <Export size={16} />
+              {t('matches.exportCSV')}
+            </Button>
+          )}
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-16">#</TableHead>
                 <TableHead>{t('matches.player_a')}</TableHead>
                 <TableHead className="text-center">Score</TableHead>
                 <TableHead>{t('matches.player_b')}</TableHead>
@@ -118,11 +155,14 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate }: Matche
               </TableRow>
             </TableHeader>
             <TableBody>
-              {matches.map((match) => {
+              {matches.map((match, index) => {
                 const winner = getWinner(match)
 
                 return (
                   <TableRow key={match.id}>
+                    <TableCell className="text-center text-muted-foreground">
+                      {index + 1}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <span className={match.playerAName === winner ? 'font-semibold' : ''}>
@@ -159,7 +199,17 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate }: Matche
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(match.playedAt).toLocaleDateString()}
+                      <div className="flex flex-col items-start">
+                        <span className="text-sm">
+                          {new Date(match.playedAt).toLocaleDateString()}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(match.playedAt).toLocaleTimeString('sv-SE', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center space-x-2">

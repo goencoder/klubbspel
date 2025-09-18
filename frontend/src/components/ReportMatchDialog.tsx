@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ interface ReportMatchDialogProps {
   clubId?: string
   seriesStartDate?: string
   seriesEndDate?: string
+  existingMatches?: { playedAt: string }[]
   onMatchReported: () => void
 }
 
@@ -27,16 +28,48 @@ export function ReportMatchDialog({
   clubId,
   seriesStartDate,
   seriesEndDate,
+  existingMatches,
   onMatchReported 
 }: ReportMatchDialogProps) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
+  
+  // Stabilize existingMatches to prevent infinite re-renders
+  const stableExistingMatches = useMemo(() => existingMatches || [], [existingMatches])
+
+  // Helper function to validate table tennis scores
+  const validateTableTennisScore = (scoreA: number, scoreB: number) => {
+    // Valid table tennis match results: 3-0, 3-1, 3-2 (or reversed)
+    const validResults = [
+      [3, 0], [0, 3], [3, 1], [1, 3], [3, 2], [2, 3]
+    ]
+    
+    return validResults.some(([a, b]) => a === scoreA && b === scoreB)
+  }
+
+  // Helper function to auto-complete score when one player has 3 and other is empty/0
+  const getAutoCompletedScores = (scoreAStr: string, scoreBStr: string) => {
+    // Parse scores, treating empty strings and invalid numbers as 0
+    const scoreA = scoreAStr === '' || isNaN(parseInt(scoreAStr, 10)) ? 0 : parseInt(scoreAStr, 10)
+    const scoreB = scoreBStr === '' || isNaN(parseInt(scoreBStr, 10)) ? 0 : parseInt(scoreBStr, 10)
+    
+    // If one player has 3 and the other is 0 (or empty), auto-complete to 3-0
+    if (scoreA === 3 && (scoreBStr === '' || scoreB === 0)) {
+      return { scoreA: 3, scoreB: 0, autoCompleted: true }
+    }
+    if (scoreB === 3 && (scoreAStr === '' || scoreA === 0)) {
+      return { scoreA: 0, scoreB: 3, autoCompleted: true }
+    }
+    
+    return { scoreA, scoreB, autoCompleted: false }
+  }
   const [formData, setFormData] = useState({
     player_a_id: '',
     player_b_id: '',
     score_a: '',
     score_b: '',
-    played_at: ''
+    played_at_date: '',
+    played_at_time: ''
   })
 
   // Reset form when dialog opens/closes
@@ -47,22 +80,48 @@ export function ReportMatchDialog({
         player_b_id: '',
         score_a: '',
         score_b: '',
-        played_at: new Date().toISOString().split('T')[0]
+        played_at_date: '',
+        played_at_time: ''
       })
     } else {
-      // Set default date to today
+      // Set suggested date and time only once when dialog opens
+      // Calculate it inline to avoid dependency issues
+      let suggested
+      if (stableExistingMatches.length === 0) {
+        // No existing matches, suggest current time
+        const now = new Date()
+        suggested = {
+          date: now.toISOString().split('T')[0],
+          time: now.toTimeString().slice(0, 5) // HH:MM format
+        }
+      } else {
+        // Find the latest match time
+        const latestMatch = stableExistingMatches
+          .map(m => new Date(m.playedAt))
+          .sort((a, b) => b.getTime() - a.getTime())[0]
+
+        // Add 10 minutes to the latest match
+        const suggestedDateTime = new Date(latestMatch.getTime() + 10 * 60 * 1000)
+        
+        suggested = {
+          date: suggestedDateTime.toISOString().split('T')[0],
+          time: suggestedDateTime.toTimeString().slice(0, 5)
+        }
+      }
+
       setFormData(prev => ({
         ...prev,
-        played_at: new Date().toISOString().split('T')[0]
+        played_at_date: suggested.date,
+        played_at_time: suggested.time
       }))
     }
-  }, [open])
+  }, [open, stableExistingMatches]) // Use stable version to prevent infinite loops
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.player_a_id || !formData.player_b_id || 
-        !formData.score_a || !formData.score_b || !formData.played_at) {
+    // Only require players, date and time - scores will be auto-completed if needed
+    if (!formData.player_a_id || !formData.player_b_id || !formData.played_at_date || !formData.played_at_time) {
       toast.error(t('form.validation.error'))
       return
     }
@@ -72,36 +131,35 @@ export function ReportMatchDialog({
       return
     }
 
-    const scoreA = parseInt(formData.score_a, 10)
-    const scoreB = parseInt(formData.score_b, 10)
+    // Auto-complete scores if one player has 3 and other is empty/0
+    const { scoreA, scoreB, autoCompleted } = getAutoCompletedScores(formData.score_a, formData.score_b)
 
-    if (scoreA < 0 || scoreB < 0 || scoreA > 5 || scoreB > 5) {
-      toast.error(t('matches.validation.scoresRange'))
+    // Validate table tennis scores
+    if (!validateTableTennisScore(scoreA, scoreB)) {
+      toast.error('Invalid table tennis result. Valid results are: 3-0, 3-1, or 3-2')
       return
     }
 
-    if (scoreA === scoreB) {
-      toast.error(t('matches.validation.noTie'))
-      return
-    }
-
-    if (Math.max(scoreA, scoreB) < 3) {
-      toast.error('Winner must reach at least 3 games')
-      return
+    // If we auto-completed, update the form to show the completed score
+    if (autoCompleted) {
+      setFormData(prev => ({
+        ...prev,
+        score_a: scoreA.toString(),
+        score_b: scoreB.toString()
+      }))
     }
 
     // Validate that match date is within series time window (inclusive)
     if (seriesStartDate && seriesEndDate) {
-      const matchDate = new Date(formData.played_at)
+      const matchDateTime = new Date(`${formData.played_at_date}T${formData.played_at_time}:00`)
       const seriesStart = new Date(seriesStartDate)
       const seriesEnd = new Date(seriesEndDate)
       
       // Set times to compare only dates (start of day for start, end of day for end)
       seriesStart.setHours(0, 0, 0, 0)
       seriesEnd.setHours(23, 59, 59, 999)
-      matchDate.setHours(12, 0, 0, 0) // Set to middle of day for comparison
       
-      if (matchDate < seriesStart || matchDate > seriesEnd) {
+      if (matchDateTime < seriesStart || matchDateTime > seriesEnd) {
         toast.error(
           `${t('matches.validation.seriesWindow')} (${seriesStart.toLocaleDateString()} - ${seriesEnd.toLocaleDateString()})`
         )
@@ -116,7 +174,7 @@ export function ReportMatchDialog({
         playerBId: formData.player_b_id,
         scoreA: scoreA,
         scoreB: scoreB,
-        playedAt: new Date(formData.played_at).toISOString()
+        playedAt: new Date(`${formData.played_at_date}T${formData.played_at_time}:00`).toISOString()
       }
 
       await apiClient.reportMatch(reportRequest)
@@ -137,9 +195,21 @@ export function ReportMatchDialog({
     setFormData(prev => ({ ...prev, player_b_id: player.id }))
   }
 
-  const isFormValid = formData.player_a_id && formData.player_b_id && 
-    formData.score_a && formData.score_b && formData.played_at &&
-    formData.player_a_id !== formData.player_b_id
+  const isFormValid = () => {
+    // Basic required fields
+    if (!formData.player_a_id || !formData.player_b_id || !formData.played_at_date || !formData.played_at_time) {
+      return false
+    }
+    
+    // Players must be different
+    if (formData.player_a_id === formData.player_b_id) {
+      return false
+    }
+    
+    // Check if scores are valid (including auto-completion)
+    const { scoreA, scoreB } = getAutoCompletedScores(formData.score_a, formData.score_b)
+    return validateTableTennisScore(scoreA, scoreB)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,43 +246,56 @@ export function ReportMatchDialog({
             {/* Score inputs */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="score_a">{t('matches.score_a')} *</Label>
+                <Label htmlFor="score_a">{t('matches.score_a')}</Label>
                 <Input
                   id="score_a"
                   type="number"
                   min="0"
-                  max="5"
+                  max="3"
                   value={formData.score_a}
                   onChange={(e) => setFormData(prev => ({ ...prev, score_a: e.target.value }))}
                   placeholder="0"
-                  required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Valid results: 3-0, 3-1, 3-2
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="score_b">{t('matches.score_b')} *</Label>
+                <Label htmlFor="score_b">{t('matches.score_b')}</Label>
                 <Input
                   id="score_b"
                   type="number"
                   min="0"
-                  max="5"
+                  max="3"
                   value={formData.score_b}
                   onChange={(e) => setFormData(prev => ({ ...prev, score_b: e.target.value }))}
                   placeholder="0"
-                  required
                 />
               </div>
             </div>
 
-            {/* Date */}
-            <div className="space-y-2">
-              <Label htmlFor="played_at">{t('matches.played_at')} *</Label>
-              <Input
-                id="played_at"
-                type="date"
-                value={formData.played_at}
-                onChange={(e) => setFormData(prev => ({ ...prev, played_at: e.target.value }))}
-                required
-              />
+            {/* Date and Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="played_at_date">{t('matches.played_at_date')} *</Label>
+                <Input
+                  id="played_at_date"
+                  type="date"
+                  value={formData.played_at_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, played_at_date: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="played_at_time">{t('matches.played_at_time')} *</Label>
+                <Input
+                  id="played_at_time"
+                  type="time"
+                  value={formData.played_at_time}
+                  onChange={(e) => setFormData(prev => ({ ...prev, played_at_time: e.target.value }))}
+                  required
+                />
+              </div>
             </div>
 
             {/* Validation hints */}
@@ -230,7 +313,7 @@ export function ReportMatchDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={!isFormValid || loading}>
+            <Button type="submit" disabled={!isFormValid() || loading}>
               {loading ? <LoadingSpinner size="sm" /> : t('matches.report')}
             </Button>
           </DialogFooter>

@@ -36,14 +36,28 @@ export function EditMatchDialog({
   const [loading, setLoading] = useState(false)
   const [scoreA, setScoreA] = useState<number>(0)
   const [scoreB, setScoreB] = useState<number>(0)
-  const [playedAt, setPlayedAt] = useState<string>('')
+  const [playedAtDate, setPlayedAtDate] = useState<string>('')
+  const [playedAtTime, setPlayedAtTime] = useState<string>('')
+
+  // Helper function to validate table tennis scores
+  const validateTableTennisScore = (scoreA: number, scoreB: number) => {
+    // Valid table tennis match results: 3-0, 3-1, 3-2 (or reversed)
+    const validResults = [
+      [3, 0], [0, 3], [3, 1], [1, 3], [3, 2], [2, 3]
+    ]
+    
+    return validResults.some(([a, b]) => a === scoreA && b === scoreB)
+  }
 
   useEffect(() => {
     if (match) {
       setScoreA(match.scoreA)
       setScoreB(match.scoreB)
       // Convert ISO date to input date format (YYYY-MM-DD)
-      setPlayedAt(new Date(match.playedAt).toISOString().split('T')[0])
+      const matchDate = new Date(match.playedAt)
+      setPlayedAtDate(matchDate.toISOString().split('T')[0])
+      // Convert to HH:MM format
+      setPlayedAtTime(matchDate.toTimeString().slice(0, 5))
     }
   }, [match])
 
@@ -51,25 +65,15 @@ export function EditMatchDialog({
     e.preventDefault()
     if (!match) return
 
-    // Validation
-    if (scoreA === scoreB) {
-      toast.error(t('matches.validation.noTies'))
-      return
-    }
-
-    if (scoreA < 0 || scoreA > 5 || scoreB < 0 || scoreB > 5) {
-      toast.error(t('matches.validation.invalidScore'))
-      return
-    }
-
-    if (Math.max(scoreA, scoreB) < 3) {
-      toast.error(t('matches.validation.bestOfFive'))
+    // Validate table tennis scores
+    if (!validateTableTennisScore(scoreA, scoreB)) {
+      toast.error('Invalid table tennis result. Valid results are: 3-0, 3-1, or 3-2')
       return
     }
 
     // Validate match date is within series window if being updated (inclusive)
-    if (seriesStartDate && seriesEndDate && playedAt !== new Date(match.playedAt).toISOString().split('T')[0]) {
-      const matchDate = new Date(playedAt)
+    if (seriesStartDate && seriesEndDate && playedAtDate !== new Date(match.playedAt).toISOString().split('T')[0]) {
+      const matchDate = new Date(playedAtDate)
       const startDate = new Date(seriesStartDate)
       const endDate = new Date(seriesEndDate)
       
@@ -89,13 +93,17 @@ export function EditMatchDialog({
     try {
       setLoading(true)
       
+      // Combine date and time for comparison and API call
+      const originalDate = new Date(match.playedAt)
+      const newDateTime = `${playedAtDate}T${playedAtTime}:00`
+      const hasDateTimeChanged = playedAtDate !== originalDate.toISOString().split('T')[0] || 
+                                 playedAtTime !== originalDate.toTimeString().slice(0, 5)
+      
       const updateRequest: UpdateMatchRequest = {
         matchId: match.id,
         scoreA: scoreA !== match.scoreA ? scoreA : undefined,
         scoreB: scoreB !== match.scoreB ? scoreB : undefined,
-        playedAt: playedAt !== new Date(match.playedAt).toISOString().split('T')[0] 
-          ? new Date(playedAt).toISOString() 
-          : undefined,
+        playedAt: hasDateTimeChanged ? new Date(newDateTime).toISOString() : undefined,
       }
 
       const response = await apiClient.updateMatch(updateRequest)
@@ -130,11 +138,10 @@ export function EditMatchDialog({
                 id="scoreA"
                 type="number"
                 min="0"
-                max="5"
+                max="3"
                 value={scoreA}
                 onChange={(e) => setScoreA(parseInt(e.target.value, 10) || 0)}
                 className="col-span-3"
-                required
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -145,22 +152,37 @@ export function EditMatchDialog({
                 id="scoreB"
                 type="number"
                 min="0"
-                max="5"
+                max="3"
                 value={scoreB}
                 onChange={(e) => setScoreB(parseInt(e.target.value, 10) || 0)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="text-xs text-muted-foreground text-center">
+              Valid table tennis results: 3-0, 3-1, 3-2
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="playedAtDate" className="text-right">
+                {t('matches.played_at_date')}
+              </Label>
+              <Input
+                id="playedAtDate"
+                type="date"
+                value={playedAtDate}
+                onChange={(e) => setPlayedAtDate(e.target.value)}
                 className="col-span-3"
                 required
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="playedAt" className="text-right">
-                {t('matches.played_at')}
+              <Label htmlFor="playedAtTime" className="text-right">
+                {t('matches.played_at_time')}
               </Label>
               <Input
-                id="playedAt"
-                type="date"
-                value={playedAt}
-                onChange={(e) => setPlayedAt(e.target.value)}
+                id="playedAtTime"
+                type="time"
+                value={playedAtTime}
+                onChange={(e) => setPlayedAtTime(e.target.value)}
                 className="col-span-3"
                 required
               />
