@@ -35,11 +35,17 @@ func (s *PlayerService) convertToProtobuf(p *repo.Player) *pb.Player {
 		})
 	}
 
+	// Hide synthetic emails from API responses
+	email := p.Email
+	if repo.IsSyntheticEmail(email) {
+		email = ""
+	}
+
 	return &pb.Player{
 		Id:              p.ID.Hex(),
 		DisplayName:     p.DisplayName,
 		Active:          p.Active,
-		Email:           p.Email,
+		Email:           email,
 		FirstName:       p.FirstName,
 		LastName:        p.LastName,
 		ClubMemberships: clubMemberships,

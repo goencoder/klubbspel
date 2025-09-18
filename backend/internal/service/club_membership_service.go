@@ -315,7 +315,8 @@ func (s *ClubMembershipService) AddPlayerToClub(ctx context.Context, req *pb.Add
 		}
 	} else {
 		// Create player without email using the standard Create method
-		player, err = s.PlayerRepo.Create(ctx, displayName, "")
+		// Pass the club ID so the player is automatically added to the club
+		player, err = s.PlayerRepo.Create(ctx, displayName, req.ClubId)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "FAILED_TO_CREATE_PLAYER")
 		}
@@ -349,33 +350,26 @@ func (s *ClubMembershipService) AddPlayerToClub(ctx context.Context, req *pb.Add
 		// we'll rely on the AddClubMembership method to handle duplicates.
 	}
 
-	// Create membership
-	clubObjID, err := primitive.ObjectIDFromHex(req.ClubId)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "INVALID_CLUB_ID")
-	}
-
-	membership := &repo.ClubMembership{
-		ClubID:   clubObjID,
-		Role:     "member", // Always add as member initially
-		JoinedAt: time.Now(),
-	}
-
-	if req.Email != "" {
-		err = s.PlayerRepo.AddClubMembership(ctx, req.Email, membership)
-	} else {
-		// For players without email, we need to add the membership directly by updating the player document
-		// Since the player was just created without a club membership, we can add it now
-		updates := map[string]interface{}{
-			"$push": map[string]interface{}{
-				"club_memberships": membership,
-			},
+	// Create membership (only needed for players with email or existing players without email)
+	needsNewMembership := req.Email != "" || (req.Email == "" && !wasNewPlayer)
+	
+	if needsNewMembership {
+		clubObjID, err := primitive.ObjectIDFromHex(req.ClubId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "INVALID_CLUB_ID")
 		}
-		_, err = s.PlayerRepo.Update(ctx, player.ID.Hex(), updates)
-	}
 
-	if err != nil {
-		return nil, status.Error(codes.Internal, "FAILED_TO_ADD_MEMBERSHIP")
+		membership := &repo.ClubMembership{
+			ClubID:   clubObjID,
+			Role:     "member", // Always add as member initially
+			JoinedAt: time.Now(),
+		}
+
+		// Use the player's actual email (which might be synthetic for players without email)
+		err = s.PlayerRepo.AddClubMembership(ctx, player.Email, membership)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "FAILED_TO_ADD_MEMBERSHIP")
+		}
 	}
 
 	// Send notification email if email provided
@@ -556,10 +550,16 @@ func (s *ClubMembershipService) ListClubMembers(ctx context.Context, req *pb.Lis
 					JoinedAt: timestamppb.New(membership.JoinedAt),
 				}
 
+				// Hide synthetic emails from API responses
+				email := player.Email
+				if repo.IsSyntheticEmail(email) {
+					email = ""
+				}
+
 				members = append(members, &pb.ClubMemberInfo{
 					PlayerId:    player.ID.Hex(),
 					DisplayName: player.DisplayName,
-					Email:       player.Email,
+					Email:       email,
 					Membership:  pbMembership,
 				})
 				break

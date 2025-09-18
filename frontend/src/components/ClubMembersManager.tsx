@@ -180,7 +180,11 @@ export function ClubMembersManager({ clubId, clubName }: ClubMembersManagerProps
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">{member.email}</span>
+                      {member.email ? (
+                        <span className="text-sm text-muted-foreground">{member.email}</span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">No email (club-created)</span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
