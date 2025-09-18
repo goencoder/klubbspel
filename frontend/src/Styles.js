@@ -22,7 +22,7 @@ export const colors = {
     bgCard: 'var(--color-card)',
     border: 'var(--color-border)',
     focus: 'var(--color-ring)',
-    success: 'var(--color-chart-1)',
+    success: 'var(--color-success)',
     warning: 'var(--color-chart-4)',
     danger: 'var(--color-destructive)',
   },
