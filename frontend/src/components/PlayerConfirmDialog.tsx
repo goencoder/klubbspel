@@ -55,7 +55,7 @@ export function PlayerConfirmDialog({
                 <Card key={player.id} className="cursor-pointer hover:bg-muted/50 transition-colors">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{player.display_name}</CardTitle>
+                      <CardTitle className="text-base">{player.displayName}</CardTitle>
                       <Badge variant={player.active ? 'default' : 'secondary'}>
                         {player.active ? t('common.active') : t('common.inactive')}
                       </Badge>
@@ -69,7 +69,7 @@ export function PlayerConfirmDialog({
                   <CardContent className="pt-0">
                     <div className="flex justify-between items-center">
                       <div className="text-xs text-muted-foreground">
-                        {player.created_at ? `${t('common.joined')} ${new Date(player.created_at).toLocaleDateString()}` : t('common.unknown') + ' join date'}
+                        {player.lastLoginAt ? `${t('common.joined')} ${new Date(player.lastLoginAt).toLocaleDateString()}` : t('common.unknown') + ' join date'}
                       </div>
                       <Button
                         size="sm"

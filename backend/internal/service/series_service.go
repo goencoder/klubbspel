@@ -231,10 +231,10 @@ func pbSeriesSport(value int32) pb.Sport {
 
 func normalizeSeriesFormat(format pb.SeriesFormat) (pb.SeriesFormat, error) {
 	if format == pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED {
-		return pb.SeriesFormat_SERIES_FORMAT_LADDER, nil
+		return pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY, nil
 	}
 
-	if format != pb.SeriesFormat_SERIES_FORMAT_LADDER {
+	if format != pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY {
 		return pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED, status.Error(codes.Unimplemented, "SERIES_FORMAT_NOT_SUPPORTED")
 	}
 
@@ -244,7 +244,7 @@ func normalizeSeriesFormat(format pb.SeriesFormat) (pb.SeriesFormat, error) {
 func pbSeriesFormat(value int32) pb.SeriesFormat {
 	format := pb.SeriesFormat(value)
 	if format == pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED {
-		format = pb.SeriesFormat_SERIES_FORMAT_LADDER
+		format = pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY
 	}
 	return format
 }

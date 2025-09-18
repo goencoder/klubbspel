@@ -307,10 +307,8 @@ func (s *ClubMembershipService) AddPlayerToClub(ctx context.Context, req *pb.Add
 
 			// Save updates if needed
 			if shouldUpdate {
-				_, err = s.PlayerRepo.Update(ctx, existingPlayer.ID.Hex(), updates)
-				if err != nil {
-					// Non-fatal error, continue with membership creation
-				}
+				_, _ = s.PlayerRepo.Update(ctx, existingPlayer.ID.Hex(), updates)
+				// Non-fatal error, continue with membership creation even if update fails
 			}
 		}
 	} else {
@@ -326,10 +324,8 @@ func (s *ClubMembershipService) AddPlayerToClub(ctx context.Context, req *pb.Add
 			"first_name": req.FirstName,
 			"last_name":  req.LastName,
 		}
-		_, err = s.PlayerRepo.Update(ctx, player.ID.Hex(), updates)
-		if err != nil {
-			// Non-fatal error, continue with membership creation
-		}
+		_, _ = s.PlayerRepo.Update(ctx, player.ID.Hex(), updates)
+		// Non-fatal error, continue with membership creation even if update fails
 
 		wasNewPlayer = true
 	}
@@ -343,16 +339,13 @@ func (s *ClubMembershipService) AddPlayerToClub(ctx context.Context, req *pb.Add
 		if isMember {
 			return nil, status.Error(codes.AlreadyExists, "ALREADY_MEMBER")
 		}
-	} else {
-		// For players without email, we need to check manually by looking at their club memberships
-		// Since we just created the player, they won't be a member yet, so we can skip this check
-		// for new players. For existing email-less players (which shouldn't happen in this flow),
-		// we'll rely on the AddClubMembership method to handle duplicates.
 	}
+	// Note: For players without email, membership is handled during creation
+	// so we don't need to check membership status here for new players
 
 	// Create membership (only needed for players with email or existing players without email)
 	needsNewMembership := req.Email != "" || (req.Email == "" && !wasNewPlayer)
-	
+
 	if needsNewMembership {
 		clubObjID, err := primitive.ObjectIDFromHex(req.ClubId)
 		if err != nil {

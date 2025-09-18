@@ -30,6 +30,7 @@ export type Sport =
 
 export type SeriesFormat =
   | 'SERIES_FORMAT_UNSPECIFIED'
+  | 'SERIES_FORMAT_OPEN_PLAY'
   | 'SERIES_FORMAT_LADDER'
   | 'SERIES_FORMAT_CUP'
 

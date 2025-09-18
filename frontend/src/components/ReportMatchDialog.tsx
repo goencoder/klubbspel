@@ -90,12 +90,12 @@ export function ReportMatchDialog({
       setLoading(true)
       
       const reportRequest = {
-        series_id: seriesId,
-        player_a_id: formData.player_a_id,
-        player_b_id: formData.player_b_id,
-        score_a: scoreA,
-        score_b: scoreB,
-        played_at: new Date(formData.played_at).toISOString()
+        seriesId: seriesId,
+        playerAId: formData.player_a_id,
+        playerBId: formData.player_b_id,
+        scoreA: scoreA,
+        scoreB: scoreB,
+        playedAt: new Date(formData.played_at).toISOString()
       }
 
       await apiClient.reportMatch(reportRequest)

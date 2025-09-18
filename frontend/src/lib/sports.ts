@@ -3,7 +3,7 @@ import type { Sport, SeriesFormat } from '@/types/api'
 export const DEFAULT_SPORT: Sport = 'SPORT_TABLE_TENNIS'
 export const SUPPORTED_SPORTS: Sport[] = [DEFAULT_SPORT]
 
-export const DEFAULT_SERIES_FORMAT: SeriesFormat = 'SERIES_FORMAT_LADDER'
+export const DEFAULT_SERIES_FORMAT: SeriesFormat = 'SERIES_FORMAT_OPEN_PLAY'
 export const SUPPORTED_SERIES_FORMATS: SeriesFormat[] = [DEFAULT_SERIES_FORMAT]
 
 export function sportTranslationKey(sport: Sport): string {
@@ -21,6 +21,8 @@ export function sportTranslationKey(sport: Sport): string {
 
 export function seriesFormatTranslationKey(format: SeriesFormat): string {
   switch (format) {
+    case 'SERIES_FORMAT_OPEN_PLAY':
+      return 'series.formatOptions.open_play'
     case 'SERIES_FORMAT_LADDER':
       return 'series.formatOptions.ladder'
     case 'SERIES_FORMAT_CUP':

@@ -56,6 +56,7 @@
     "sportLabel": "Sport",
     "formatLabel": "Spelformat",
     "formatOptions": {
+      "open_play": "Fritt spel",
       "ladder": "Stege",
       "cup": "Cup",
       "unknown": "Kommer snart"

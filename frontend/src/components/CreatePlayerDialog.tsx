@@ -116,7 +116,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       
       const createRequest = {
         displayName: formData.displayName.trim(),
-        initialClubId: formData.clubId
+        clubId: formData.clubId
       }
 
       const response = await apiClient.createPlayer(createRequest)
@@ -240,8 +240,8 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
         onOpenChange={setShowSimilarDialog}
         playerName={formData.displayName}
         similarPlayers={similarPlayers}
-        onUseSimilarPlayer={handleUseSimilarPlayer}
-        onCreateNewAnyway={handleCreateNewAnyway}
+        onUseSimilar={handleUseSimilarPlayer}
+        onCreateNew={handleCreateNewAnyway}
       />
     </>
   )

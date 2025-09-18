@@ -22,10 +22,12 @@ enum SeriesVisibility {
 enum SeriesFormat {
   // Default value, should not be used.
   SERIES_FORMAT_UNSPECIFIED = 0;
+  // Open play where any players can play matches against each other.
+  SERIES_FORMAT_OPEN_PLAY = 1;
   // Continuous ladder where players challenge each other.
-  SERIES_FORMAT_LADDER = 1;
+  SERIES_FORMAT_LADDER = 2;
   // Knock-out cup or bracket style tournament.
-  SERIES_FORMAT_CUP = 2;
+  SERIES_FORMAT_CUP = 3;
 }
 
 // Series represents a time-bound table tennis tournament

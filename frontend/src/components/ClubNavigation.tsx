@@ -65,14 +65,6 @@ export function ClubNavigation({ showAllOption = true, onClubChange }: ClubNavig
       return club.name
     }
 
-    // Fallback to user memberships if not found in all clubs
-    if (user?.memberships) {
-      const membership = user.memberships.find(m => m.clubId === selectedClubId)
-      if (membership && membership.clubName) {
-        return membership.clubName
-      }
-    }
-
     // If we can't find the club, fall back to "All Clubs"
     return t('clubs.navigation.allClubs')
   }

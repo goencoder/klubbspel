@@ -2303,11 +2303,12 @@
       "type": "string",
       "enum": [
         "SERIES_FORMAT_UNSPECIFIED",
+        "SERIES_FORMAT_OPEN_PLAY",
         "SERIES_FORMAT_LADDER",
         "SERIES_FORMAT_CUP"
       ],
       "default": "SERIES_FORMAT_UNSPECIFIED",
-      "description": "SeriesFormat captures the competition structure.\n\n - SERIES_FORMAT_UNSPECIFIED: Default value, should not be used.\n - SERIES_FORMAT_LADDER: Continuous ladder where players challenge each other.\n - SERIES_FORMAT_CUP: Knock-out cup or bracket style tournament."
+      "description": "SeriesFormat captures the competition structure.\n\n - SERIES_FORMAT_UNSPECIFIED: Default value, should not be used.\n - SERIES_FORMAT_OPEN_PLAY: Open play where any players can play matches against each other.\n - SERIES_FORMAT_LADDER: Continuous ladder where players challenge each other.\n - SERIES_FORMAT_CUP: Knock-out cup or bracket style tournament."
     },
     "v1SeriesVisibility": {
       "type": "string",
