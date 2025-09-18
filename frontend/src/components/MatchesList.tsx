@@ -15,11 +15,11 @@ import { EditMatchDialog } from './EditMatchDialog'
 import { DeleteMatchDialog } from './DeleteMatchDialog'
 
 // Status Icons with semantic colors using tokens
-const SuccessIcon = styled(TickCircle)`
+const WinnerIcon = styled(TickCircle)`
   color: ${colors.ui.success};
 `
 
-const DangerIcon = styled(CloseCircle)`
+const LoserIcon = styled(CloseCircle)`
   color: ${colors.ui.danger};
 `
 
@@ -129,9 +129,9 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate }: Matche
                           {match.playerAName}
                         </span>
                         {match.playerAName === winner ? (
-                          <SuccessIcon size={16} variant="Bold" />
+                          <WinnerIcon size={16} />
                         ) : (
-                          <DangerIcon size={16} />
+                          <LoserIcon size={16} />
                         )}
                       </div>
                     </TableCell>
@@ -152,9 +152,9 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate }: Matche
                           {match.playerBName}
                         </span>
                         {match.playerBName === winner ? (
-                          <SuccessIcon size={16} variant="Bold" />
+                          <WinnerIcon size={16} />
                         ) : (
-                          <DangerIcon size={16} />
+                          <LoserIcon size={16} />
                         )}
                       </div>
                     </TableCell>

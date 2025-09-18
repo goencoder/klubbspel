@@ -45,7 +45,7 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 
 	playedAt := in.GetPlayedAt().AsTime()
 
-		// Validate that match date is within series time window
+	// Validate that match date is within series time window
 	series, err := s.Series.FindByID(ctx, in.GetSeriesId())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to find series: %v", err)
@@ -53,14 +53,14 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 
 	// Convert match date to start of day and series dates to inclusive ranges
 	matchDate := in.GetPlayedAt().AsTime()
-	seriesStart := series.StartsAt.Truncate(24 * time.Hour) // Start of start date
+	seriesStart := series.StartsAt.Truncate(24 * time.Hour)                                 // Start of start date
 	seriesEnd := series.EndsAt.Truncate(24 * time.Hour).Add(24*time.Hour - time.Nanosecond) // End of end date
 
 	if matchDate.Before(seriesStart) || matchDate.After(seriesEnd) {
-		return nil, status.Errorf(codes.InvalidArgument, 
-			"match date %v must be between series start date %v and end date %v (inclusive)", 
-			matchDate.Format("2006-01-02"), 
-			series.StartsAt.Format("2006-01-02"), 
+		return nil, status.Errorf(codes.InvalidArgument,
+			"match date %v must be between series start date %v and end date %v (inclusive)",
+			matchDate.Format("2006-01-02"),
+			series.StartsAt.Format("2006-01-02"),
 			series.EndsAt.Format("2006-01-02"))
 	}
 
@@ -139,7 +139,7 @@ func (s *MatchService) UpdateMatch(ctx context.Context, in *pb.UpdateMatchReques
 	if in.PlayedAt != nil {
 		t := in.GetPlayedAt().AsTime()
 		playedAt = &t
-		
+
 		// Validate that updated match date is within series time window
 		series, err := s.Series.FindByID(ctx, existingMatch.SeriesID)
 		if err != nil {
@@ -147,14 +147,14 @@ func (s *MatchService) UpdateMatch(ctx context.Context, in *pb.UpdateMatchReques
 		}
 
 		// Convert series dates to inclusive ranges
-		seriesStart := series.StartsAt.Truncate(24 * time.Hour) // Start of start date
+		seriesStart := series.StartsAt.Truncate(24 * time.Hour)                                 // Start of start date
 		seriesEnd := series.EndsAt.Truncate(24 * time.Hour).Add(24*time.Hour - time.Nanosecond) // End of end date
 
 		if t.Before(seriesStart) || t.After(seriesEnd) {
-			return nil, status.Errorf(codes.InvalidArgument, 
-				"match date %v must be between series start date %v and end date %v (inclusive)", 
-				t.Format("2006-01-02"), 
-				series.StartsAt.Format("2006-01-02"), 
+			return nil, status.Errorf(codes.InvalidArgument,
+				"match date %v must be between series start date %v and end date %v (inclusive)",
+				t.Format("2006-01-02"),
+				series.StartsAt.Format("2006-01-02"),
 				series.EndsAt.Format("2006-01-02"))
 		}
 	}
