@@ -97,7 +97,7 @@ export interface ClubMembership {
 
 export interface CreatePlayerRequest {
   displayName: string  // Frontend uses camelCase for requests
-  clubId: string
+  initialClubId: string
 }
 
 export interface CreatePlayerResponse {

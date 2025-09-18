@@ -58,6 +58,7 @@ export interface CreateSeriesRequest {
 
 export interface CreatePlayerRequest {
   displayName: string
+  initialClubId: string
 }
 
 export interface CreatePlayerResponse {
