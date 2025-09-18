@@ -26,7 +26,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
   const [clubs, setClubs] = useState<Club[]>([])
   const [formData, setFormData] = useState({
     displayName: '',
-    clubId: ''
+    initialClubId: ''
   })
   const [similarPlayers, setSimilarPlayers] = useState<Player[]>([])
   const [showSimilarDialog, setShowSimilarDialog] = useState(false)
@@ -63,10 +63,10 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
           const nextClubId = deriveAutomaticClubId({
             manageableClubs: nextManageableClubs,
             selectedClubId,
-            previousClubId: prev.clubId,
+            previousClubId: prev.initialClubId,
           })
 
-          return nextClubId === prev.clubId ? prev : { ...prev, clubId: nextClubId }
+          return nextClubId === prev.initialClubId ? prev : { ...prev, initialClubId: nextClubId }
         })
       }
 
@@ -85,7 +85,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       // Reset form when dialog closes
       setFormData({
         displayName: '',
-        clubId: ''
+        initialClubId: ''
       })
       setSimilarPlayers([])
       setShowSimilarDialog(false)
@@ -102,7 +102,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       return
     }
 
-    if (!formData.clubId) {
+    if (!formData.initialClubId) {
       toast.error(t('players.validation.clubRequired'))
       return
     }
@@ -116,7 +116,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
       
       const createRequest = {
         displayName: formData.displayName.trim(),
-        clubId: formData.clubId
+        initialClubId: formData.initialClubId
       }
 
       const response = await apiClient.createPlayer(createRequest)
@@ -152,7 +152,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
 
   const handleClubSelected = (club: Club | null) => {
     setHasManualClubSelection(true)
-    setFormData(prev => ({ ...prev, clubId: club?.id || '' }))
+    setFormData(prev => ({ ...prev, initialClubId: club?.id || '' }))
   }
 
   const handleUseSimilarPlayer = (player: Player) => {
@@ -214,7 +214,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
                 </Label>
                 <ClubSelector
                   clubs={clubs}
-                  selectedClubId={formData.clubId}
+                  selectedClubId={formData.initialClubId}
                   onClubSelected={handleClubSelected}
                   placeholder={t('players.selectClub')}
                   disabled={loading}
@@ -224,7 +224,7 @@ export function CreatePlayerDialog({ open, onOpenChange, onPlayerCreated }: Crea
               <DialogFooter>
                 <Button
                   type="submit"
-                  disabled={loading || !formData.displayName.trim() || !formData.clubId}
+                  disabled={loading || !formData.displayName.trim() || !formData.initialClubId}
                   className="min-w-[100px]"
                 >
                   {loading ? <LoadingSpinner size="sm" /> : t('players.create')}
