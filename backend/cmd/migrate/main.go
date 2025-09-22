@@ -52,6 +52,8 @@ func main() {
 		err = migration.AddMultiClubIndexes(context.Background())
 	case "verify-migration":
 		err = migration.VerifyMigration(context.Background())
+	case "add-scoring-profiles":
+		err = migration.AddScoringProfiles(context.Background())
 	default:
 		log.Fatalf("Unknown migration: %s", migrationName)
 	}
@@ -238,5 +240,90 @@ func (m *Migration) VerifyMigration(ctx context.Context) error {
 	}
 
 	log.Println("Migration verification successful: all players migrated")
+	return nil
+}
+
+// AddScoringProfiles migrates existing series to include scoring_profile and sets_to_play fields
+func (m *Migration) AddScoringProfiles(ctx context.Context) error {
+	log.Println("Starting scoring profiles migration...")
+
+	collection := m.db.Collection("series")
+
+	// Find all series without scoring_profile field
+	filter := bson.M{
+		"$or": []bson.M{
+			{"scoring_profile": bson.M{"$exists": false}},
+			{"sets_to_play": bson.M{"$exists": false}},
+		},
+	}
+
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("failed to find series for migration: %w", err)
+	}
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
+
+	var processed, updated int
+
+	for cursor.Next(ctx) {
+		var series bson.M
+		if err := cursor.Decode(&series); err != nil {
+			log.Printf("Failed to decode series: %v", err)
+			continue
+		}
+
+		processed++
+		seriesID := series["_id"].(primitive.ObjectID)
+		
+		// Get sport value, default to table tennis if not set
+		sport := int32(1) // SPORT_TABLE_TENNIS
+		if sportVal, exists := series["sport"]; exists {
+			if sportInt, ok := sportVal.(int32); ok {
+				sport = sportInt
+			}
+		}
+
+		log.Printf("Migrating series %s with sport %d", seriesID.Hex(), sport)
+
+		update := bson.M{"$set": bson.M{}}
+		needsUpdate := false
+
+		// Set scoring_profile if missing
+		if _, exists := series["scoring_profile"]; !exists {
+			if sport == 1 { // SPORT_TABLE_TENNIS
+				update["$set"].(bson.M)["scoring_profile"] = int32(1) // SCORING_PROFILE_TABLE_TENNIS_SETS
+				needsUpdate = true
+			}
+		}
+
+		// Set sets_to_play if missing (default to 5 for table tennis)
+		if _, exists := series["sets_to_play"]; !exists {
+			if sport == 1 { // SPORT_TABLE_TENNIS
+				update["$set"].(bson.M)["sets_to_play"] = int32(5)
+				needsUpdate = true
+			}
+		}
+
+		if needsUpdate {
+			result, err := collection.UpdateOne(ctx, bson.M{"_id": seriesID}, update)
+			if err != nil {
+				log.Printf("Failed to update series %s: %v", seriesID.Hex(), err)
+				continue
+			}
+
+			if result.ModifiedCount > 0 {
+				updated++
+				log.Printf("Successfully migrated series %s", seriesID.Hex())
+			}
+		}
+	}
+
+	if err := cursor.Err(); err != nil {
+		return fmt.Errorf("cursor error during migration: %w", err)
+	}
+
+	log.Printf("Scoring profiles migration completed: processed %d series, updated %d series", processed, updated)
 	return nil
 }

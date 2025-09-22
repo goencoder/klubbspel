@@ -51,6 +51,10 @@ message Series {
   Sport sport = 7;
   // Competition format for the series.
   SeriesFormat format = 8;
+  // Scoring profile that determines how matches are validated and scored
+  ScoringProfile scoring_profile = 9;
+  // Number of sets to play (for table tennis: 3 or 5)
+  int32 sets_to_play = 10 [(buf.validate.field).int32 = {gte: 3, lte: 5}];
 
   option (buf.validate.message).cel = {
     id: "series_valid_time_range"
@@ -78,6 +82,10 @@ message CreateSeriesRequest {
   Sport sport = 6;
   // Competition format. Defaults to LADDER.
   SeriesFormat format = 7;
+  // Scoring profile for match validation. Defaults based on sport.
+  ScoringProfile scoring_profile = 8;
+  // Number of sets to play (for table tennis). Defaults to 5.
+  int32 sets_to_play = 9 [(buf.validate.field).int32 = {gte: 3, lte: 5}];
 
   option (buf.validate.message).cel = {
     id: "create_series_valid_time_range"

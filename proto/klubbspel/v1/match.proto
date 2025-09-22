@@ -5,8 +5,68 @@ option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbsp
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "buf/validate/validate.proto";
+import "klubbspel/v1/common.proto";
+
+// MatchParticipant represents a participant in a match (individual or team)
+// Currently only individual players are supported, but this allows future
+// expansion to team-based sports.
+message MatchParticipant {
+  oneof ref {
+    // Individual player ID
+    string player_id = 1;
+    // Team ID (future expansion for team sports)
+    string team_id = 2;
+  }
+}
+
+// TableTennisResult represents set-based scoring for table tennis
+message TableTennisResult {
+  // Number of sets won by participant A (0-5 for best-of-5)
+  int32 sets_a = 1 [(buf.validate.field).int32 = {gte: 0, lte: 5}];
+  // Number of sets won by participant B (0-5 for best-of-5) 
+  int32 sets_b = 2 [(buf.validate.field).int32 = {gte: 0, lte: 5}];
+}
+
+// ScorelineResult represents goal/point-based scoring (future: football, basketball, etc.)
+message ScorelineResult {
+  // Score for participant A
+  int32 score_a = 1;
+  // Score for participant B 
+  int32 score_b = 2;
+  // Whether the match went to shootout/overtime
+  bool shootout = 3;
+}
+
+// StrokeCardResult represents stroke-based scoring (future: golf, disc golf)
+message StrokeCardResult {
+  // Total strokes taken (can be expanded to per-hole later)
+  int32 total_strokes = 1;
+}
+
+// WeighInResult represents weight-based scoring (future: fishing competitions)
+message WeighInResult {
+  // Total weight in kilograms
+  double total_weight_kg = 1;
+  // Number of fish/items weighed
+  int32 count = 2;
+}
+
+// MatchResult contains the result of a match in sport-specific format
+message MatchResult {
+  oneof kind {
+    // Table tennis set-based result
+    TableTennisResult table_tennis = 1;
+    // Goal/point-based result (future)
+    ScorelineResult scoreline = 2;
+    // Stroke-based result (future)
+    StrokeCardResult stroke_card = 3;
+    // Weight-based result (future)
+    WeighInResult weigh_in = 4;
+  }
+}
 
 // Request to report the result of a table tennis match
+// DEPRECATED: Use ReportMatchV2Request for new implementations
 message ReportMatchRequest {
   // ID of the tournament series this match belongs to
   string series_id = 1 [(buf.validate.field).string.min_len = 1];
@@ -43,6 +103,30 @@ message ReportMatchRequest {
 message ReportMatchResponse { 
   // ID of the created match record
   string match_id = 1; 
+}
+
+// V2 Request to report the result of a match with multi-sport support
+message ReportMatchV2Request {
+  // ID of the tournament series this match belongs to
+  string series_id = 1 [(buf.validate.field).string.min_len = 1];
+  // First participant in the match
+  MatchParticipant participant_a = 2 [(buf.validate.field).required = true];
+  // Second participant in the match
+  MatchParticipant participant_b = 3 [(buf.validate.field).required = true];
+  // Match result in sport-specific format
+  MatchResult result = 4 [(buf.validate.field).required = true];
+  // When the match was played (must be within series time boundaries)
+  google.protobuf.Timestamp played_at = 5 [(buf.validate.field).required = true];
+
+  // Business rule validations using CEL
+  // Note: Sport-specific validations (like no ties in table tennis) are handled server-side
+  // since they require checking the series scoring profile and sets_to_play
+}
+
+// V2 Response after successfully reporting a match
+message ReportMatchV2Response {
+  // ID of the created match record
+  string match_id = 1;
 }
 
 // Request to update an existing match
@@ -166,6 +250,22 @@ service MatchService {
   // TODO: Add ELO rating calculation (currently only server-side comment)
   rpc ReportMatch(ReportMatchRequest) returns (ReportMatchResponse) {
     option (google.api.http) = { post: "/v1/matches:report" body: "*" };
+  }
+
+  // V2 Report the result of a completed match with multi-sport support
+  //
+  // AUTHORIZATION: No explicit authentication check in service code
+  //
+  // PURPOSE: Records match results with extensible sport-specific validation
+  //
+  // DATA MODEL CHANGES:
+  // - Creates new Match document in MongoDB
+  // - Validates match according to series scoring profile
+  // - Supports future expansion to multiple sports
+  //
+  // TODO: Should require authentication and verify participant eligibility
+  rpc ReportMatchV2(ReportMatchV2Request) returns (ReportMatchV2Response) {
+    option (google.api.http) = { post: "/v2/matches:report" body: "*" };
   }
   
   // List all matches in a tournament series with player names resolved

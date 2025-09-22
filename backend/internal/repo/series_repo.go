@@ -11,14 +11,16 @@ import (
 )
 
 type Series struct {
-	ID         primitive.ObjectID `bson:"_id,omitempty"`
-	ClubID     string             `bson:"club_id"`
-	Title      string             `bson:"title"`
-	StartsAt   time.Time          `bson:"starts_at"`
-	EndsAt     time.Time          `bson:"ends_at"`
-	Visibility int32              `bson:"visibility"` // SeriesVisibility enum value
-	Sport      int32              `bson:"sport"`
-	Format     int32              `bson:"format"`
+	ID             primitive.ObjectID `bson:"_id,omitempty"`
+	ClubID         string             `bson:"club_id"`
+	Title          string             `bson:"title"`
+	StartsAt       time.Time          `bson:"starts_at"`
+	EndsAt         time.Time          `bson:"ends_at"`
+	Visibility     int32              `bson:"visibility"` // SeriesVisibility enum value
+	Sport          int32              `bson:"sport"`
+	Format         int32              `bson:"format"`
+	ScoringProfile int32              `bson:"scoring_profile"` // ScoringProfile enum value
+	SetsToPlay     int32              `bson:"sets_to_play"`    // For table tennis: 3 or 5
 }
 
 type SeriesRepo struct{ c *mongo.Collection }
@@ -27,16 +29,18 @@ func NewSeriesRepo(db *mongo.Database) *SeriesRepo {
 	return &SeriesRepo{c: db.Collection("series")}
 }
 
-func (r *SeriesRepo) Create(ctx context.Context, clubID, title string, startsAt, endsAt time.Time, visibility int32, sport, format int32) (*Series, error) {
+func (r *SeriesRepo) Create(ctx context.Context, clubID, title string, startsAt, endsAt time.Time, visibility int32, sport, format, scoringProfile, setsToPlay int32) (*Series, error) {
 	s := &Series{
-		ID:         primitive.NewObjectID(),
-		ClubID:     clubID,
-		Title:      title,
-		StartsAt:   startsAt,
-		EndsAt:     endsAt,
-		Visibility: visibility,
-		Sport:      sport,
-		Format:     format,
+		ID:             primitive.NewObjectID(),
+		ClubID:         clubID,
+		Title:          title,
+		StartsAt:       startsAt,
+		EndsAt:         endsAt,
+		Visibility:     visibility,
+		Sport:          sport,
+		Format:         format,
+		ScoringProfile: scoringProfile,
+		SetsToPlay:     setsToPlay,
 	}
 	_, err := r.c.InsertOne(ctx, s)
 	return s, err

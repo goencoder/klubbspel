@@ -22,3 +22,18 @@ enum Sport {
   // Padel tennis.
   SPORT_PADEL = 3;
 }
+
+// ScoringProfile defines how match results are scored and validated
+// for different sports, enabling extensible multi-sport support.
+enum ScoringProfile {
+  // Default value, should not be used explicitly.
+  SCORING_PROFILE_UNSPECIFIED = 0;
+  // Table tennis set-based scoring (best-of-3 or best-of-5)
+  SCORING_PROFILE_TABLE_TENNIS_SETS = 1;
+  // Goal/point-based scoring (e.g., football, basketball, hockey)
+  SCORING_PROFILE_SCORELINE = 2;
+  // Stroke-based scoring (e.g., golf, disc golf)
+  SCORING_PROFILE_STROKE_CARD = 3;
+  // Weight-based scoring (e.g., fishing competitions)
+  SCORING_PROFILE_WEIGH_IN = 4;
+}
