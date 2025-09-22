@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { TickCircle, ArrowSwapVertical } from 'iconsax-reactjs'
@@ -19,21 +19,32 @@ interface PlayerSelectorProps {
   className?: string
 }
 
-export function PlayerSelector({ 
-  value, 
-  onPlayerSelected, 
-  clubId, 
+export type PlayerSelectorHandle = {
+  focus: () => void
+}
+
+export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorProps>(function PlayerSelector({
+  value,
+  onPlayerSelected,
+  clubId,
   excludePlayerId,
-  className 
-}: PlayerSelectorProps) {
+  className
+}: PlayerSelectorProps, ref) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      triggerRef.current?.focus()
+    }
+  }))
 
   const loadPlayers = useCallback(async () => {
     try {
@@ -64,12 +75,20 @@ export function PlayerSelector({
   }, [open, debouncedSearchQuery, loadPlayers])
 
   useEffect(() => {
-    if (value && !selectedPlayer) {
-      // Find the selected player by ID
-      const player = players.find(p => p.id === value)
-      if (player) {
-        setSelectedPlayer(player)
+    if (!value) {
+      if (selectedPlayer) {
+        setSelectedPlayer(null)
       }
+      return
+    }
+
+    if (selectedPlayer?.id === value) {
+      return
+    }
+
+    const player = players.find(p => p.id === value)
+    if (player) {
+      setSelectedPlayer(player)
     }
   }, [value, players, selectedPlayer])
 
@@ -82,15 +101,16 @@ export function PlayerSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
+        <button
+          ref={triggerRef}
+          type="button"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between", className)}
+          className={cn(buttonVariants({ variant: 'outline' }), 'w-full justify-between', className)}
         >
           {selectedPlayer ? selectedPlayer.displayName : t('players.selectPlayer')}
           <ArrowSwapVertical size={16} className="ml-2 opacity-50" />
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
         <Command>
@@ -135,4 +155,4 @@ export function PlayerSelector({
       </PopoverContent>
     </Popover>
   )
-}
+})

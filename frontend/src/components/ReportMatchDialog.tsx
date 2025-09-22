@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { PlayerSelector } from '@/components/PlayerSelector'
+import { PlayerSelector, type PlayerSelectorHandle } from '@/components/PlayerSelector'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
 import type { Player } from '@/types/api'
@@ -40,6 +40,7 @@ export function ReportMatchDialog({
 }: ReportMatchDialogProps) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
+  const playerASelectorRef = useRef<PlayerSelectorHandle | null>(null)
 
   // Helper function to validate table tennis scores
   const validateTableTennisScore = (scoreA: number, scoreB: number) => {
@@ -95,6 +96,18 @@ export function ReportMatchDialog({
       played_at_date: formatDatePart(now),
       played_at_time: formatTimePart(now)
     }))
+  }, [open])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const focusTimer = setTimeout(() => {
+      playerASelectorRef.current?.focus()
+    }, 0)
+
+    return () => clearTimeout(focusTimer)
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -175,6 +188,10 @@ export function ReportMatchDialog({
         played_at_date: formatDatePart(nextSuggestedDate),
         played_at_time: formatTimePart(nextSuggestedDate)
       })
+
+      setTimeout(() => {
+        playerASelectorRef.current?.focus()
+      }, 0)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : ''
       toast.error(message || t('error.generic'))
@@ -223,7 +240,9 @@ export function ReportMatchDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t('matches.player_a')} *</Label>
-                <PlayerSelector 
+                <PlayerSelector
+                  ref={playerASelectorRef}
+                  value={formData.player_a_id}
                   onPlayerSelected={handlePlayerASelected}
                   clubId={clubId}
                   excludePlayerId={formData.player_b_id}
@@ -231,7 +250,8 @@ export function ReportMatchDialog({
               </div>
               <div className="space-y-2">
                 <Label>{t('matches.player_b')} *</Label>
-                <PlayerSelector 
+                <PlayerSelector
+                  value={formData.player_b_id}
                   onPlayerSelected={handlePlayerBSelected}
                   clubId={clubId}
                   excludePlayerId={formData.player_a_id}
@@ -307,7 +327,7 @@ export function ReportMatchDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('common.cancel')}
+              {t('common.done')}
             </Button>
             <Button type="submit" disabled={!isFormValid() || loading}>
               {loading ? <LoadingSpinner size="sm" /> : t('matches.report')}
