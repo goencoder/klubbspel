@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { apiClient } from '@/services/api'
-import type { Player } from '@/types/api'
+import type { Player, ReportMatchRequest } from '@/types/api'
 import { 
   validateMatchForm, 
   getAutoCompletedScores,
@@ -208,20 +208,30 @@ export function useMatchReporting(options: UseMatchReportingOptions): UseMatchRe
         }))
       }
       
-      const reportRequest = {
-        seriesId,
-        playerAId: formData.player_a_id,
-        playerBId: formData.player_b_id,
-        scoreA,
-        scoreB,
-        playedAt: new Date(`${formData.played_at_date}T${formData.played_at_time}:00`).toISOString()
+      const playedAt = new Date(`${formData.played_at_date}T${formData.played_at_time}:00`).toISOString()
+
+      const reportRequest: ReportMatchRequest = {
+        metadata: {
+          seriesId,
+          playedAt
+        },
+        participants: [
+          { playerId: formData.player_a_id },
+          { playerId: formData.player_b_id }
+        ],
+        result: {
+          tableTennis: {
+            bestOf: 5,
+            gamesWon: [scoreA, scoreB]
+          }
+        }
       }
-      
+
       const response = await apiClient.reportMatch(reportRequest)
-      
+
       const reportedMatch: ReportedMatch = {
         matchId: response.matchId,
-        playedAt: reportRequest.playedAt,
+        playedAt: reportRequest.metadata.playedAt,
         playerAId: formData.player_a_id,
         playerBId: formData.player_b_id,
         scoreA,

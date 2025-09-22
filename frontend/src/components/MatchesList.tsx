@@ -68,8 +68,20 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
     loadMatches()
   }, [loadMatches, refreshKey])
 
+  const getScores = (match: MatchView): [number, number] => {
+    const games = match.result?.tableTennis?.gamesWon ?? []
+    return [games[0] ?? 0, games[1] ?? 0]
+  }
+
+  const getPlayerName = (match: MatchView, index: number) =>
+    match.participants[index]?.displayName || t('matches.unknownPlayer')
+
   const getWinner = (match: MatchView) => {
-    return match.scoreA > match.scoreB ? match.playerAName : match.playerBName
+    const [scoreA, scoreB] = getScores(match)
+    if (scoreA === scoreB) {
+      return undefined
+    }
+    return scoreA > scoreB ? getPlayerName(match, 0) : getPlayerName(match, 1)
   }
 
   const handleMatchUpdated = (updatedMatch: MatchView) => {
@@ -89,21 +101,28 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
   }
 
   const handleExportCSV = () => {
-    const csvData: MatchCSVData[] = matches.map((match, index) => ({
-      sequence: index + 1,
-      playerA: match.playerAName,
-      scoreA: match.scoreA,
-      scoreB: match.scoreB,
-      playerB: match.playerBName,
-      winner: getWinner(match),
-      date: new Date(match.playedAt).toLocaleDateString(),
-      time: new Date(match.playedAt).toLocaleTimeString('sv-SE', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
-      playedAt: match.playedAt
-    }))
-    
+    const csvData: MatchCSVData[] = matches.map((match, index) => {
+      const [scoreA, scoreB] = getScores(match)
+      const playerAName = getPlayerName(match, 0)
+      const playerBName = getPlayerName(match, 1)
+      const playedAt = new Date(match.metadata.playedAt)
+
+      return {
+        sequence: index + 1,
+        playerA: playerAName,
+        scoreA,
+        scoreB,
+        playerB: playerBName,
+        winner: getWinner(match) ?? '',
+        date: playedAt.toLocaleDateString(),
+        time: playedAt.toLocaleTimeString('sv-SE', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        playedAt: match.metadata.playedAt
+      }
+    })
+
     exportMatchesToCSV(csvData, seriesName)
     toast.success(t('matches.exportSuccess'))
   }
@@ -159,7 +178,11 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
               </TableHeader>
               <TableBody>
                 {matches.map((match, index) => {
+                  const [scoreA, scoreB] = getScores(match)
+                  const playerAName = getPlayerName(match, 0)
+                  const playerBName = getPlayerName(match, 1)
                   const winner = getWinner(match)
+                  const playedAt = new Date(match.metadata.playedAt)
 
                   return (
                     <TableRow key={match.id}>
@@ -168,10 +191,10 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <span className={match.playerAName === winner ? 'font-semibold' : ''}>
-                            {match.playerAName}
+                          <span className={playerAName === winner ? 'font-semibold' : ''}>
+                            {playerAName}
                           </span>
-                          {match.playerAName === winner ? (
+                          {playerAName === winner ? (
                             <WinnerIcon size={16} />
                           ) : (
                             <LoserIcon size={16} />
@@ -180,21 +203,21 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center space-x-2">
-                          <span className={match.scoreA > match.scoreB ? 'font-bold text-foreground' : 'text-muted-foreground'}>
-                            {match.scoreA}
+                          <span className={scoreA > scoreB ? 'font-bold text-foreground' : 'text-muted-foreground'}>
+                            {scoreA}
                           </span>
                           <span className="text-muted-foreground">-</span>
-                          <span className={match.scoreB > match.scoreA ? 'font-bold text-foreground' : 'text-muted-foreground'}>
-                            {match.scoreB}
+                          <span className={scoreB > scoreA ? 'font-bold text-foreground' : 'text-muted-foreground'}>
+                            {scoreB}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <span className={match.playerBName === winner ? 'font-semibold' : ''}>
-                            {match.playerBName}
+                          <span className={playerBName === winner ? 'font-semibold' : ''}>
+                            {playerBName}
                           </span>
-                          {match.playerBName === winner ? (
+                          {playerBName === winner ? (
                             <WinnerIcon size={16} />
                           ) : (
                             <LoserIcon size={16} />
@@ -204,12 +227,12 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                       <TableCell className="text-muted-foreground">
                         <div className="flex flex-col items-start">
                           <span className="text-sm">
-                            {new Date(match.playedAt).toLocaleDateString()}
+                            {playedAt.toLocaleDateString()}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(match.playedAt).toLocaleTimeString('sv-SE', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
+                            {playedAt.toLocaleTimeString('sv-SE', {
+                              hour: '2-digit',
+                              minute: '2-digit'
                             })}
                           </span>
                         </div>
@@ -244,7 +267,11 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3 p-4">
             {matches.map((match, index) => {
+              const [scoreA, scoreB] = getScores(match)
+              const playerAName = getPlayerName(match, 0)
+              const playerBName = getPlayerName(match, 1)
               const winner = getWinner(match)
+              const playedAt = new Date(match.metadata.playedAt)
 
               return (
                 <Card key={match.id} className="border-l-4 border-l-blue-500">
@@ -275,31 +302,31 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                       {/* Players and Score */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className={match.playerAName === winner ? 'font-semibold' : ''}>
-                            {match.playerAName}
+                          <span className={playerAName === winner ? 'font-semibold' : ''}>
+                            {playerAName}
                           </span>
-                          {match.playerAName === winner ? (
+                          {playerAName === winner ? (
                             <WinnerIcon size={16} />
                           ) : (
                             <LoserIcon size={16} />
                           )}
                         </div>
-                        
+
                         <div className="flex items-center space-x-3">
-                          <span className={match.scoreA > match.scoreB ? 'font-bold text-lg' : 'text-lg text-muted-foreground'}>
-                            {match.scoreA}
+                          <span className={scoreA > scoreB ? 'font-bold text-lg' : 'text-lg text-muted-foreground'}>
+                            {scoreA}
                           </span>
                           <span className="text-muted-foreground">-</span>
-                          <span className={match.scoreB > match.scoreA ? 'font-bold text-lg' : 'text-lg text-muted-foreground'}>
-                            {match.scoreB}
+                          <span className={scoreB > scoreA ? 'font-bold text-lg' : 'text-lg text-muted-foreground'}>
+                            {scoreB}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2">
-                          <span className={match.playerBName === winner ? 'font-semibold' : ''}>
-                            {match.playerBName}
+                          <span className={playerBName === winner ? 'font-semibold' : ''}>
+                            {playerBName}
                           </span>
-                          {match.playerBName === winner ? (
+                          {playerBName === winner ? (
                             <WinnerIcon size={16} />
                           ) : (
                             <LoserIcon size={16} />
@@ -311,13 +338,13 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                       <div className="flex items-center justify-center text-sm text-muted-foreground">
                         <Calendar size={14} className="mr-2" />
                         <span>
-                          {new Date(match.playedAt).toLocaleDateString()}
+                          {playedAt.toLocaleDateString()}
                         </span>
                         <span className="mx-2">•</span>
                         <span>
-                          {new Date(match.playedAt).toLocaleTimeString('sv-SE', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
+                          {playedAt.toLocaleTimeString('sv-SE', {
+                            hour: '2-digit',
+                            minute: '2-digit'
                           })}
                         </span>
                       </div>

@@ -39,11 +39,15 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 
 	// Collect all unique player IDs first
 	playerIDSet := make(map[string]bool)
-	for _, match := range matches {
-		fmt.Printf("DEBUG Match: PlayerAID='%s', PlayerBID='%s'\n", match.PlayerAID, match.PlayerBID)
-		playerIDSet[match.PlayerAID] = true
-		playerIDSet[match.PlayerBID] = true
-	}
+        for _, match := range matches {
+                participantIDs := extractPlayerIDs(match.Participants)
+                fmt.Printf("DEBUG Match: Participant IDs='%v'\n", participantIDs)
+                for _, id := range participantIDs {
+                        if id != "" {
+                                playerIDSet[id] = true
+                        }
+                }
+        }
 
 	// Convert map keys to slice for batch lookup
 	playerIDs := make([]string, 0, len(playerIDSet))
@@ -79,60 +83,75 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 	// Calculate ratings and stats for each player
 	playerStats := make(map[string]*pb.LeaderboardEntry)
 
-	for _, match := range matches {
-		// Initialize players if not seen before
-		if _, exists := playerStats[match.PlayerAID]; !exists {
-			playerStats[match.PlayerAID] = &pb.LeaderboardEntry{
-				PlayerId:      match.PlayerAID,
-				PlayerName:    playerNames[match.PlayerAID], // Use real name
-				EloRating:     1000,                         // Initial rating
-				MatchesPlayed: 0,
-				MatchesWon:    0,
-				MatchesLost:   0,
-				GamesWon:      0,
-				GamesLost:     0,
-			}
-		}
-		if _, exists := playerStats[match.PlayerBID]; !exists {
-			playerStats[match.PlayerBID] = &pb.LeaderboardEntry{
-				PlayerId:      match.PlayerBID,
-				PlayerName:    playerNames[match.PlayerBID], // Use real name
-				EloRating:     1000,                         // Initial rating
-				MatchesPlayed: 0,
-				MatchesWon:    0,
-				MatchesLost:   0,
-				GamesWon:      0,
-				GamesLost:     0,
-			}
-		}
+        for _, match := range matches {
+                if len(match.Participants) < 2 {
+                        continue
+                }
 
-		playerA := playerStats[match.PlayerAID]
-		playerB := playerStats[match.PlayerBID]
+                playerAID, playerBID := extractHeadToHeadParticipants(match.Participants)
+                if playerAID == "" || playerBID == "" {
+                        continue
+                }
 
-		// Calculate ELO changes
-		newRatingA, newRatingB := calculateELO(float64(playerA.EloRating), float64(playerB.EloRating), match.ScoreA, match.ScoreB)
+                tableTennis := match.Result
+                if tableTennis == nil || tableTennis.TableTennis == nil || len(tableTennis.TableTennis.GamesWon) < 2 {
+                        continue
+                }
 
-		// Update ratings
-		playerA.EloRating = int32(newRatingA)
-		playerA.MatchesPlayed++
-		playerA.GamesWon += match.ScoreA
-		playerA.GamesLost += match.ScoreB
-		if match.ScoreA > match.ScoreB {
-			playerA.MatchesWon++
-		} else {
-			playerA.MatchesLost++
-		}
+                scoreA := tableTennis.TableTennis.GamesWon[0]
+                scoreB := tableTennis.TableTennis.GamesWon[1]
 
-		playerB.EloRating = int32(newRatingB)
-		playerB.MatchesPlayed++
-		playerB.GamesWon += match.ScoreB
-		playerB.GamesLost += match.ScoreA
-		if match.ScoreB > match.ScoreA {
-			playerB.MatchesWon++
-		} else {
-			playerB.MatchesLost++
-		}
-	}
+                // Initialize players if not seen before
+                if _, exists := playerStats[playerAID]; !exists {
+                        playerStats[playerAID] = &pb.LeaderboardEntry{
+                                PlayerId:      playerAID,
+                                PlayerName:    playerNames[playerAID],
+                                EloRating:     1000,
+                                MatchesPlayed: 0,
+                                MatchesWon:    0,
+                                MatchesLost:   0,
+                                GamesWon:      0,
+                                GamesLost:     0,
+                        }
+                }
+                if _, exists := playerStats[playerBID]; !exists {
+                        playerStats[playerBID] = &pb.LeaderboardEntry{
+                                PlayerId:      playerBID,
+                                PlayerName:    playerNames[playerBID],
+                                EloRating:     1000,
+                                MatchesPlayed: 0,
+                                MatchesWon:    0,
+                                MatchesLost:   0,
+                                GamesWon:      0,
+                                GamesLost:     0,
+                        }
+                }
+
+                playerA := playerStats[playerAID]
+                playerB := playerStats[playerBID]
+
+                newRatingA, newRatingB := calculateELO(float64(playerA.EloRating), float64(playerB.EloRating), scoreA, scoreB)
+
+                playerA.EloRating = int32(newRatingA)
+                playerA.MatchesPlayed++
+                playerA.GamesWon += scoreA
+                playerA.GamesLost += scoreB
+                if scoreA > scoreB {
+                        playerA.MatchesWon++
+                } else {
+                        playerA.MatchesLost++
+                }
+
+                playerB.EloRating = int32(newRatingB)
+                playerB.MatchesPlayed++
+                playerB.GamesWon += scoreB
+                playerB.GamesLost += scoreA
+                if scoreB > scoreA {
+                        playerB.MatchesWon++
+                } else {
+                        playerB.MatchesLost++
+                }
+        }
 
 	// Convert to slice and sort by rating
 	var entries []*pb.LeaderboardEntry
@@ -227,24 +246,45 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 
 // Calculate ELO rating changes based on match result
 func calculateELO(ratingA, ratingB float64, scoreA, scoreB int32) (float64, float64) {
-	// K-factor for rating changes
-	const K = 32
+        // K-factor for rating changes
+        const K = 32
 
-	// Expected scores
-	expectedA := 1 / (1 + math.Pow(10, (ratingB-ratingA)/400))
-	expectedB := 1 / (1 + math.Pow(10, (ratingA-ratingB)/400))
+        // Expected scores
+        expectedA := 1 / (1 + math.Pow(10, (ratingB-ratingA)/400))
+        expectedB := 1 / (1 + math.Pow(10, (ratingA-ratingB)/400))
 
-	// Actual scores (1 for win, 0 for loss)
-	var actualA, actualB float64
-	if scoreA > scoreB {
-		actualA, actualB = 1, 0
-	} else {
-		actualA, actualB = 0, 1
-	}
+        // Actual scores (1 for win, 0 for loss)
+        var actualA, actualB float64
+        if scoreA > scoreB {
+                actualA, actualB = 1, 0
+        } else {
+                actualA, actualB = 0, 1
+        }
 
-	// New ratings
-	newRatingA := ratingA + K*(actualA-expectedA)
-	newRatingB := ratingB + K*(actualB-expectedB)
+        // New ratings
+        newRatingA := ratingA + K*(actualA-expectedA)
+        newRatingB := ratingB + K*(actualB-expectedB)
 
-	return newRatingA, newRatingB
+        return newRatingA, newRatingB
+}
+
+func extractPlayerIDs(participants []repo.MatchParticipant) []string {
+        ids := make([]string, 0, len(participants))
+        for _, participant := range participants {
+                if participant.PlayerID != nil {
+                        ids = append(ids, *participant.PlayerID)
+                }
+        }
+        return ids
+}
+
+func extractHeadToHeadParticipants(participants []repo.MatchParticipant) (string, string) {
+        var playerAID, playerBID string
+        if len(participants) > 0 && participants[0].PlayerID != nil {
+                playerAID = *participants[0].PlayerID
+        }
+        if len(participants) > 1 && participants[1].PlayerID != nil {
+                playerBID = *participants[1].PlayerID
+        }
+        return playerAID, playerBID
 }

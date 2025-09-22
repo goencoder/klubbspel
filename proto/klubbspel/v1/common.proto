@@ -21,4 +21,18 @@ enum Sport {
   SPORT_TENNIS = 2;
   // Padel tennis.
   SPORT_PADEL = 3;
+  // Association football.
+  SPORT_SOCCER = 4;
+  // Indoor floorball / innebandy.
+  SPORT_FLOORBALL = 5;
+  // Basketball.
+  SPORT_BASKETBALL = 6;
+  // Ice hockey.
+  SPORT_ICE_HOCKEY = 7;
+  // Disc golf / frisbee golf.
+  SPORT_FRISBEE_GOLF = 8;
+  // Traditional golf.
+  SPORT_GOLF = 9;
+  // Fishing / angling competitions.
+  SPORT_FISHING = 10;
 }

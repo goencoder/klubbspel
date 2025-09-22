@@ -81,6 +81,23 @@
     "validation": {
       "start_before_end": "Start date must be before end date",
       "club_required": "Club is required for club-only series"
+    },
+    "matchConfiguration": {
+      "title": "Match configuration",
+      "participantModeLabel": "Participant mode",
+      "participantsPerSideLabel": "Participants per side",
+      "participantsPerSide": "{{count}} per side",
+      "scoringProfileLabel": "Scoring profile",
+      "participantModes": {
+        "individual": "Individual players",
+        "team": "Teams"
+      },
+      "scoringProfiles": {
+        "table_tennis": "Table tennis (best of 5)",
+        "scoreline": "Scoreline (goals/runs)",
+        "stroke_card": "Stroke card",
+        "weigh_in": "Weigh-in"
+      }
     }
   },
   "players": {
@@ -141,6 +158,7 @@
     "noMatches": "No matches reported yet",
     "reportFirst": "Report your first match to start tracking rankings",
     "score": "Score",
+    "unknownPlayer": "Unknown player",
     "winner": "Winner",
     "reported": "Match reported successfully",
     "empty": "No matches reported yet",
@@ -370,6 +388,13 @@
     "table_tennis": "Table tennis",
     "tennis": "Tennis",
     "padel": "Padel",
+    "soccer": "Soccer",
+    "floorball": "Floorball",
+    "basketball": "Basketball",
+    "ice_hockey": "Ice hockey",
+    "frisbee_golf": "Frisbee golf",
+    "golf": "Golf",
+    "fishing": "Fishing",
     "unknown": "Unknown sport"
   }
 }

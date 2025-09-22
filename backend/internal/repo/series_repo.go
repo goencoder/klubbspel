@@ -1,24 +1,37 @@
 package repo
 
 import (
-	"context"
-	"time"
+        "context"
+        "time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+        "go.mongodb.org/mongo-driver/bson"
+        "go.mongodb.org/mongo-driver/bson/primitive"
+        "go.mongodb.org/mongo-driver/mongo"
+        "go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const (
+        defaultParticipantMode     int32 = 1
+        defaultParticipantsPerSide int32 = 1
+        defaultScoringProfile      int32 = 1
+)
+
+type SeriesMatchConfiguration struct {
+        ParticipantMode     int32 `bson:"participant_mode"`
+        ParticipantsPerSide int32 `bson:"participants_per_side"`
+        ScoringProfile      int32 `bson:"scoring_profile"`
+}
+
 type Series struct {
-	ID         primitive.ObjectID `bson:"_id,omitempty"`
-	ClubID     string             `bson:"club_id"`
-	Title      string             `bson:"title"`
-	StartsAt   time.Time          `bson:"starts_at"`
-	EndsAt     time.Time          `bson:"ends_at"`
-	Visibility int32              `bson:"visibility"` // SeriesVisibility enum value
-	Sport      int32              `bson:"sport"`
-	Format     int32              `bson:"format"`
+        ID                 primitive.ObjectID      `bson:"_id,omitempty"`
+        ClubID             string                  `bson:"club_id"`
+        Title              string                  `bson:"title"`
+        StartsAt           time.Time               `bson:"starts_at"`
+        EndsAt             time.Time               `bson:"ends_at"`
+        Visibility         int32                   `bson:"visibility"`
+        Sport              int32                   `bson:"sport"`
+        Format             int32                   `bson:"format"`
+        MatchConfiguration SeriesMatchConfiguration `bson:"match_configuration"`
 }
 
 type SeriesRepo struct{ c *mongo.Collection }
@@ -27,19 +40,21 @@ func NewSeriesRepo(db *mongo.Database) *SeriesRepo {
 	return &SeriesRepo{c: db.Collection("series")}
 }
 
-func (r *SeriesRepo) Create(ctx context.Context, clubID, title string, startsAt, endsAt time.Time, visibility int32, sport, format int32) (*Series, error) {
-	s := &Series{
-		ID:         primitive.NewObjectID(),
-		ClubID:     clubID,
-		Title:      title,
-		StartsAt:   startsAt,
-		EndsAt:     endsAt,
-		Visibility: visibility,
-		Sport:      sport,
-		Format:     format,
-	}
-	_, err := r.c.InsertOne(ctx, s)
-	return s, err
+func (r *SeriesRepo) Create(ctx context.Context, clubID, title string, startsAt, endsAt time.Time, visibility int32, sport, format int32, matchConfig SeriesMatchConfiguration) (*Series, error) {
+        s := &Series{
+                ID:         primitive.NewObjectID(),
+                ClubID:     clubID,
+                Title:      title,
+                StartsAt:   startsAt,
+                EndsAt:     endsAt,
+                Visibility: visibility,
+                Sport:      sport,
+                Format:     format,
+                MatchConfiguration: matchConfig,
+        }
+        ensureMatchConfigDefaults(s)
+        _, err := r.c.InsertOne(ctx, s)
+        return s, err
 }
 
 func (r *SeriesRepo) List(ctx context.Context, pageSize int32, pageToken string) ([]*Series, string, error) {
@@ -54,11 +69,12 @@ func (r *SeriesRepo) List(ctx context.Context, pageSize int32, pageToken string)
 	var series []*Series
 	for cursor.Next(ctx) {
 		var s Series
-		if err := cursor.Decode(&s); err != nil {
-			continue
-		}
-		series = append(series, &s)
-	}
+                if err := cursor.Decode(&s); err != nil {
+                        continue
+                }
+                ensureMatchConfigDefaults(&s)
+                series = append(series, &s)
+        }
 
 	return series, "", nil
 }
@@ -127,11 +143,12 @@ func (r *SeriesRepo) ListWithCursor(ctx context.Context, pageSize int32, cursor 
 	var series []*Series
 	for cursor_result.Next(ctx) {
 		var s Series
-		if err := cursor_result.Decode(&s); err != nil {
-			continue
-		}
-		series = append(series, &s)
-	}
+                if err := cursor_result.Decode(&s); err != nil {
+                        continue
+                }
+                ensureMatchConfigDefaults(&s)
+                series = append(series, &s)
+        }
 
 	// Determine pagination info
 	hasNext := len(series) > int(pageSize)
@@ -151,23 +168,44 @@ func (r *SeriesRepo) FindByID(ctx context.Context, id string) (*Series, error) {
 	}
 
 	var series Series
-	err = r.c.FindOne(ctx, bson.M{"_id": objID}).Decode(&series)
-	return &series, err
+        err = r.c.FindOne(ctx, bson.M{"_id": objID}).Decode(&series)
+        if err != nil {
+                return nil, err
+        }
+
+        ensureMatchConfigDefaults(&series)
+        return &series, nil
 }
 
 // Update applies partial updates to a series document and returns the updated series
 func (r *SeriesRepo) Update(ctx context.Context, id string, updates map[string]interface{}) (*Series, error) {
-	objID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
+        objID, err := primitive.ObjectIDFromHex(id)
+        if err != nil {
+                return nil, err
+        }
 
-	_, err = r.c.UpdateOne(ctx, bson.M{"_id": objID}, bson.M{"$set": updates})
-	if err != nil {
-		return nil, err
-	}
+        _, err = r.c.UpdateOne(ctx, bson.M{"_id": objID}, bson.M{"$set": updates})
+        if err != nil {
+                return nil, err
+        }
 
-	return r.FindByID(ctx, id)
+        return r.FindByID(ctx, id)
+}
+
+func ensureMatchConfigDefaults(series *Series) {
+        if series == nil {
+                return
+        }
+
+        if series.MatchConfiguration.ParticipantMode == 0 {
+                series.MatchConfiguration.ParticipantMode = defaultParticipantMode
+        }
+        if series.MatchConfiguration.ParticipantsPerSide == 0 {
+                series.MatchConfiguration.ParticipantsPerSide = defaultParticipantsPerSide
+        }
+        if series.MatchConfiguration.ScoringProfile == 0 {
+                series.MatchConfiguration.ScoringProfile = defaultScoringProfile
+        }
 }
 
 // Delete removes a series document by ID

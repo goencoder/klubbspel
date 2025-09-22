@@ -81,6 +81,23 @@
     "validation": {
       "start_before_end": "Startdatum måste vara före slutdatum",
       "club_required": "Klubb krävs för klubbexklusiva serier"
+    },
+    "matchConfiguration": {
+      "title": "Matchkonfiguration",
+      "participantModeLabel": "Deltagarläge",
+      "participantsPerSideLabel": "Deltagare per sida",
+      "participantsPerSide": "{{count}} per sida",
+      "scoringProfileLabel": "Poängsystem",
+      "participantModes": {
+        "individual": "Individuella spelare",
+        "team": "Lag"
+      },
+      "scoringProfiles": {
+        "table_tennis": "Bordtennis (bäst av 5)",
+        "scoreline": "Resultat (mål/poäng)",
+        "stroke_card": "Slagkort",
+        "weigh_in": "Invägning"
+      }
     }
   },
   "players": {
@@ -141,6 +158,7 @@
     "noMatches": "Inga matcher rapporterade än",
     "reportFirst": "Rapportera din första match för att börja spåra rankningar",
     "score": "Resultat",
+    "unknownPlayer": "Okänd spelare",
     "winner": "Vinnare",
     "reported": "Match rapporterad framgångsrikt",
     "empty": "Inga matcher rapporterade än",
@@ -370,6 +388,13 @@
     "table_tennis": "Bordtennis",
     "tennis": "Tennis",
     "padel": "Padel",
+    "soccer": "Fotboll",
+    "floorball": "Innebandy",
+    "basketball": "Basket",
+    "ice_hockey": "Ishockey",
+    "frisbee_golf": "Frisbeegolf",
+    "golf": "Golf",
+    "fishing": "Fiske",
     "unknown": "Okänd sport"
   }
 }

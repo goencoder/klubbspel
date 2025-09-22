@@ -652,8 +652,6 @@
     },
     "/v1/matches/{matchId}": {
       "delete": {
-        "summary": "Delete a match",
-        "description": "AUTHORIZATION: Should require authentication and admin rights\n\nPURPOSE: Remove incorrectly reported matches\n\nDATA MODEL CHANGES: Removes Match document from MongoDB",
         "operationId": "MatchService_DeleteMatch",
         "responses": {
           "200": {
@@ -672,7 +670,6 @@
         "parameters": [
           {
             "name": "matchId",
-            "description": "ID of the match to delete",
             "in": "path",
             "required": true,
             "type": "string"
@@ -683,8 +680,6 @@
         ]
       },
       "patch": {
-        "summary": "Update an existing match (date, scores, etc.)",
-        "description": "AUTHORIZATION: Should require authentication and admin/player rights\n\nPURPOSE: Allow correction of match data (wrong dates, scores)\n\nDATA MODEL CHANGES: Updates existing Match document in MongoDB",
         "operationId": "MatchService_UpdateMatch",
         "responses": {
           "200": {
@@ -703,7 +698,6 @@
         "parameters": [
           {
             "name": "matchId",
-            "description": "ID of the match to update",
             "in": "path",
             "required": true,
             "type": "string"
@@ -724,8 +718,6 @@
     },
     "/v1/matches:reorder": {
       "post": {
-        "summary": "Reorder matches played on the same day",
-        "description": "AUTHORIZATION: Should require authentication and admin rights\n\nPURPOSE: Correct the temporal order of matches for accurate ELO calculations\n\nDATA MODEL CHANGES: Updates played_at timestamps to preserve order within day",
         "operationId": "MatchService_ReorderMatches",
         "responses": {
           "200": {
@@ -744,6 +736,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "Request to reorder matches played on the same day.",
             "in": "body",
             "required": true,
             "schema": {
@@ -758,8 +751,6 @@
     },
     "/v1/matches:report": {
       "post": {
-        "summary": "Report the result of a completed match with automatic ELO rating updates",
-        "description": "AUTHORIZATION: No explicit authentication check in service code\n\nPURPOSE: Records match results in tournament series with strict validation rules\n\nDATA MODEL CHANGES:\n- Creates new Match document in MongoDB\n- Validates match is within series time boundaries (TODO: not implemented)\n- Validates best-of-5 scoring (winner must reach 3 games minimum)\n- Prevents ties and self-play\n\nTODO: Should require authentication and verify player eligibility for series\nTODO: Add CEL validation for series time window (currently only server-side comment)\nTODO: Add ELO rating calculation (currently only server-side comment)",
         "operationId": "MatchService_ReportMatch",
         "responses": {
           "200": {
@@ -778,6 +769,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "Request to report the result of a match.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1164,7 +1156,7 @@
           },
           {
             "name": "sportFilter",
-            "description": "Optional filter by sport.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis.",
+            "description": "Optional filter by sport.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis.\n - SPORT_SOCCER: Association football.\n - SPORT_FLOORBALL: Indoor floorball / innebandy.\n - SPORT_BASKETBALL: Basketball.\n - SPORT_ICE_HOCKEY: Ice hockey.\n - SPORT_FRISBEE_GOLF: Disc golf / frisbee golf.\n - SPORT_GOLF: Traditional golf.\n - SPORT_FISHING: Fishing / angling competitions.",
             "in": "query",
             "required": false,
             "type": "string",
@@ -1172,7 +1164,14 @@
               "SPORT_UNSPECIFIED",
               "SPORT_TABLE_TENNIS",
               "SPORT_TENNIS",
-              "SPORT_PADEL"
+              "SPORT_PADEL",
+              "SPORT_SOCCER",
+              "SPORT_FLOORBALL",
+              "SPORT_BASKETBALL",
+              "SPORT_ICE_HOCKEY",
+              "SPORT_FRISBEE_GOLF",
+              "SPORT_GOLF",
+              "SPORT_FISHING"
             ],
             "default": "SPORT_UNSPECIFIED"
           },
@@ -1385,8 +1384,6 @@
     },
     "/v1/series/{seriesId}/matches": {
       "get": {
-        "summary": "List all matches in a tournament series with player names resolved",
-        "description": "AUTHORIZATION: No authentication required (public endpoint)\n\nPURPOSE: Display match history and results for tournament leaderboards\n\nDATA MODEL CHANGES: None (read-only operation with player name joins)",
         "operationId": "MatchService_ListMatches",
         "responses": {
           "200": {
@@ -1405,14 +1402,12 @@
         "parameters": [
           {
             "name": "seriesId",
-            "description": "ID of the tournament series to get matches for",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "pageSize",
-            "description": "Maximum number of matches to return (default: 20, max: 100)",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -1420,14 +1415,12 @@
           },
           {
             "name": "cursorAfter",
-            "description": "Cursor-based pagination (use one of the following):\nID to start listing after (for forward pagination)",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "cursorBefore",
-            "description": "ID to start listing before (for backward pagination)",
             "in": "query",
             "required": false,
             "type": "string"
@@ -1489,23 +1482,15 @@
     "MatchServiceUpdateMatchBody": {
       "type": "object",
       "properties": {
-        "scoreA": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Number of games won by player A (0-5 in best-of-5 format) - optional"
-        },
-        "scoreB": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Number of games won by player B (0-5 in best-of-5 format) - optional"
-        },
         "playedAt": {
           "type": "string",
-          "format": "date-time",
-          "title": "When the match was played - optional"
+          "format": "date-time"
+        },
+        "result": {
+          "$ref": "#/definitions/v1MatchResult"
         }
       },
-      "title": "Request to update an existing match"
+      "description": "Request to update an existing match."
     },
     "PlayerServiceMergePlayerBody": {
       "type": "object",
@@ -1516,6 +1501,19 @@
         }
       },
       "title": "Request to merge two players (source player into target player)"
+    },
+    "StrokeCardResultHoleScore": {
+      "type": "object",
+      "properties": {
+        "hole": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "strokes": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
     },
     "protobufAny": {
       "type": "object",
@@ -1757,6 +1755,10 @@
         "format": {
           "$ref": "#/definitions/v1SeriesFormat",
           "description": "Competition format. Defaults to LADDER."
+        },
+        "matchConfiguration": {
+          "$ref": "#/definitions/v1SeriesMatchConfiguration",
+          "description": "Participant grouping and scoring configuration for the series."
         }
       },
       "title": "Request to create a new tournament series"
@@ -1785,11 +1787,10 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "title": "Whether the deletion was successful"
+          "type": "boolean"
         }
       },
-      "title": "Response after successfully deleting a match"
+      "description": "Response after successfully deleting a match."
     },
     "v1DeletePlayerResponse": {
       "type": "object",
@@ -2062,27 +2063,22 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/v1MatchView"
-          },
-          "title": "List of matches in the series (ordered by played_at desc, then by ID)"
+          }
         },
         "startCursor": {
-          "type": "string",
-          "title": "Cursor pagination tokens\nID of the first item in this page (for backward pagination)"
+          "type": "string"
         },
         "endCursor": {
-          "type": "string",
-          "title": "ID of the last item in this page (for forward pagination)"
+          "type": "string"
         },
         "hasNextPage": {
-          "type": "boolean",
-          "title": "Whether there are more items after end_cursor"
+          "type": "boolean"
         },
         "hasPreviousPage": {
-          "type": "boolean",
-          "title": "Whether there are more items before start_cursor"
+          "type": "boolean"
         }
       },
-      "title": "Response containing list of matches and cursor pagination info"
+      "description": "Response containing list of matches and cursor pagination info."
     },
     "v1ListPlayerMembershipsResponse": {
       "type": "object",
@@ -2158,42 +2154,86 @@
       },
       "title": "Response containing list of series and cursor pagination info"
     },
-    "v1MatchView": {
+    "v1MatchMetadata": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "title": "Unique identifier for this match"
-        },
         "seriesId": {
           "type": "string",
-          "title": "ID of the tournament series this match belongs to"
-        },
-        "playerAName": {
-          "type": "string",
-          "title": "Display name of the first player"
-        },
-        "playerBName": {
-          "type": "string",
-          "title": "Display name of the second player"
-        },
-        "scoreA": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Number of games won by player A"
-        },
-        "scoreB": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Number of games won by player B"
+          "description": "ID of the tournament series this match belongs to."
         },
         "playedAt": {
           "type": "string",
           "format": "date-time",
-          "title": "When the match was played"
+          "description": "When the match was played (must be within series time boundaries)."
         }
       },
-      "title": "View of a match with player names resolved for display"
+      "description": "Shared metadata about a reported match."
+    },
+    "v1MatchParticipant": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "description": "Individual participant identifier."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Team participant identifier."
+        }
+      },
+      "description": "Participant entry identifying either an individual player or a team side."
+    },
+    "v1MatchParticipantView": {
+      "type": "object",
+      "properties": {
+        "participant": {
+          "$ref": "#/definitions/v1MatchParticipant"
+        },
+        "displayName": {
+          "type": "string"
+        }
+      },
+      "description": "Participant representation used in views with resolved display names."
+    },
+    "v1MatchResult": {
+      "type": "object",
+      "properties": {
+        "tableTennis": {
+          "$ref": "#/definitions/v1TableTennisResult"
+        },
+        "scoreline": {
+          "$ref": "#/definitions/v1ScorelineResult"
+        },
+        "strokeCard": {
+          "$ref": "#/definitions/v1StrokeCardResult"
+        },
+        "weighIn": {
+          "$ref": "#/definitions/v1WeighInResult"
+        }
+      },
+      "description": "Wrapper for sport-specific result payloads."
+    },
+    "v1MatchView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1MatchMetadata"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1MatchParticipantView"
+          }
+        },
+        "result": {
+          "$ref": "#/definitions/v1MatchResult"
+        }
+      },
+      "description": "View of a match with participants and sport-specific result payload."
     },
     "v1MembershipRole": {
       "type": "string",
@@ -2316,64 +2356,47 @@
           "type": "array",
           "items": {
             "type": "string"
-          },
-          "title": "List of match IDs in the desired order (first = earliest in day)"
+          }
         }
       },
-      "title": "Request to reorder matches played on the same day"
+      "description": "Request to reorder matches played on the same day."
     },
     "v1ReorderMatchesResponse": {
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean",
-          "title": "Whether the reordering was successful"
+          "type": "boolean"
         }
       },
-      "title": "Response after successfully reordering matches"
+      "description": "Response after successfully reordering matches."
     },
     "v1ReportMatchRequest": {
       "type": "object",
       "properties": {
-        "seriesId": {
-          "type": "string",
-          "title": "ID of the tournament series this match belongs to"
+        "metadata": {
+          "$ref": "#/definitions/v1MatchMetadata"
         },
-        "playerAId": {
-          "type": "string",
-          "title": "ID of the first player"
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1MatchParticipant"
+          }
         },
-        "playerBId": {
-          "type": "string",
-          "title": "ID of the second player"
-        },
-        "scoreA": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Number of games won by player A (0-5 in best-of-5 format)"
-        },
-        "scoreB": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Number of games won by player B (0-5 in best-of-5 format)"
-        },
-        "playedAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "When the match was played (must be within series time boundaries)"
+        "result": {
+          "$ref": "#/definitions/v1MatchResult"
         }
       },
-      "title": "Request to report the result of a table tennis match"
+      "description": "Request to report the result of a match."
     },
     "v1ReportMatchResponse": {
       "type": "object",
       "properties": {
         "matchId": {
-          "type": "string",
-          "title": "ID of the created match record"
+          "type": "string"
         }
       },
-      "title": "Response after successfully reporting a match"
+      "description": "Response after successfully reporting a match."
     },
     "v1RevokeTokenRequest": {
       "type": "object",
@@ -2389,6 +2412,19 @@
         }
       },
       "title": "Response after revoking a token"
+    },
+    "v1ScorelineResult": {
+      "type": "object",
+      "properties": {
+        "scores": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "description": "Generic scoreline result (e.g. soccer, basketball) storing points per side."
     },
     "v1SendMagicLinkRequest": {
       "type": "object",
@@ -2455,6 +2491,10 @@
         "format": {
           "$ref": "#/definitions/v1SeriesFormat",
           "description": "Competition format for the series."
+        },
+        "matchConfiguration": {
+          "$ref": "#/definitions/v1SeriesMatchConfiguration",
+          "description": "How participants/results should be interpreted for reported matches."
         }
       },
       "title": "Series represents a time-bound table tennis tournament"
@@ -2469,6 +2509,44 @@
       ],
       "default": "SERIES_FORMAT_UNSPECIFIED",
       "description": "SeriesFormat captures the competition structure.\n\n - SERIES_FORMAT_UNSPECIFIED: Default value, should not be used.\n - SERIES_FORMAT_OPEN_PLAY: Open play where any players can play matches against each other.\n - SERIES_FORMAT_LADDER: Continuous ladder where players challenge each other.\n - SERIES_FORMAT_CUP: Knock-out cup or bracket style tournament."
+    },
+    "v1SeriesMatchConfiguration": {
+      "type": "object",
+      "properties": {
+        "participantMode": {
+          "$ref": "#/definitions/v1SeriesParticipantMode"
+        },
+        "participantsPerSide": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "scoringProfile": {
+          "$ref": "#/definitions/v1SeriesScoringProfile"
+        }
+      },
+      "description": "Match configuration ties together participant grouping and scoring profile."
+    },
+    "v1SeriesParticipantMode": {
+      "type": "string",
+      "enum": [
+        "SERIES_PARTICIPANT_MODE_UNSPECIFIED",
+        "SERIES_PARTICIPANT_MODE_INDIVIDUAL",
+        "SERIES_PARTICIPANT_MODE_TEAM"
+      ],
+      "default": "SERIES_PARTICIPANT_MODE_UNSPECIFIED",
+      "description": "Describes how participants are grouped in a series.\n\n - SERIES_PARTICIPANT_MODE_INDIVIDUAL: Individuals compete directly (e.g., singles).\n - SERIES_PARTICIPANT_MODE_TEAM: Team entities compete (e.g., club vs club)."
+    },
+    "v1SeriesScoringProfile": {
+      "type": "string",
+      "enum": [
+        "SERIES_SCORING_PROFILE_UNSPECIFIED",
+        "SERIES_SCORING_PROFILE_TABLE_TENNIS",
+        "SERIES_SCORING_PROFILE_SCORELINE",
+        "SERIES_SCORING_PROFILE_STROKE_CARD",
+        "SERIES_SCORING_PROFILE_WEIGH_IN"
+      ],
+      "default": "SERIES_SCORING_PROFILE_UNSPECIFIED",
+      "description": "Identifies which scoring/result profile applies for matches in a series."
     },
     "v1SeriesVisibility": {
       "type": "string",
@@ -2487,10 +2565,49 @@
         "SPORT_UNSPECIFIED",
         "SPORT_TABLE_TENNIS",
         "SPORT_TENNIS",
-        "SPORT_PADEL"
+        "SPORT_PADEL",
+        "SPORT_SOCCER",
+        "SPORT_FLOORBALL",
+        "SPORT_BASKETBALL",
+        "SPORT_ICE_HOCKEY",
+        "SPORT_FRISBEE_GOLF",
+        "SPORT_GOLF",
+        "SPORT_FISHING"
       ],
       "default": "SPORT_UNSPECIFIED",
-      "description": "Sport enumerates racket/paddle sports supported by the platform.\nTable tennis is currently the only fully supported sport but we define\nadditional values so that the API is future proof.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis."
+      "description": "Sport enumerates racket/paddle sports supported by the platform.\nTable tennis is currently the only fully supported sport but we define\nadditional values so that the API is future proof.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis.\n - SPORT_SOCCER: Association football.\n - SPORT_FLOORBALL: Indoor floorball / innebandy.\n - SPORT_BASKETBALL: Basketball.\n - SPORT_ICE_HOCKEY: Ice hockey.\n - SPORT_FRISBEE_GOLF: Disc golf / frisbee golf.\n - SPORT_GOLF: Traditional golf.\n - SPORT_FISHING: Fishing / angling competitions."
+    },
+    "v1StrokeCardResult": {
+      "type": "object",
+      "properties": {
+        "holes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/StrokeCardResultHoleScore"
+          }
+        }
+      },
+      "description": "Stroke card result (e.g. golf) storing strokes per hole for each side."
+    },
+    "v1TableTennisResult": {
+      "type": "object",
+      "properties": {
+        "bestOf": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Number of games required to win the match (best-of value)."
+        },
+        "gamesWon": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": "Games won per participant in the same order as participants[] list."
+        }
+      },
+      "description": "Result of a table tennis match (best-of format with per-side totals)."
     },
     "v1UpdateClubResponse": {
       "type": "object",
@@ -2506,11 +2623,10 @@
       "type": "object",
       "properties": {
         "match": {
-          "$ref": "#/definitions/v1MatchView",
-          "title": "Updated match information"
+          "$ref": "#/definitions/v1MatchView"
         }
       },
-      "title": "Response after successfully updating a match"
+      "description": "Response after successfully updating a match."
     },
     "v1UpdateMemberRoleResponse": {
       "type": "object",
@@ -2598,6 +2714,25 @@
         }
       },
       "title": "Response containing the API token for authenticated requests"
+    },
+    "v1WeighInResult": {
+      "type": "object",
+      "properties": {
+        "totalWeightGrams": {
+          "type": "number",
+          "format": "double",
+          "description": "Total weight in grams recorded for the match."
+        },
+        "individualWeightsGrams": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": "Optional individual weights in grams for auditing."
+        }
+      },
+      "description": "Weigh-in result (e.g. fishing) storing weight totals."
     }
   }
 }

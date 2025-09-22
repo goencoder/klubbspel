@@ -30,6 +30,31 @@ enum SeriesFormat {
   SERIES_FORMAT_CUP = 3;
 }
 
+// Describes how participants are grouped in a series.
+enum SeriesParticipantMode {
+  SERIES_PARTICIPANT_MODE_UNSPECIFIED = 0;
+  // Individuals compete directly (e.g., singles).
+  SERIES_PARTICIPANT_MODE_INDIVIDUAL = 1;
+  // Team entities compete (e.g., club vs club).
+  SERIES_PARTICIPANT_MODE_TEAM = 2;
+}
+
+// Identifies which scoring/result profile applies for matches in a series.
+enum SeriesScoringProfile {
+  SERIES_SCORING_PROFILE_UNSPECIFIED = 0;
+  SERIES_SCORING_PROFILE_TABLE_TENNIS = 1;
+  SERIES_SCORING_PROFILE_SCORELINE = 2;
+  SERIES_SCORING_PROFILE_STROKE_CARD = 3;
+  SERIES_SCORING_PROFILE_WEIGH_IN = 4;
+}
+
+// Match configuration ties together participant grouping and scoring profile.
+message SeriesMatchConfiguration {
+  SeriesParticipantMode participant_mode = 1;
+  int32 participants_per_side = 2 [(buf.validate.field).int32 = {gte: 1, lte: 32}];
+  SeriesScoringProfile scoring_profile = 3;
+}
+
 // Series represents a time-bound table tennis tournament
 message Series {
   // Unique identifier for the series (MongoDB ObjectID as hex string)
@@ -51,6 +76,8 @@ message Series {
   Sport sport = 7;
   // Competition format for the series.
   SeriesFormat format = 8;
+  // How participants/results should be interpreted for reported matches.
+  SeriesMatchConfiguration match_configuration = 9;
 
   option (buf.validate.message).cel = {
     id: "series_valid_time_range"
@@ -78,6 +105,8 @@ message CreateSeriesRequest {
   Sport sport = 6;
   // Competition format. Defaults to LADDER.
   SeriesFormat format = 7;
+  // Participant grouping and scoring configuration for the series.
+  SeriesMatchConfiguration match_configuration = 8;
 
   option (buf.validate.message).cel = {
     id: "create_series_valid_time_range"

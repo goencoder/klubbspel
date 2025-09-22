@@ -748,28 +748,40 @@ func (r *PlayerRepo) MergePlayer(ctx context.Context, targetID, sourceID string)
 		// Update all matches that reference the source player
 		matchesCollection := r.c.Database().Collection("matches")
 
-		// Update player_a_id references
-		resultA, err := matchesCollection.UpdateMany(sc,
-			bson.M{"player_a_id": sourceID},
-			bson.M{"$set": bson.M{"player_a_id": targetID}})
-		if err != nil {
-			return fmt.Errorf("failed to update player_a_id references: %w", err)
-		}
+                // Update player_a_id references
+                resultA, err := matchesCollection.UpdateMany(sc,
+                        bson.M{"player_a_id": sourceID},
+                        bson.M{"$set": bson.M{"player_a_id": targetID}})
+                if err != nil {
+                        return fmt.Errorf("failed to update player_a_id references: %w", err)
+                }
 
-		// Update player_b_id references
-		resultB, err := matchesCollection.UpdateMany(sc,
-			bson.M{"player_b_id": sourceID},
-			bson.M{"$set": bson.M{"player_b_id": targetID}})
-		if err != nil {
-			return fmt.Errorf("failed to update player_b_id references: %w", err)
-		}
+                // Update player_b_id references
+                resultB, err := matchesCollection.UpdateMany(sc,
+                        bson.M{"player_b_id": sourceID},
+                        bson.M{"$set": bson.M{"player_b_id": targetID}})
+                if err != nil {
+                        return fmt.Errorf("failed to update player_b_id references: %w", err)
+                }
 
-		// Safe conversion with overflow check for G115 security fix
-		total := resultA.ModifiedCount + resultB.ModifiedCount
-		matchesUpdated, err = safeInt32(total)
-		if err != nil {
-			return fmt.Errorf("match update count conversion failed: %w", err)
-		}
+                arrayOpts := options.Update().SetArrayFilters(options.ArrayFilters{
+                        Filters: []interface{}{bson.M{"elem.player_id": sourceID}},
+                })
+                resultParticipants, err := matchesCollection.UpdateMany(sc,
+                        bson.M{"participants.player_id": sourceID},
+                        bson.M{"$set": bson.M{"participants.$[elem].player_id": targetID}},
+                        arrayOpts,
+                )
+                if err != nil {
+                        return fmt.Errorf("failed to update participant references: %w", err)
+                }
+
+                // Safe conversion with overflow check for G115 security fix
+                total := resultA.ModifiedCount + resultB.ModifiedCount + resultParticipants.ModifiedCount
+                matchesUpdated, err = safeInt32(total)
+                if err != nil {
+                        return fmt.Errorf("match update count conversion failed: %w", err)
+                }
 
 		// Update all API tokens that reference the source player
 		tokensCollection := r.c.Database().Collection("api_tokens")

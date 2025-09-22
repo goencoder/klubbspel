@@ -1,20 +1,21 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
-	"os"
-	"time"
+        "context"
+        "fmt"
+        "log"
+        "os"
+        "time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	md "go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+        "go.mongodb.org/mongo-driver/bson"
+        "go.mongodb.org/mongo-driver/bson/primitive"
+        md "go.mongodb.org/mongo-driver/mongo"
+        "go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/goencoder/klubbspel/backend/internal/config"
-	"github.com/goencoder/klubbspel/backend/internal/mongo"
-	"github.com/goencoder/klubbspel/backend/internal/repo"
+        "github.com/goencoder/klubbspel/backend/internal/config"
+        "github.com/goencoder/klubbspel/backend/internal/mongo"
+        "github.com/goencoder/klubbspel/backend/internal/repo"
+        pb "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1"
 )
 
 type Migration struct {
@@ -45,16 +46,18 @@ func main() {
 
 	migration := &Migration{db: client.DB}
 
-	switch migrationName {
-	case "single-to-multi-club":
-		err = migration.SingleToMultiClub(context.Background())
-	case "add-multi-club-indexes":
-		err = migration.AddMultiClubIndexes(context.Background())
-	case "verify-migration":
-		err = migration.VerifyMigration(context.Background())
-	default:
-		log.Fatalf("Unknown migration: %s", migrationName)
-	}
+        switch migrationName {
+        case "single-to-multi-club":
+                err = migration.SingleToMultiClub(context.Background())
+        case "add-multi-club-indexes":
+                err = migration.AddMultiClubIndexes(context.Background())
+        case "verify-migration":
+                err = migration.VerifyMigration(context.Background())
+        case "backfill-series-match-config":
+                err = migration.BackfillSeriesMatchConfiguration(context.Background())
+        default:
+                log.Fatalf("Unknown migration: %s", migrationName)
+        }
 
 	if err != nil {
 		log.Fatalf("Migration failed: %v", err)
@@ -147,9 +150,9 @@ func (m *Migration) SingleToMultiClub(ctx context.Context) error {
 
 // AddMultiClubIndexes creates indexes optimized for multi-club queries
 func (m *Migration) AddMultiClubIndexes(ctx context.Context) error {
-	log.Println("Adding multi-club indexes...")
+        log.Println("Adding multi-club indexes...")
 
-	collection := m.db.Collection("players")
+        collection := m.db.Collection("players")
 
 	// Index for email lookups (authentication)
 	emailIndex := md.IndexModel{
@@ -191,13 +194,42 @@ func (m *Migration) AddMultiClubIndexes(ctx context.Context) error {
 		return fmt.Errorf("failed to create indexes: %w", err)
 	}
 
-	log.Println("Successfully created multi-club indexes")
-	return nil
+        log.Println("Successfully created multi-club indexes")
+        return nil
+}
+
+func (m *Migration) BackfillSeriesMatchConfiguration(ctx context.Context) error {
+        log.Println("Backfilling series match configuration...")
+
+        collection := m.db.Collection("series")
+
+        defaultConfig := bson.M{
+                "participant_mode":      int32(pb.SeriesParticipantMode_SERIES_PARTICIPANT_MODE_INDIVIDUAL),
+                "participants_per_side": int32(1),
+                "scoring_profile":       int32(pb.SeriesScoringProfile_SERIES_SCORING_PROFILE_TABLE_TENNIS),
+        }
+
+        filter := bson.M{"$or": []bson.M{
+                {"match_configuration": bson.M{"$exists": false}},
+                {"match_configuration.participant_mode": bson.M{"$in": []interface{}{nil, int32(0)}}},
+                {"match_configuration.participants_per_side": bson.M{"$in": []interface{}{nil, int32(0)}}},
+                {"match_configuration.scoring_profile": bson.M{"$in": []interface{}{nil, int32(0)}}},
+        }}
+
+        update := bson.M{"$set": bson.M{"match_configuration": defaultConfig}}
+
+        result, err := collection.UpdateMany(ctx, filter, update)
+        if err != nil {
+                return fmt.Errorf("failed to backfill series match configuration: %w", err)
+        }
+
+        log.Printf("Updated %d series with default match configuration", result.ModifiedCount)
+        return nil
 }
 
 // VerifyMigration checks that the migration was successful
 func (m *Migration) VerifyMigration(ctx context.Context) error {
-	log.Println("Verifying migration...")
+        log.Println("Verifying migration...")
 
 	collection := m.db.Collection("players")
 

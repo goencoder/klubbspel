@@ -27,12 +27,37 @@ export type Sport =
   | 'SPORT_TABLE_TENNIS'
   | 'SPORT_TENNIS'
   | 'SPORT_PADEL'
+  | 'SPORT_SOCCER'
+  | 'SPORT_FLOORBALL'
+  | 'SPORT_BASKETBALL'
+  | 'SPORT_ICE_HOCKEY'
+  | 'SPORT_FRISBEE_GOLF'
+  | 'SPORT_GOLF'
+  | 'SPORT_FISHING'
 
 export type SeriesFormat =
   | 'SERIES_FORMAT_UNSPECIFIED'
   | 'SERIES_FORMAT_OPEN_PLAY'
   | 'SERIES_FORMAT_LADDER'
   | 'SERIES_FORMAT_CUP'
+
+export type SeriesParticipantMode =
+  | 'SERIES_PARTICIPANT_MODE_UNSPECIFIED'
+  | 'SERIES_PARTICIPANT_MODE_INDIVIDUAL'
+  | 'SERIES_PARTICIPANT_MODE_TEAM'
+
+export type SeriesScoringProfile =
+  | 'SERIES_SCORING_PROFILE_UNSPECIFIED'
+  | 'SERIES_SCORING_PROFILE_TABLE_TENNIS'
+  | 'SERIES_SCORING_PROFILE_SCORELINE'
+  | 'SERIES_SCORING_PROFILE_STROKE_CARD'
+  | 'SERIES_SCORING_PROFILE_WEIGH_IN'
+
+export interface SeriesMatchConfiguration {
+  participantMode: SeriesParticipantMode
+  participantsPerSide: number
+  scoringProfile: SeriesScoringProfile
+}
 
 // Club types
 export interface Club {
@@ -166,6 +191,7 @@ export interface Series {
   visibility: SeriesVisibility
   sport: Sport
   format: SeriesFormat
+  matchConfiguration: SeriesMatchConfiguration
 }
 
 export interface CreateSeriesRequest {
@@ -176,6 +202,7 @@ export interface CreateSeriesRequest {
   visibility: SeriesVisibility
   sport?: Sport
   format?: SeriesFormat
+  matchConfiguration?: SeriesMatchConfiguration
 }
 
 export interface UpdateSeriesRequest {
@@ -185,6 +212,7 @@ export interface UpdateSeriesRequest {
   visibility?: SeriesVisibility
   sport?: Sport
   format?: SeriesFormat
+  matchConfiguration?: SeriesMatchConfiguration
 }
 
 export interface ListSeriesRequest {
@@ -204,23 +232,62 @@ export interface ListSeriesResponse {
 }
 
 // Match types
-export interface MatchView {
-  id: string
+export interface MatchMetadata {
   seriesId: string
-  playerAName: string
-  playerBName: string
-  scoreA: number
-  scoreB: number
   playedAt: string
 }
 
+export interface MatchParticipant {
+  playerId?: string
+  teamId?: string
+}
+
+export interface MatchParticipantView {
+  participant?: MatchParticipant
+  displayName?: string
+}
+
+export interface TableTennisResult {
+  bestOf?: number
+  gamesWon: number[]
+}
+
+export interface ScorelineResult {
+  scores: number[]
+}
+
+export interface StrokeCardResultHoleScore {
+  hole?: number
+  strokes?: number
+}
+
+export interface StrokeCardResult {
+  holes: StrokeCardResultHoleScore[]
+}
+
+export interface WeighInResult {
+  totalWeightGrams?: number
+  individualWeightsGrams?: number[]
+}
+
+export interface MatchResult {
+  tableTennis?: TableTennisResult
+  scoreline?: ScorelineResult
+  strokeCard?: StrokeCardResult
+  weighIn?: WeighInResult
+}
+
+export interface MatchView {
+  id: string
+  metadata: MatchMetadata
+  participants: MatchParticipantView[]
+  result?: MatchResult
+}
+
 export interface ReportMatchRequest {
-  seriesId: string
-  playerAId: string
-  playerBId: string
-  scoreA: number
-  scoreB: number
-  playedAt: string
+  metadata: MatchMetadata
+  participants: MatchParticipant[]
+  result: MatchResult
 }
 
 export interface ReportMatchResponse {
@@ -244,9 +311,8 @@ export interface ListMatchesResponse {
 
 export interface UpdateMatchRequest {
   matchId: string
-  scoreA?: number
-  scoreB?: number
   playedAt?: string
+  result?: MatchResult
 }
 
 export interface UpdateMatchResponse {
@@ -258,16 +324,15 @@ export interface DeleteMatchRequest {
 }
 
 export interface DeleteMatchResponse {
-  // Empty response
+  success: boolean
 }
 
 export interface ReorderMatchesRequest {
-  seriesId: string
   matchIds: string[]
 }
 
 export interface ReorderMatchesResponse {
-  matches: MatchView[]
+  success: boolean
 }
 
 // Leaderboard types

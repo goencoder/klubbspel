@@ -48,6 +48,13 @@ export function DeleteMatchDialog({
 
   if (!match) return null
 
+  const playerAName = match.participants[0]?.displayName || t('matches.unknownPlayer')
+  const playerBName = match.participants[1]?.displayName || t('matches.unknownPlayer')
+  const gamesWon = match.result?.tableTennis?.gamesWon ?? []
+  const scoreA = gamesWon[0] ?? 0
+  const scoreB = gamesWon[1] ?? 0
+  const playedAt = new Date(match.metadata.playedAt)
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
@@ -57,10 +64,10 @@ export function DeleteMatchDialog({
             {t('matches.deleteConfirm')}
             <br />
             <strong>
-              {match.playerAName} {match.scoreA} - {match.scoreB} {match.playerBName}
+              {playerAName} {scoreA} - {scoreB} {playerBName}
             </strong>
             <br />
-            {new Date(match.playedAt).toLocaleDateString()}
+            {playedAt.toLocaleDateString()}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

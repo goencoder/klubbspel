@@ -51,10 +51,11 @@ export function EditMatchDialog({
 
   useEffect(() => {
     if (match) {
-      setScoreA(match.scoreA)
-      setScoreB(match.scoreB)
+      const gamesWon = match.result?.tableTennis?.gamesWon ?? []
+      setScoreA(gamesWon[0] ?? 0)
+      setScoreB(gamesWon[1] ?? 0)
       // Convert ISO date to input date format (YYYY-MM-DD)
-      const matchDate = new Date(match.playedAt)
+      const matchDate = new Date(match.metadata.playedAt)
       setPlayedAtDate(matchDate.toISOString().split('T')[0])
       // Convert to HH:MM format
       setPlayedAtTime(matchDate.toTimeString().slice(0, 5))
@@ -72,11 +73,11 @@ export function EditMatchDialog({
     }
 
     // Validate match date is within series window if being updated (inclusive)
-    if (seriesStartDate && seriesEndDate && playedAtDate !== new Date(match.playedAt).toISOString().split('T')[0]) {
+    if (seriesStartDate && seriesEndDate && playedAtDate !== new Date(match.metadata.playedAt).toISOString().split('T')[0]) {
       const matchDate = new Date(playedAtDate)
       const startDate = new Date(seriesStartDate)
       const endDate = new Date(seriesEndDate)
-      
+
       // Set times to compare only dates (start of day for start, end of day for end)
       startDate.setHours(0, 0, 0, 0)
       endDate.setHours(23, 59, 59, 999)
@@ -94,16 +95,28 @@ export function EditMatchDialog({
       setLoading(true)
       
       // Combine date and time for comparison and API call
-      const originalDate = new Date(match.playedAt)
+      const originalDate = new Date(match.metadata.playedAt)
       const newDateTime = `${playedAtDate}T${playedAtTime}:00`
-      const hasDateTimeChanged = playedAtDate !== originalDate.toISOString().split('T')[0] || 
+      const hasDateTimeChanged = playedAtDate !== originalDate.toISOString().split('T')[0] ||
                                  playedAtTime !== originalDate.toTimeString().slice(0, 5)
-      
+
+      const originalGamesWon = match.result?.tableTennis?.gamesWon ?? []
+      const originalScoreA = originalGamesWon[0] ?? 0
+      const originalScoreB = originalGamesWon[1] ?? 0
+
+      const shouldUpdateResult = scoreA !== originalScoreA || scoreB !== originalScoreB
+
       const updateRequest: UpdateMatchRequest = {
         matchId: match.id,
-        scoreA: scoreA !== match.scoreA ? scoreA : undefined,
-        scoreB: scoreB !== match.scoreB ? scoreB : undefined,
         playedAt: hasDateTimeChanged ? new Date(newDateTime).toISOString() : undefined,
+        result: shouldUpdateResult
+          ? {
+              tableTennis: {
+                bestOf: match.result?.tableTennis?.bestOf ?? 5,
+                gamesWon: [scoreA, scoreB],
+              },
+            }
+          : undefined,
       }
 
       const response = await apiClient.updateMatch(updateRequest)
@@ -119,20 +132,23 @@ export function EditMatchDialog({
 
   if (!match) return null
 
+  const playerAName = match.participants[0]?.displayName || t('matches.unknownPlayer')
+  const playerBName = match.participants[1]?.displayName || t('matches.unknownPlayer')
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t('matches.editTitle')}</DialogTitle>
           <DialogDescription>
-            {match.playerAName} vs {match.playerBName}
+            {playerAName} vs {playerBName}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="scoreA" className="text-right">
-                {match.playerAName}
+                {playerAName}
               </Label>
               <Input
                 id="scoreA"
@@ -146,7 +162,7 @@ export function EditMatchDialog({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="scoreB" className="text-right">
-                {match.playerBName}
+                {playerBName}
               </Label>
               <Input
                 id="scoreB"

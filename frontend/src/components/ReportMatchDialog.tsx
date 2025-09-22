@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { PlayerSelector, type PlayerSelectorHandle } from '@/components/PlayerSelector'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
-import type { Player } from '@/types/api'
+import type { Player, ReportMatchRequest } from '@/types/api'
 import { toast } from 'sonner'
 
 interface MatchFormState {
@@ -169,29 +169,39 @@ export function ReportMatchDialog({
     try {
       setLoading(true)
 
-      const reportRequest = {
-        seriesId: seriesId,
-        playerAId: formData.player_a_id,
-        playerBId: formData.player_b_id,
-        scoreA: scoreA,
-        scoreB: scoreB,
-        playedAt: new Date(`${formData.played_at_date}T${formData.played_at_time}:00`).toISOString()
+      const playedAt = new Date(`${formData.played_at_date}T${formData.played_at_time}:00`).toISOString()
+
+      const reportRequest: ReportMatchRequest = {
+        metadata: {
+          seriesId: seriesId,
+          playedAt,
+        },
+        participants: [
+          { playerId: formData.player_a_id },
+          { playerId: formData.player_b_id }
+        ],
+        result: {
+          tableTennis: {
+            bestOf: 5,
+            gamesWon: [scoreA, scoreB]
+          }
+        }
       }
 
       const response = await apiClient.reportMatch(reportRequest)
-      
+
       // Update session tracking
       setSessionCount(prev => prev + 1)
-      
+
       toast.success(t('matches.reported'))
       onMatchReported({
         matchId: response.matchId,
-        playedAt: reportRequest.playedAt
+        playedAt: reportRequest.metadata.playedAt
       })
 
       if (keepDialogOpen) {
         // Prepare for next match - advance time by 5 minutes
-        const nextSuggestedDate = addMinutes(new Date(reportRequest.playedAt), 5)
+        const nextSuggestedDate = addMinutes(new Date(reportRequest.metadata.playedAt), 5)
         setFormData({
           player_a_id: '',
           player_b_id: '',

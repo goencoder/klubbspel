@@ -16,36 +16,42 @@ type SeriesService struct {
 }
 
 func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesRequest) (*pb.CreateSeriesResponse, error) {
-	startsAt := in.GetStartsAt().AsTime()
-	endsAt := in.GetEndsAt().AsTime()
+        startsAt := in.GetStartsAt().AsTime()
+        endsAt := in.GetEndsAt().AsTime()
 
-	sport, err := normalizeSeriesSport(in.GetSport())
-	if err != nil {
-		return nil, err
-	}
+        sport, err := normalizeSeriesSport(in.GetSport())
+        if err != nil {
+                return nil, err
+        }
 
-	format, err := normalizeSeriesFormat(in.GetFormat())
-	if err != nil {
-		return nil, err
-	}
+        format, err := normalizeSeriesFormat(in.GetFormat())
+        if err != nil {
+                return nil, err
+        }
 
-	series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format))
-	if err != nil {
-		return nil, status.Error(codes.Internal, "SERIES_CREATE_FAILED")
-	}
+        matchConfig, err := normalizeSeriesMatchConfiguration(in.GetMatchConfiguration())
+        if err != nil {
+                return nil, err
+        }
 
-	return &pb.CreateSeriesResponse{
-		Series: &pb.Series{
-			Id:         series.ID.Hex(),
-			ClubId:     series.ClubID,
-			Title:      series.Title,
-			StartsAt:   timestamppb.New(series.StartsAt),
-			EndsAt:     timestamppb.New(series.EndsAt),
-			Visibility: pb.SeriesVisibility(series.Visibility),
-			Sport:      pbSeriesSport(series.Sport),
-			Format:     pbSeriesFormat(series.Format),
-		},
-	}, nil
+        series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format), matchConfig)
+        if err != nil {
+                return nil, status.Error(codes.Internal, "SERIES_CREATE_FAILED")
+        }
+
+        return &pb.CreateSeriesResponse{
+                Series: &pb.Series{
+                        Id:         series.ID.Hex(),
+                        ClubId:     series.ClubID,
+                        Title:      series.Title,
+                        StartsAt:   timestamppb.New(series.StartsAt),
+                        EndsAt:     timestamppb.New(series.EndsAt),
+                        Visibility: pb.SeriesVisibility(series.Visibility),
+                        Sport:      pbSeriesSport(series.Sport),
+                        Format:     pbSeriesFormat(series.Format),
+                        MatchConfiguration: pbSeriesMatchConfiguration(series.MatchConfiguration),
+                },
+        }, nil
 }
 
 func (s *SeriesService) ListSeries(ctx context.Context, in *pb.ListSeriesRequest) (*pb.ListSeriesResponse, error) {
@@ -81,19 +87,20 @@ func (s *SeriesService) ListSeries(ctx context.Context, in *pb.ListSeriesRequest
 		return nil, status.Error(codes.Internal, "SERIES_LIST_FAILED")
 	}
 
-	var pbSeries []*pb.Series
-	for _, series := range seriesList {
-		pbSeries = append(pbSeries, &pb.Series{
-			Id:         series.ID.Hex(),
-			ClubId:     series.ClubID,
+        var pbSeries []*pb.Series
+        for _, series := range seriesList {
+                pbSeries = append(pbSeries, &pb.Series{
+                        Id:         series.ID.Hex(),
+                        ClubId:     series.ClubID,
 			Title:      series.Title,
-			StartsAt:   timestamppb.New(series.StartsAt),
-			EndsAt:     timestamppb.New(series.EndsAt),
-			Visibility: pb.SeriesVisibility(series.Visibility),
-			Sport:      pbSeriesSport(series.Sport),
-			Format:     pbSeriesFormat(series.Format),
-		})
-	}
+                        StartsAt:   timestamppb.New(series.StartsAt),
+                        EndsAt:     timestamppb.New(series.EndsAt),
+                        Visibility: pb.SeriesVisibility(series.Visibility),
+                        Sport:      pbSeriesSport(series.Sport),
+                        Format:     pbSeriesFormat(series.Format),
+                        MatchConfiguration: pbSeriesMatchConfiguration(series.MatchConfiguration),
+                })
+        }
 
 	// Simplified pagination info
 	var startCursor, endCursor string
@@ -117,18 +124,19 @@ func (s *SeriesService) GetSeries(ctx context.Context, in *pb.GetSeriesRequest) 
 		return nil, status.Error(codes.NotFound, "SERIES_NOT_FOUND")
 	}
 
-	return &pb.GetSeriesResponse{
-		Series: &pb.Series{
-			Id:         series.ID.Hex(),
-			ClubId:     series.ClubID,
-			Title:      series.Title,
-			StartsAt:   timestamppb.New(series.StartsAt),
-			EndsAt:     timestamppb.New(series.EndsAt),
-			Visibility: pb.SeriesVisibility(series.Visibility),
-			Sport:      pbSeriesSport(series.Sport),
-			Format:     pbSeriesFormat(series.Format),
-		},
-	}, nil
+        return &pb.GetSeriesResponse{
+                Series: &pb.Series{
+                        Id:         series.ID.Hex(),
+                        ClubId:     series.ClubID,
+                        Title:      series.Title,
+                        StartsAt:   timestamppb.New(series.StartsAt),
+                        EndsAt:     timestamppb.New(series.EndsAt),
+                        Visibility: pb.SeriesVisibility(series.Visibility),
+                        Sport:      pbSeriesSport(series.Sport),
+                        Format:     pbSeriesFormat(series.Format),
+                        MatchConfiguration: pbSeriesMatchConfiguration(series.MatchConfiguration),
+                },
+        }, nil
 }
 
 func (s *SeriesService) UpdateSeries(ctx context.Context, in *pb.UpdateSeriesRequest) (*pb.UpdateSeriesResponse, error) {
@@ -152,31 +160,42 @@ func (s *SeriesService) UpdateSeries(ctx context.Context, in *pb.UpdateSeriesReq
 					return nil, err
 				}
 				updates["sport"] = int32(sport)
-			case "format":
-				format, err := normalizeSeriesFormat(in.GetSeries().GetFormat())
-				if err != nil {
-					return nil, err
-				}
-				updates["format"] = int32(format)
-			}
-		}
-	} else {
-		updates["title"] = in.GetSeries().GetTitle()
-		updates["starts_at"] = in.GetSeries().GetStartsAt().AsTime()
-		updates["ends_at"] = in.GetSeries().GetEndsAt().AsTime()
-		updates["visibility"] = int32(in.GetSeries().GetVisibility())
-		updates["club_id"] = in.GetSeries().GetClubId()
-		sport, err := normalizeSeriesSport(in.GetSeries().GetSport())
-		if err != nil {
-			return nil, err
-		}
-		updates["sport"] = int32(sport)
-		format, err := normalizeSeriesFormat(in.GetSeries().GetFormat())
-		if err != nil {
-			return nil, err
-		}
-		updates["format"] = int32(format)
-	}
+                        case "format":
+                                format, err := normalizeSeriesFormat(in.GetSeries().GetFormat())
+                                if err != nil {
+                                        return nil, err
+                                }
+                                updates["format"] = int32(format)
+                        case "match_configuration":
+                                matchConfig, err := normalizeSeriesMatchConfiguration(in.GetSeries().GetMatchConfiguration())
+                                if err != nil {
+                                        return nil, err
+                                }
+                                updates["match_configuration"] = matchConfig
+                        }
+                }
+        } else {
+                updates["title"] = in.GetSeries().GetTitle()
+                updates["starts_at"] = in.GetSeries().GetStartsAt().AsTime()
+                updates["ends_at"] = in.GetSeries().GetEndsAt().AsTime()
+                updates["visibility"] = int32(in.GetSeries().GetVisibility())
+                updates["club_id"] = in.GetSeries().GetClubId()
+                sport, err := normalizeSeriesSport(in.GetSeries().GetSport())
+                if err != nil {
+                        return nil, err
+                }
+                updates["sport"] = int32(sport)
+                format, err := normalizeSeriesFormat(in.GetSeries().GetFormat())
+                if err != nil {
+                        return nil, err
+                }
+                updates["format"] = int32(format)
+                matchConfig, err := normalizeSeriesMatchConfiguration(in.GetSeries().GetMatchConfiguration())
+                if err != nil {
+                        return nil, err
+                }
+                updates["match_configuration"] = matchConfig
+        }
 
 	if len(updates) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "NO_FIELDS_TO_UPDATE")
@@ -187,18 +206,19 @@ func (s *SeriesService) UpdateSeries(ctx context.Context, in *pb.UpdateSeriesReq
 		return nil, status.Error(codes.Internal, "SERIES_UPDATE_FAILED")
 	}
 
-	return &pb.UpdateSeriesResponse{
-		Series: &pb.Series{
-			Id:         series.ID.Hex(),
-			ClubId:     series.ClubID,
-			Title:      series.Title,
-			StartsAt:   timestamppb.New(series.StartsAt),
-			EndsAt:     timestamppb.New(series.EndsAt),
-			Visibility: pb.SeriesVisibility(series.Visibility),
-			Sport:      pbSeriesSport(series.Sport),
-			Format:     pbSeriesFormat(series.Format),
-		},
-	}, nil
+        return &pb.UpdateSeriesResponse{
+                Series: &pb.Series{
+                        Id:         series.ID.Hex(),
+                        ClubId:     series.ClubID,
+                        Title:      series.Title,
+                        StartsAt:   timestamppb.New(series.StartsAt),
+                        EndsAt:     timestamppb.New(series.EndsAt),
+                        Visibility: pb.SeriesVisibility(series.Visibility),
+                        Sport:      pbSeriesSport(series.Sport),
+                        Format:     pbSeriesFormat(series.Format),
+                        MatchConfiguration: pbSeriesMatchConfiguration(series.MatchConfiguration),
+                },
+        }, nil
 }
 
 func (s *SeriesService) DeleteSeries(ctx context.Context, in *pb.DeleteSeriesRequest) (*pb.DeleteSeriesResponse, error) {
@@ -242,9 +262,68 @@ func normalizeSeriesFormat(format pb.SeriesFormat) (pb.SeriesFormat, error) {
 }
 
 func pbSeriesFormat(value int32) pb.SeriesFormat {
-	format := pb.SeriesFormat(value)
-	if format == pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED {
-		format = pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY
-	}
-	return format
+        format := pb.SeriesFormat(value)
+        if format == pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED {
+                format = pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY
+        }
+        return format
+}
+
+func normalizeSeriesMatchConfiguration(cfg *pb.SeriesMatchConfiguration) (repo.SeriesMatchConfiguration, error) {
+        mode := pb.SeriesParticipantMode_SERIES_PARTICIPANT_MODE_INDIVIDUAL
+        participantsPerSide := int32(1)
+        profile := pb.SeriesScoringProfile_SERIES_SCORING_PROFILE_TABLE_TENNIS
+
+        if cfg != nil {
+                if cfg.GetParticipantMode() != pb.SeriesParticipantMode_SERIES_PARTICIPANT_MODE_UNSPECIFIED {
+                        mode = cfg.GetParticipantMode()
+                }
+                if cfg.GetParticipantsPerSide() > 0 {
+                        participantsPerSide = cfg.GetParticipantsPerSide()
+                }
+                if cfg.GetScoringProfile() != pb.SeriesScoringProfile_SERIES_SCORING_PROFILE_UNSPECIFIED {
+                        profile = cfg.GetScoringProfile()
+                }
+        }
+
+        if mode != pb.SeriesParticipantMode_SERIES_PARTICIPANT_MODE_INDIVIDUAL {
+                return repo.SeriesMatchConfiguration{}, status.Error(codes.Unimplemented, "PARTICIPANT_MODE_NOT_SUPPORTED")
+        }
+
+        if participantsPerSide != 1 {
+                return repo.SeriesMatchConfiguration{}, status.Error(codes.Unimplemented, "PARTICIPANT_COUNT_NOT_SUPPORTED")
+        }
+
+        if profile != pb.SeriesScoringProfile_SERIES_SCORING_PROFILE_TABLE_TENNIS {
+                return repo.SeriesMatchConfiguration{}, status.Error(codes.Unimplemented, "SCORING_PROFILE_NOT_SUPPORTED")
+        }
+
+        return repo.SeriesMatchConfiguration{
+                ParticipantMode:     int32(mode),
+                ParticipantsPerSide: participantsPerSide,
+                ScoringProfile:      int32(profile),
+        }, nil
+}
+
+func pbSeriesMatchConfiguration(cfg repo.SeriesMatchConfiguration) *pb.SeriesMatchConfiguration {
+        mode := pb.SeriesParticipantMode(cfg.ParticipantMode)
+        if mode == pb.SeriesParticipantMode_SERIES_PARTICIPANT_MODE_UNSPECIFIED {
+                mode = pb.SeriesParticipantMode_SERIES_PARTICIPANT_MODE_INDIVIDUAL
+        }
+
+        participantsPerSide := cfg.ParticipantsPerSide
+        if participantsPerSide == 0 {
+                participantsPerSide = 1
+        }
+
+        profile := pb.SeriesScoringProfile(cfg.ScoringProfile)
+        if profile == pb.SeriesScoringProfile_SERIES_SCORING_PROFILE_UNSPECIFIED {
+                profile = pb.SeriesScoringProfile_SERIES_SCORING_PROFILE_TABLE_TENNIS
+        }
+
+        return &pb.SeriesMatchConfiguration{
+                ParticipantMode:     mode,
+                ParticipantsPerSide: participantsPerSide,
+                ScoringProfile:      profile,
+        }
 }

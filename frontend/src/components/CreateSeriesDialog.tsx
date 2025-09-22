@@ -22,9 +22,26 @@ import { ClubSelector } from '@/components/ClubSelector'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
 import { deriveAutomaticClubId } from '@/lib/clubSelection'
-import type { Series, SeriesVisibility, Club, Sport, SeriesFormat } from '@/types/api'
+import type {
+  Series,
+  SeriesVisibility,
+  Club,
+  Sport,
+  SeriesFormat,
+  SeriesMatchConfiguration
+} from '@/types/api'
 import { toast } from 'sonner'
-import { SUPPORTED_SPORTS, DEFAULT_SPORT, SUPPORTED_SERIES_FORMATS, DEFAULT_SERIES_FORMAT, sportTranslationKey, seriesFormatTranslationKey } from '@/lib/sports'
+import {
+  SUPPORTED_SPORTS,
+  DEFAULT_SPORT,
+  SUPPORTED_SERIES_FORMATS,
+  DEFAULT_SERIES_FORMAT,
+  sportTranslationKey,
+  seriesFormatTranslationKey,
+  defaultMatchConfigurationForSport,
+  participantModeTranslationKey,
+  scoringProfileTranslationKey
+} from '@/lib/sports'
 import { useAuthStore } from '@/store/auth'
 
 interface CreateSeriesDialogProps {
@@ -74,7 +91,8 @@ export function CreateSeriesDialog({
     endsAt: string
     sport: Sport
     format: SeriesFormat
-  }>({
+    matchConfiguration: SeriesMatchConfiguration
+  }>(() => ({
     title: '',
     visibility: 'SERIES_VISIBILITY_OPEN',
     clubId: '',
@@ -82,7 +100,8 @@ export function CreateSeriesDialog({
     endsAt: '',
     sport: DEFAULT_SPORT,
     format: DEFAULT_SERIES_FORMAT,
-  })
+    matchConfiguration: defaultMatchConfigurationForSport(DEFAULT_SPORT),
+  }))
   const [hasManualClubSelection, setHasManualClubSelection] = useState(false)
 
   const loadManageableClubs = useCallback(async () => {
@@ -130,6 +149,7 @@ export function CreateSeriesDialog({
         endsAt: '',
         sport: DEFAULT_SPORT,
         format: DEFAULT_SERIES_FORMAT,
+        matchConfiguration: defaultMatchConfigurationForSport(DEFAULT_SPORT),
       })
       setAvailableSports(SUPPORTED_SPORTS)
       setClubs([])
@@ -195,6 +215,7 @@ export function CreateSeriesDialog({
         clubId?: string
         sport: Sport
         format: SeriesFormat
+        matchConfiguration: SeriesMatchConfiguration
       } = {
         title: formData.title,
         visibility: formData.visibility,
@@ -202,6 +223,7 @@ export function CreateSeriesDialog({
         endsAt,
         sport: formData.sport,
         format: formData.format,
+        matchConfiguration: formData.matchConfiguration,
         ...(formData.clubId && { clubId: formData.clubId }),
         ...clubIdPayload,
       }
@@ -229,10 +251,10 @@ export function CreateSeriesDialog({
         ...prev,
         clubId: club?.id || '',
         sport: nextSport,
+        matchConfiguration: defaultMatchConfigurationForSport(nextSport),
       }
     })
     setHasManualClubSelection(true)
-    setFormData((prev) => ({ ...prev, clubId: club?.id || '' }))
   }
 
   return (
@@ -340,10 +362,14 @@ export function CreateSeriesDialog({
               <Select
                 value={formData.sport}
                 onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    sport: value as Sport,
-                  }))
+                  setFormData((prev) => {
+                    const nextSport = value as Sport
+                    return {
+                      ...prev,
+                      sport: nextSport,
+                      matchConfiguration: defaultMatchConfigurationForSport(nextSport),
+                    }
+                  })
                 }
               >
                 <SelectTrigger id="sport">
@@ -393,6 +419,39 @@ export function CreateSeriesDialog({
                 {t(seriesFormatTranslationKey(formData.format))}
               </div>
             )}
+          </div>
+
+          {/* Match configuration overview */}
+          <div className="space-y-2">
+            <Label>{t('series.matchConfiguration.title')}</Label>
+            <div className="space-y-3 rounded-md border p-3 text-sm">
+              <div>
+                <div className="font-medium text-foreground">
+                  {t('series.matchConfiguration.participantModeLabel')}
+                </div>
+                <div className="text-muted-foreground">
+                  {t(participantModeTranslationKey(formData.matchConfiguration.participantMode))}
+                </div>
+              </div>
+              <div>
+                <div className="font-medium text-foreground">
+                  {t('series.matchConfiguration.participantsPerSideLabel')}
+                </div>
+                <div className="text-muted-foreground">
+                  {t('series.matchConfiguration.participantsPerSide', {
+                    count: formData.matchConfiguration.participantsPerSide,
+                  })}
+                </div>
+              </div>
+              <div>
+                <div className="font-medium text-foreground">
+                  {t('series.matchConfiguration.scoringProfileLabel')}
+                </div>
+                <div className="text-muted-foreground">
+                  {t(scoringProfileTranslationKey(formData.matchConfiguration.scoringProfile))}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Dates */}
