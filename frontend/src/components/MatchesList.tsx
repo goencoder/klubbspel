@@ -29,9 +29,10 @@ interface MatchesListProps {
   seriesStartDate?: string
   seriesEndDate?: string
   seriesName?: string
+  refreshKey?: number
 }
 
-export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesName }: MatchesListProps) {
+export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesName, refreshKey }: MatchesListProps) {
   const { t } = useTranslation()
   const [matches, setMatches] = useState<MatchView[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,7 +66,7 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
 
   useEffect(() => {
     loadMatches()
-  }, [loadMatches])
+  }, [loadMatches, refreshKey])
 
   const getWinner = (match: MatchView) => {
     return match.scoreA > match.scoreB ? match.playerAName : match.playerBName

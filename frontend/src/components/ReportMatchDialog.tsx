@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,15 @@ import { apiClient } from '@/services/api'
 import type { Player } from '@/types/api'
 import { toast } from 'sonner'
 
+interface MatchFormState {
+  player_a_id: string
+  player_b_id: string
+  score_a: string
+  score_b: string
+  played_at_date: string
+  played_at_time: string
+}
+
 interface ReportMatchDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -17,25 +26,20 @@ interface ReportMatchDialogProps {
   clubId?: string
   seriesStartDate?: string
   seriesEndDate?: string
-  existingMatches?: { playedAt: string }[]
-  onMatchReported: () => void
+  onMatchReported: (match: { matchId: string; playedAt: string }) => void
 }
 
-export function ReportMatchDialog({ 
-  open, 
-  onOpenChange, 
-  seriesId, 
+export function ReportMatchDialog({
+  open,
+  onOpenChange,
+  seriesId,
   clubId,
   seriesStartDate,
   seriesEndDate,
-  existingMatches,
-  onMatchReported 
+  onMatchReported
 }: ReportMatchDialogProps) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
-  
-  // Stabilize existingMatches to prevent infinite re-renders
-  const stableExistingMatches = useMemo(() => existingMatches || [], [existingMatches])
 
   // Helper function to validate table tennis scores
   const validateTableTennisScore = (scoreA: number, scoreB: number) => {
@@ -63,7 +67,7 @@ export function ReportMatchDialog({
     
     return { scoreA, scoreB, autoCompleted: false }
   }
-  const [formData, setFormData] = useState({
+  const createEmptyFormState = (): MatchFormState => ({
     player_a_id: '',
     player_b_id: '',
     score_a: '',
@@ -72,50 +76,26 @@ export function ReportMatchDialog({
     played_at_time: ''
   })
 
-  // Reset form when dialog opens/closes
+  const [formData, setFormData] = useState<MatchFormState>(() => createEmptyFormState())
+
+  const formatDatePart = (date: Date) => date.toISOString().split('T')[0]
+  const formatTimePart = (date: Date) => date.toTimeString().slice(0, 5)
+  const addMinutes = (date: Date, minutes: number) => new Date(date.getTime() + minutes * 60 * 1000)
+
+  // Reset form when dialog opens/closes and prime initial date/time suggestion
   useEffect(() => {
     if (!open) {
-      setFormData({
-        player_a_id: '',
-        player_b_id: '',
-        score_a: '',
-        score_b: '',
-        played_at_date: '',
-        played_at_time: ''
-      })
-    } else {
-      // Set suggested date and time only once when dialog opens
-      // Calculate it inline to avoid dependency issues
-      let suggested
-      if (stableExistingMatches.length === 0) {
-        // No existing matches, suggest current time
-        const now = new Date()
-        suggested = {
-          date: now.toISOString().split('T')[0],
-          time: now.toTimeString().slice(0, 5) // HH:MM format
-        }
-      } else {
-        // Find the latest match time
-        const latestMatch = stableExistingMatches
-          .map(m => new Date(m.playedAt))
-          .sort((a, b) => b.getTime() - a.getTime())[0]
-
-        // Add 10 minutes to the latest match
-        const suggestedDateTime = new Date(latestMatch.getTime() + 10 * 60 * 1000)
-        
-        suggested = {
-          date: suggestedDateTime.toISOString().split('T')[0],
-          time: suggestedDateTime.toTimeString().slice(0, 5)
-        }
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        played_at_date: suggested.date,
-        played_at_time: suggested.time
-      }))
+      setFormData(createEmptyFormState())
+      return
     }
-  }, [open, stableExistingMatches]) // Use stable version to prevent infinite loops
+
+    const now = new Date()
+    setFormData(prev => ({
+      ...prev,
+      played_at_date: formatDatePart(now),
+      played_at_time: formatTimePart(now)
+    }))
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -165,9 +145,11 @@ export function ReportMatchDialog({
         )
         return
       }
-    }    try {
+    }
+
+    try {
       setLoading(true)
-      
+
       const reportRequest = {
         seriesId: seriesId,
         playerAId: formData.player_a_id,
@@ -177,8 +159,22 @@ export function ReportMatchDialog({
         playedAt: new Date(`${formData.played_at_date}T${formData.played_at_time}:00`).toISOString()
       }
 
-      await apiClient.reportMatch(reportRequest)
-      onMatchReported()
+      const response = await apiClient.reportMatch(reportRequest)
+      toast.success(t('matches.reported'))
+      onMatchReported({
+        matchId: response.matchId,
+        playedAt: reportRequest.playedAt
+      })
+
+      const nextSuggestedDate = addMinutes(new Date(reportRequest.playedAt), 5)
+      setFormData({
+        player_a_id: '',
+        player_b_id: '',
+        score_a: '',
+        score_b: '',
+        played_at_date: formatDatePart(nextSuggestedDate),
+        played_at_time: formatTimePart(nextSuggestedDate)
+      })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : ''
       toast.error(message || t('error.generic'))

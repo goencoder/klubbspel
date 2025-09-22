@@ -21,6 +21,7 @@ export function SeriesDetailPage() {
   const [clubName, setClubName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showReportDialog, setShowReportDialog] = useState(false)
+  const [matchesRefreshKey, setMatchesRefreshKey] = useState(0)
 
   const loadSeries = useCallback(async (seriesId: string) => {
     try {
@@ -85,10 +86,8 @@ export function SeriesDetailPage() {
     }
   }
 
-  const handleMatchReported = () => {
-    setShowReportDialog(false)
-    toast.success(t('matches.reported'))
-    // Refresh data or trigger re-fetch of matches list
+  const handleMatchReported = (_reportedMatch: { matchId: string; playedAt: string }) => {
+    setMatchesRefreshKey((prev) => prev + 1)
   }
 
   if (loading) {
@@ -199,11 +198,12 @@ export function SeriesDetailPage() {
         </TabsList>
 
         <TabsContent value="matches" className="space-y-6">
-          <MatchesList 
-            seriesId={series.id} 
+          <MatchesList
+            seriesId={series.id}
             seriesStartDate={series.startsAt}
             seriesEndDate={series.endsAt}
             seriesName={series.title}
+            refreshKey={matchesRefreshKey}
           />
         </TabsContent>
 
