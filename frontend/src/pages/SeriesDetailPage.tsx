@@ -125,8 +125,8 @@ export function SeriesDetailPage() {
       {/* Series Info */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-start">
-            <div className="space-y-2">
+          <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-start sm:space-y-0">
+            <div className="space-y-2 flex-1 min-w-0">
               <div className="flex items-center space-x-3">
                 <CardTitle className="text-2xl">{series.title}</CardTitle>
                 <Badge variant={getVisibilityVariant(series.visibility)}>
@@ -137,13 +137,21 @@ export function SeriesDetailPage() {
                 {series.visibility === 'SERIES_VISIBILITY_OPEN' ? t('series.visibility.open_description') : t('series.visibility.club_only_description')}
               </CardDescription>
             </div>
-            <div className="flex space-x-2">
-              <Button onClick={() => setShowReportDialog(true)}>
+            <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 sm:flex-shrink-0">
+              <Button 
+                onClick={() => setShowReportDialog(true)}
+                className="w-full sm:w-auto whitespace-nowrap"
+                size="sm"
+              >
                 <Add size={16} className="text-current" />
                 <span className="ml-2">{t('series.report.match')}</span>
               </Button>
               <Link to={`/series/${series.id}/leaderboard`}>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  className="w-full sm:w-auto whitespace-nowrap"
+                  size="sm"
+                >
                   <ClipboardTick size={16} className="text-blue-600" />
                   <span className="ml-2">{t('series.leaderboard')}</span>
                 </Button>

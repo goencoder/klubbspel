@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/services/api'
 import type { MatchView } from '@/types/api'
-import { CloseCircle, Cup, Edit2, Export, TickCircle, Trash } from 'iconsax-reactjs'
+import { CloseCircle, Cup, Edit2, Export, TickCircle, Trash, Calendar } from 'iconsax-reactjs'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -143,76 +143,114 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
           )}
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">#</TableHead>
-                <TableHead>{t('matches.player_a')}</TableHead>
-                <TableHead className="text-center">Score</TableHead>
-                <TableHead>{t('matches.player_b')}</TableHead>
-                <TableHead>{t('matches.played_at')}</TableHead>
-                <TableHead className="text-center">{t('matches.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {matches.map((match, index) => {
-                const winner = getWinner(match)
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">#</TableHead>
+                  <TableHead>{t('matches.player_a')}</TableHead>
+                  <TableHead className="text-center">Score</TableHead>
+                  <TableHead>{t('matches.player_b')}</TableHead>
+                  <TableHead>{t('matches.played_at')}</TableHead>
+                  <TableHead className="text-center">{t('matches.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {matches.map((match, index) => {
+                  const winner = getWinner(match)
 
-                return (
-                  <TableRow key={match.id}>
-                    <TableCell className="text-center text-muted-foreground">
-                      {index + 1}
-                    </TableCell>
-                    <TableCell>
+                  return (
+                    <TableRow key={match.id}>
+                      <TableCell className="text-center text-muted-foreground">
+                        {index + 1}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <span className={match.playerAName === winner ? 'font-semibold' : ''}>
+                            {match.playerAName}
+                          </span>
+                          {match.playerAName === winner ? (
+                            <WinnerIcon size={16} />
+                          ) : (
+                            <LoserIcon size={16} />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <span className={match.scoreA > match.scoreB ? 'font-bold text-foreground' : 'text-muted-foreground'}>
+                            {match.scoreA}
+                          </span>
+                          <span className="text-muted-foreground">-</span>
+                          <span className={match.scoreB > match.scoreA ? 'font-bold text-foreground' : 'text-muted-foreground'}>
+                            {match.scoreB}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <span className={match.playerBName === winner ? 'font-semibold' : ''}>
+                            {match.playerBName}
+                          </span>
+                          {match.playerBName === winner ? (
+                            <WinnerIcon size={16} />
+                          ) : (
+                            <LoserIcon size={16} />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm">
+                            {new Date(match.playedAt).toLocaleDateString()}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(match.playedAt).toLocaleTimeString('sv-SE', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditMatch(match)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteMatch(match)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3 p-4">
+            {matches.map((match, index) => {
+              const winner = getWinner(match)
+
+              return (
+                <Card key={match.id} className="border-l-4 border-l-blue-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-muted-foreground">#{index + 1}</span>
                       <div className="flex items-center space-x-2">
-                        <span className={match.playerAName === winner ? 'font-semibold' : ''}>
-                          {match.playerAName}
-                        </span>
-                        {match.playerAName === winner ? (
-                          <WinnerIcon size={16} />
-                        ) : (
-                          <LoserIcon size={16} />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className={match.scoreA > match.scoreB ? 'font-bold text-foreground' : 'text-muted-foreground'}>
-                          {match.scoreA}
-                        </span>
-                        <span className="text-muted-foreground">-</span>
-                        <span className={match.scoreB > match.scoreA ? 'font-bold text-foreground' : 'text-muted-foreground'}>
-                          {match.scoreB}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <span className={match.playerBName === winner ? 'font-semibold' : ''}>
-                          {match.playerBName}
-                        </span>
-                        {match.playerBName === winner ? (
-                          <WinnerIcon size={16} />
-                        ) : (
-                          <LoserIcon size={16} />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm">
-                          {new Date(match.playedAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(match.playedAt).toLocaleTimeString('sv-SE', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center space-x-2">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -230,12 +268,64 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {/* Players and Score */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className={match.playerAName === winner ? 'font-semibold' : ''}>
+                            {match.playerAName}
+                          </span>
+                          {match.playerAName === winner ? (
+                            <WinnerIcon size={16} />
+                          ) : (
+                            <LoserIcon size={16} />
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-3">
+                          <span className={match.scoreA > match.scoreB ? 'font-bold text-lg' : 'text-lg text-muted-foreground'}>
+                            {match.scoreA}
+                          </span>
+                          <span className="text-muted-foreground">-</span>
+                          <span className={match.scoreB > match.scoreA ? 'font-bold text-lg' : 'text-lg text-muted-foreground'}>
+                            {match.scoreB}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <span className={match.playerBName === winner ? 'font-semibold' : ''}>
+                            {match.playerBName}
+                          </span>
+                          {match.playerBName === winner ? (
+                            <WinnerIcon size={16} />
+                          ) : (
+                            <LoserIcon size={16} />
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Date and Time */}
+                      <div className="flex items-center justify-center text-sm text-muted-foreground">
+                        <Calendar size={14} className="mr-2" />
+                        <span>
+                          {new Date(match.playedAt).toLocaleDateString()}
+                        </span>
+                        <span className="mx-2">•</span>
+                        <span>
+                          {new Date(match.playedAt).toLocaleTimeString('sv-SE', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
         </CardContent>
       </Card>
 
