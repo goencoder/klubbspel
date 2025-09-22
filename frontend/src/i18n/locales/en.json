@@ -16,6 +16,7 @@
     "next": "Next",
     "showMore": "Show More",
     "close": "Close",
+    "done": "Done",
     "success": "Success",
     "viewDetails": "View Details",
     "backToClubs": "Back to Clubs",
@@ -69,9 +70,9 @@
     "createFirst": "Create your first tournament series to get started",
     "searchAdjust": "Try adjusting your search terms",
     "viewDetails": "View Details",
-    "reportMatch": "Report Match",
+    "reportMatch": "Report Matches",
     "report": {
-      "match": "Report Match"
+      "match": "Report Matches"
     },
     "leaderboard": "Leaderboard",
     "viewLeaderboard": "View Leaderboard",
@@ -126,7 +127,7 @@
   },
   "matches": {
     "title": "Match Results",
-    "reportNew": "Report Match",
+    "reportNew": "Report Matches",
     "player_a": "Player A",
     "player_b": "Player B",
     "playerA": "Player A",
@@ -144,7 +145,7 @@
     "reported": "Match reported successfully",
     "empty": "No matches reported yet",
     "emptyDescription": "No matches have been reported yet. Report the first match to get started!",
-    "report": "Report Match",
+    "report": "Report Matches",
     "edit": "Edit Match",
     "delete": "Delete Match",
     "updated": "Match updated successfully",

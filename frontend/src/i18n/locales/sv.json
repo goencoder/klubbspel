@@ -16,6 +16,7 @@
     "next": "Nästa",
     "showMore": "Visa mer",
     "close": "Stäng",
+    "done": "Klar",
     "success": "Framgång",
     "viewDetails": "Visa detaljer",
     "backToClubs": "Tillbaka till klubbar",
@@ -69,9 +70,9 @@
     "createFirst": "Skapa din första turneringsserie för att komma igång",
     "searchAdjust": "Försök justera dina söktermer",
     "viewDetails": "Visa detaljer",
-    "reportMatch": "Rapportera match",
+    "reportMatch": "Rapportera matcher",
     "report": {
-      "match": "Rapportera match"
+      "match": "Rapportera matcher"
     },
     "leaderboard": "Resultattabell",
     "viewLeaderboard": "Visa resultattabell",
@@ -126,7 +127,7 @@
   },
   "matches": {
     "title": "Matchresultat",
-    "reportNew": "Rapportera match",
+    "reportNew": "Rapportera matcher",
     "player_a": "Spelare A",
     "player_b": "Spelare B",
     "played_at": "Matchdatum",
@@ -144,7 +145,7 @@
     "reported": "Match rapporterad framgångsrikt",
     "empty": "Inga matcher rapporterade än",
     "emptyDescription": "Inga matcher har rapporterats än. Rapportera den första matchen för att komma igång!",
-    "report": "Rapportera match",
+    "report": "Rapportera matcher",
     "edit": "Redigera match",
     "delete": "Ta bort match", 
     "updated": "Match uppdaterad framgångsrikt",
