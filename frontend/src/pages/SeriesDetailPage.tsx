@@ -1,14 +1,15 @@
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { MatchesList } from '@/components/MatchesList'
 import { ReportMatchDialog } from '@/components/ReportMatchDialog'
+import { LeaderboardTable, normalizeLeaderboard, type UILBRow } from '@/components/LeaderboardTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { apiClient } from '@/services/api'
 import type { Series, SeriesVisibility } from '@/types/api'
-import { Add, ArrowLeft2, Calendar, Chart, ClipboardTick, Cup } from 'iconsax-reactjs'
-import { useCallback, useEffect, useState, useMemo } from 'react'
+import { Add, ArrowLeft2, Calendar, ClipboardTick, Cup } from 'iconsax-reactjs'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -24,6 +25,10 @@ export function SeriesDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showReportDialog, setShowReportDialog] = useState(false)
   const [matchesRefreshKey, setMatchesRefreshKey] = useState(0)
+  
+  // Leaderboard state
+  const [leaderboard, setLeaderboard] = useState<UILBRow[]>([])
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false)
 
   const loadSeries = useCallback(async (seriesId: string) => {
     try {
@@ -48,11 +53,31 @@ export function SeriesDetailPage() {
     }
   }, [t])
 
+  const loadLeaderboard = useCallback(async (seriesId: string) => {
+    try {
+      setLoadingLeaderboard(true)
+      const resp = await apiClient.getLeaderboard({ seriesId, pageSize: 50 }, 'leaderboard')
+      setLeaderboard(normalizeLeaderboard(resp))
+    } catch (_error: unknown) {
+      // Silently fail for leaderboard - it's not critical
+      setLeaderboard([])
+    } finally {
+      setLoadingLeaderboard(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (id) {
       loadSeries(id)
     }
   }, [id, loadSeries])
+
+  // Load leaderboard when series is loaded
+  useEffect(() => {
+    if (series?.id) {
+      loadLeaderboard(series.id)
+    }
+  }, [series?.id, loadLeaderboard])
 
   const loadClubName = async (clubId: string) => {
     try {
@@ -96,7 +121,11 @@ export function SeriesDetailPage() {
   const handleMatchReported = useCallback((_reportedMatch: ReportedMatch) => {
     setPendingRefresh(true)
     setMatchesRefreshKey((prev) => prev + 1)
-  }, [])
+    // Also refresh leaderboard when a match is reported
+    if (series?.id) {
+      loadLeaderboard(series.id)
+    }
+  }, [series?.id, loadLeaderboard])
 
   // Clear pending state when debounced refresh completes
   useEffect(() => {
@@ -223,17 +252,14 @@ export function SeriesDetailPage() {
         </TabsContent>
 
         <TabsContent value="leaderboard" className="space-y-6">
-          <div className="text-center py-8">
-            <p className="text-muted-foreground mb-4">
-              View the full leaderboard for detailed rankings and statistics
-            </p>
-            <Link to={`/series/${series.id}/leaderboard`}>
-              <Button>
-                <Chart size={16} className="text-current" />
-                <span className="ml-2">View Full Leaderboard</span>
-              </Button>
-            </Link>
-          </div>
+          <LeaderboardTable
+            leaderboard={leaderboard}
+            loading={loadingLeaderboard}
+            seriesTitle={series.title}
+            showExport={true}
+            title={t('series.leaderboard')}
+            description={t('leaderboard.description', 'Current rankings and statistics for this series')}
+          />
         </TabsContent>
       </Tabs>
 
