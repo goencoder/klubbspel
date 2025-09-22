@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import { PlayerSelector, type PlayerSelectorHandle } from '@/components/PlayerSelector'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
@@ -78,6 +80,10 @@ export function ReportMatchDialog({
   })
 
   const [formData, setFormData] = useState<MatchFormState>(() => createEmptyFormState())
+
+  // Multi-match session state
+  const [keepDialogOpen, setKeepDialogOpen] = useState(false)
+  const [sessionCount, setSessionCount] = useState(0)
 
   const formatDatePart = (date: Date) => date.toISOString().split('T')[0]
   const formatTimePart = (date: Date) => date.toTimeString().slice(0, 5)
@@ -173,25 +179,36 @@ export function ReportMatchDialog({
       }
 
       const response = await apiClient.reportMatch(reportRequest)
+      
+      // Update session tracking
+      setSessionCount(prev => prev + 1)
+      
       toast.success(t('matches.reported'))
       onMatchReported({
         matchId: response.matchId,
         playedAt: reportRequest.playedAt
       })
 
-      const nextSuggestedDate = addMinutes(new Date(reportRequest.playedAt), 5)
-      setFormData({
-        player_a_id: '',
-        player_b_id: '',
-        score_a: '',
-        score_b: '',
-        played_at_date: formatDatePart(nextSuggestedDate),
-        played_at_time: formatTimePart(nextSuggestedDate)
-      })
+      if (keepDialogOpen) {
+        // Prepare for next match - advance time by 5 minutes
+        const nextSuggestedDate = addMinutes(new Date(reportRequest.playedAt), 5)
+        setFormData({
+          player_a_id: '',
+          player_b_id: '',
+          score_a: '',
+          score_b: '',
+          played_at_date: formatDatePart(nextSuggestedDate),
+          played_at_time: formatTimePart(nextSuggestedDate)
+        })
 
-      setTimeout(() => {
-        playerASelectorRef.current?.focus()
-      }, 0)
+        setTimeout(() => {
+          playerASelectorRef.current?.focus()
+        }, 0)
+      } else {
+        // Close dialog and reset session
+        onOpenChange(false)
+        setSessionCount(0)
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : ''
       toast.error(message || t('error.generic'))
@@ -228,9 +245,21 @@ export function ReportMatchDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{t('matches.report')}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {t('matches.report')}
+            {sessionCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                Session: {sessionCount}
+              </Badge>
+            )}
+          </DialogTitle>
           <DialogDescription>
             Report the result of a table tennis match
+            {keepDialogOpen && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Multi-match mode active - dialog will stay open after reporting
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -314,6 +343,21 @@ export function ReportMatchDialog({
               </div>
             </div>
 
+            {/* Multi-match toggle */}
+            <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-lg">
+              <Switch
+                id="keepOpen"
+                checked={keepDialogOpen}
+                onCheckedChange={setKeepDialogOpen}
+              />
+              <Label htmlFor="keepOpen" className="text-sm">
+                Keep dialog open for multiple matches
+                <div className="text-xs text-muted-foreground">
+                  Time will advance by 5 minutes between matches
+                </div>
+              </Label>
+            </div>
+
             {/* Validation hints */}
             <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
               <ul className="space-y-1">
@@ -326,11 +370,30 @@ export function ReportMatchDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('common.done')}
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                onOpenChange(false)
+                setSessionCount(0)
+                setKeepDialogOpen(false)
+              }}
+            >
+              {keepDialogOpen ? 'Close Session' : t('common.done')}
             </Button>
             <Button type="submit" disabled={!isFormValid() || loading}>
-              {loading ? <LoadingSpinner size="sm" /> : t('matches.report')}
+              {loading ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <>
+                  {t('matches.report')}
+                  {keepDialogOpen && sessionCount > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      #{sessionCount + 1}
+                    </Badge>
+                  )}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

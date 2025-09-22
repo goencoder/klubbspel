@@ -8,11 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { apiClient } from '@/services/api'
 import type { Series, SeriesVisibility } from '@/types/api'
 import { Add, ArrowLeft2, Calendar, Chart, ClipboardTick, Cup } from 'iconsax-reactjs'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { sportTranslationKey, seriesFormatTranslationKey } from '@/lib/sports'
+import { useDebounce } from '@/hooks/useDebounce'
+import type { ReportedMatch } from '@/hooks/useMatchReporting'
 
 export function SeriesDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -86,9 +88,22 @@ export function SeriesDetailPage() {
     }
   }
 
-  const handleMatchReported = (_reportedMatch: { matchId: string; playedAt: string }) => {
+  // Debounce the refresh to avoid excessive API calls during rapid match entry
+  const debouncedRefreshKey = useDebounce(matchesRefreshKey, 500)
+  const [pendingRefresh, setPendingRefresh] = useState(false)
+
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleMatchReported = useCallback((_reportedMatch: ReportedMatch) => {
+    setPendingRefresh(true)
     setMatchesRefreshKey((prev) => prev + 1)
-  }
+  }, [])
+
+  // Clear pending state when debounced refresh completes
+  useEffect(() => {
+    if (pendingRefresh && debouncedRefreshKey > 0) {
+      setPendingRefresh(false)
+    }
+  }, [debouncedRefreshKey, pendingRefresh])
 
   if (loading) {
     return <LoadingSpinner />
@@ -203,7 +218,7 @@ export function SeriesDetailPage() {
             seriesStartDate={series.startsAt}
             seriesEndDate={series.endsAt}
             seriesName={series.title}
-            refreshKey={matchesRefreshKey}
+            refreshKey={debouncedRefreshKey}
           />
         </TabsContent>
 
