@@ -66,27 +66,28 @@ func validateTableTennisScore(setsA, setsB, setsToPlay int32) error {
 		return status.Error(codes.InvalidArgument, "VALIDATION_SCORE_TIE")
 	}
 
-	// Winner must reach majority of sets
+	// Calculate required wins to win the match
 	requiredSets := (setsToPlay + 1) / 2
-	maxSets := setsA
-	if setsB > maxSets {
-		maxSets = setsB
-	}
 	
-	if maxSets < requiredSets {
+	// Check if either player has reached the required sets to win
+	if setsA < requiredSets && setsB < requiredSets {
 		if setsToPlay == 3 {
 			return status.Error(codes.InvalidArgument, "VALIDATION_BEST_OF_THREE")
 		}
 		return status.Error(codes.InvalidArgument, "VALIDATION_BEST_OF_FIVE")
 	}
 
-	// Loser cannot exceed allowed sets for the format
-	minSets := setsA
-	if setsB < minSets {
-		minSets = setsB
+	// Check that scores don't exceed what's possible
+	if setsA > requiredSets || setsB > requiredSets {
+		return status.Error(codes.InvalidArgument, "VALIDATION_SCORE_INVALID")
 	}
-	
-	if maxSets == requiredSets && minSets > requiredSets-1 {
+
+	// Check that the loser didn't get too many sets
+	// In a valid match, the loser can have at most requiredSets-1 sets
+	if setsA == requiredSets && setsB >= requiredSets {
+		return status.Error(codes.InvalidArgument, "VALIDATION_SCORE_INVALID")
+	}
+	if setsB == requiredSets && setsA >= requiredSets {
 		return status.Error(codes.InvalidArgument, "VALIDATION_SCORE_INVALID")
 	}
 

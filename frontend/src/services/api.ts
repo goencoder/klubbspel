@@ -28,6 +28,8 @@ import type {
   ReorderMatchesResponse,
   ReportMatchRequest,
   ReportMatchResponse,
+  ReportMatchV2Request,
+  ReportMatchV2Response,
   Series,
   UpdateClubRequest,
   UpdateMatchRequest,
@@ -336,6 +338,10 @@ class ApiClient {
 
   async reportMatch(data: ReportMatchRequest): Promise<ReportMatchResponse> {
     return this.post<ReportMatchResponse>('/v1/matches:report', data)
+  }
+
+  async reportMatchV2(data: ReportMatchV2Request): Promise<ReportMatchV2Response> {
+    return this.post<ReportMatchV2Response>('/v2/matches:report', data)
   }
 
   async updateMatch(data: UpdateMatchRequest): Promise<UpdateMatchResponse> {

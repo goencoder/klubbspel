@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { apiClient } from '@/services/api'
 import type { Series, SeriesVisibility } from '@/types/api'
 import { Add, ArrowLeft2, Calendar, Chart, ClipboardTick, Cup } from 'iconsax-reactjs'
-import { useCallback, useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -244,6 +244,7 @@ export function SeriesDetailPage() {
         clubId={series.visibility === 'SERIES_VISIBILITY_CLUB_ONLY' ? series.clubId : undefined}
         seriesStartDate={series.startsAt}
         seriesEndDate={series.endsAt}
+        series={series}
         onMatchReported={handleMatchReported}
       />
     </div>

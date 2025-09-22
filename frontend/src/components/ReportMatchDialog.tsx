@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { PlayerSelector, type PlayerSelectorHandle } from '@/components/PlayerSelector'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
-import type { Player } from '@/types/api'
+import type { Player, Series } from '@/types/api'
 import { toast } from 'sonner'
 
 interface MatchFormState {
@@ -28,6 +28,7 @@ interface ReportMatchDialogProps {
   clubId?: string
   seriesStartDate?: string
   seriesEndDate?: string
+  series?: Series  // Optional series object for advanced features
   onMatchReported: (match: { matchId: string; playedAt: string }) => void
 }
 
@@ -38,6 +39,7 @@ export function ReportMatchDialog({
   clubId,
   seriesStartDate,
   seriesEndDate,
+  series,
   onMatchReported
 }: ReportMatchDialogProps) {
   const { t } = useTranslation()
@@ -46,26 +48,37 @@ export function ReportMatchDialog({
 
   // Helper function to validate table tennis scores
   const validateTableTennisScore = (scoreA: number, scoreB: number) => {
-    // Valid table tennis match results: 3-0, 3-1, 3-2 (or reversed)
-    const validResults = [
-      [3, 0], [0, 3], [3, 1], [1, 3], [3, 2], [2, 3]
-    ]
+    // Get sets to play from series (default to 5 if not available)
+    const setsToPlay = series?.setsToPlay || 5
+    
+    // Generate valid results based on setsToPlay
+    const validResults: [number, number][] = []
+    const requiredWins = Math.ceil(setsToPlay / 2)
+    
+    // Winner gets requiredWins, loser gets 0 to requiredWins-1
+    for (let loserSets = 0; loserSets < requiredWins; loserSets++) {
+      validResults.push([requiredWins, loserSets])
+      validResults.push([loserSets, requiredWins])
+    }
     
     return validResults.some(([a, b]) => a === scoreA && b === scoreB)
   }
 
-  // Helper function to auto-complete score when one player has 3 and other is empty/0
+  // Helper function to auto-complete score when one player has required wins and other is empty/0
   const getAutoCompletedScores = (scoreAStr: string, scoreBStr: string) => {
+    const setsToPlay = series?.setsToPlay || 5
+    const requiredWins = Math.ceil(setsToPlay / 2)
+    
     // Parse scores, treating empty strings and invalid numbers as 0
     const scoreA = scoreAStr === '' || isNaN(parseInt(scoreAStr, 10)) ? 0 : parseInt(scoreAStr, 10)
     const scoreB = scoreBStr === '' || isNaN(parseInt(scoreBStr, 10)) ? 0 : parseInt(scoreBStr, 10)
     
-    // If one player has 3 and the other is 0 (or empty), auto-complete to 3-0
-    if (scoreA === 3 && (scoreBStr === '' || scoreB === 0)) {
-      return { scoreA: 3, scoreB: 0, autoCompleted: true }
+    // If one player has required wins and the other is 0 (or empty), auto-complete to a shutout
+    if (scoreA === requiredWins && (scoreBStr === '' || scoreB === 0)) {
+      return { scoreA: requiredWins, scoreB: 0, autoCompleted: true }
     }
-    if (scoreB === 3 && (scoreAStr === '' || scoreA === 0)) {
-      return { scoreA: 0, scoreB: 3, autoCompleted: true }
+    if (scoreB === requiredWins && (scoreAStr === '' || scoreA === 0)) {
+      return { scoreA: 0, scoreB: requiredWins, autoCompleted: true }
     }
     
     return { scoreA, scoreB, autoCompleted: false }
@@ -169,16 +182,21 @@ export function ReportMatchDialog({
     try {
       setLoading(true)
 
-      const reportRequest = {
+      // Use V2 API for table tennis with scoring profile support
+      const reportRequestV2 = {
         seriesId: seriesId,
-        playerAId: formData.player_a_id,
-        playerBId: formData.player_b_id,
-        scoreA: scoreA,
-        scoreB: scoreB,
+        participantA: { playerId: formData.player_a_id },
+        participantB: { playerId: formData.player_b_id },
+        result: {
+          tableTennis: {
+            setsA: scoreA,
+            setsB: scoreB
+          }
+        },
         playedAt: new Date(`${formData.played_at_date}T${formData.played_at_time}:00`).toISOString()
       }
 
-      const response = await apiClient.reportMatch(reportRequest)
+      const response = await apiClient.reportMatchV2(reportRequestV2)
       
       // Update session tracking
       setSessionCount(prev => prev + 1)
@@ -186,12 +204,12 @@ export function ReportMatchDialog({
       toast.success(t('matches.reported'))
       onMatchReported({
         matchId: response.matchId,
-        playedAt: reportRequest.playedAt
+        playedAt: reportRequestV2.playedAt
       })
 
       if (keepDialogOpen) {
         // Prepare for next match - advance time by 5 minutes
-        const nextSuggestedDate = addMinutes(new Date(reportRequest.playedAt), 5)
+        const nextSuggestedDate = addMinutes(new Date(reportRequestV2.playedAt), 5)
         setFormData({
           player_a_id: '',
           player_b_id: '',
@@ -296,13 +314,16 @@ export function ReportMatchDialog({
                   id="score_a"
                   type="number"
                   min="0"
-                  max="3"
+                  max={Math.ceil((series?.setsToPlay || 5) / 2)}
                   value={formData.score_a}
                   onChange={(e) => setFormData(prev => ({ ...prev, score_a: e.target.value }))}
                   placeholder="0"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Valid results: 3-0, 3-1, 3-2
+                  {series?.setsToPlay === 3 
+                    ? 'Valid results: 2-0, 2-1' 
+                    : 'Valid results: 3-0, 3-1, 3-2'
+                  }
                 </p>
               </div>
               <div className="space-y-2">
@@ -311,7 +332,7 @@ export function ReportMatchDialog({
                   id="score_b"
                   type="number"
                   min="0"
-                  max="3"
+                  max={Math.ceil((series?.setsToPlay || 5) / 2)}
                   value={formData.score_b}
                   onChange={(e) => setFormData(prev => ({ ...prev, score_b: e.target.value }))}
                   placeholder="0"
