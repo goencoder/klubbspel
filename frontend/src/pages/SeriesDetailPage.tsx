@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { sportTranslationKey, seriesFormatTranslationKey } from '@/lib/sports'
 import { useDebounce } from '@/hooks/useDebounce'
 import type { ReportedMatch } from '@/hooks/useMatchReporting'
+import { testIds } from '@/lib/testIds'
 
 export function SeriesDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -154,11 +155,11 @@ export function SeriesDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div id={testIds.seriesDetail.container} className="space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-4">
         <Link to="/">
-          <Button variant="ghost" size="sm">
+          <Button id={testIds.seriesDetail.backBtn} variant="ghost" size="sm">
             <ArrowLeft2 size={16} className="text-muted-foreground" />
             <span className="ml-2">{t('common.back')}</span>
           </Button>
@@ -166,22 +167,23 @@ export function SeriesDetailPage() {
       </div>
 
       {/* Series Info */}
-      <Card>
+      <Card id={testIds.seriesDetail.infoCard}>
         <CardHeader>
           <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-start sm:space-y-0">
             <div className="space-y-2 flex-1 min-w-0">
               <div className="flex items-center space-x-3">
-                <CardTitle className="text-2xl">{series.title}</CardTitle>
-                <Badge variant={getVisibilityVariant(series.visibility)}>
+                <CardTitle id={testIds.seriesDetail.title} className="text-2xl">{series.title}</CardTitle>
+                <Badge id={testIds.seriesDetail.visibilityBadge} variant={getVisibilityVariant(series.visibility)}>
                   {getVisibilityLabel(series.visibility)}
                 </Badge>
               </div>
-              <CardDescription className="text-base">
+              <CardDescription id={testIds.seriesDetail.description} className="text-base">
                 {series.visibility === 'SERIES_VISIBILITY_OPEN' ? t('series.visibility.open_description') : t('series.visibility.club_only_description')}
               </CardDescription>
             </div>
             <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 sm:flex-shrink-0">
               <Button 
+                id={testIds.seriesDetail.reportMatchBtn}
                 onClick={() => setShowReportDialog(true)}
                 className="w-full sm:w-auto whitespace-nowrap"
                 size="sm"
@@ -191,6 +193,7 @@ export function SeriesDetailPage() {
               </Button>
               <Link to={`/series/${series.id}/leaderboard`}>
                 <Button 
+                  id={testIds.seriesDetail.leaderboardBtn}
                   variant="outline"
                   className="w-full sm:w-auto whitespace-nowrap"
                   size="sm"
@@ -203,27 +206,27 @@ export function SeriesDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div id={testIds.seriesDetail.infoGrid} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <div className="flex items-center text-sm">
+              <div id={testIds.seriesDetail.durationInfo} className="flex items-center text-sm">
                 <Calendar size={16} className="mr-2 text-muted-foreground" />
                 <span className="text-muted-foreground mr-2">Duration:</span>
                 <span className="font-medium">
                   {formatDateRange(series.startsAt, series.endsAt)}
                 </span>
               </div>
-              <div className="flex items-center text-sm">
+              <div id={testIds.seriesDetail.sportInfo} className="flex items-center text-sm">
                 <Cup size={16} className="mr-2 text-muted-foreground" />
                 <span className="text-muted-foreground mr-2">{t('series.sportLabel')}:</span>
                 <span className="font-medium">{t(sportTranslationKey(series.sport))}</span>
               </div>
-              <div className="flex items-center text-sm">
+              <div id={testIds.seriesDetail.formatInfo} className="flex items-center text-sm">
                 <ClipboardTick size={16} className="mr-2 text-muted-foreground" />
                 <span className="text-muted-foreground mr-2">{t('series.formatLabel')}:</span>
                 <span className="font-medium">{t(seriesFormatTranslationKey(series.format))}</span>
               </div>
               {series.clubId && (
-                <div className="flex items-center text-sm">
+                <div id={testIds.seriesDetail.clubInfo} className="flex items-center text-sm">
                   <Cup size={16} className="mr-2 text-muted-foreground" />
                   <span className="text-muted-foreground mr-2">{t('players.club')}:</span>
                   <span className="font-medium">{clubName || series.clubId}</span>
@@ -235,10 +238,10 @@ export function SeriesDetailPage() {
       </Card>
 
       {/* Content Tabs */}
-      <Tabs defaultValue="matches" className="space-y-6">
+      <Tabs id={testIds.seriesDetail.contentTabs} defaultValue="matches" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="matches">{t('series.matches')}</TabsTrigger>
-          <TabsTrigger value="leaderboard">{t('series.leaderboard')}</TabsTrigger>
+          <TabsTrigger id={testIds.seriesDetail.matchesTab} value="matches">{t('series.matches')}</TabsTrigger>
+          <TabsTrigger id={testIds.seriesDetail.leaderboardTab} value="leaderboard">{t('series.leaderboard')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="matches" className="space-y-6">

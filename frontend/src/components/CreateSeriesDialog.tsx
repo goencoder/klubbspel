@@ -43,6 +43,7 @@ import {
   scoringProfileTranslationKey
 } from '@/lib/sports'
 import { useAuthStore } from '@/store/auth'
+import { testIds } from '@/lib/testIds'
 
 interface CreateSeriesDialogProps {
   open: boolean
@@ -259,20 +260,20 @@ export function CreateSeriesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent id={testIds.seriesCreation.dialog} className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{t('series.createNew')}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle id={testIds.seriesCreation.title}>{t('series.createNew')}</DialogTitle>
+          <DialogDescription id={testIds.seriesCreation.description}>
             {t('series.create_help', 'Create a new tournament series.')}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id={testIds.seriesCreation.form} onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">{t('series.name')} *</Label>
+            <Label id={testIds.seriesCreation.nameLabel} htmlFor="title">{t('series.name')} *</Label>
             <Input
-              id="title"
+              id={testIds.seriesCreation.nameInput}
               value={formData.title}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, title: e.target.value }))
@@ -284,7 +285,7 @@ export function CreateSeriesDialog({
 
           {/* Visibility */}
           <div className="space-y-2">
-            <Label htmlFor="visibility">{t('series.visibility')} *</Label>
+            <Label id={testIds.seriesCreation.visibilityLabel} htmlFor="visibility">{t('series.visibility')} *</Label>
             <Select
               value={formData.visibility}
               onValueChange={(value) => {
@@ -328,7 +329,7 @@ export function CreateSeriesDialog({
                 }
               }}
             >
-              <SelectTrigger id="visibility">
+              <SelectTrigger id={testIds.seriesCreation.visibilitySelect}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -357,7 +358,7 @@ export function CreateSeriesDialog({
 
           {/* Sport */}
           <div className="space-y-2">
-            <Label htmlFor="sport">{t('series.sportLabel')}</Label>
+            <Label id={testIds.seriesCreation.sportLabel} htmlFor="sport">{t('series.sportLabel')}</Label>
             {availableSports.length > 1 ? (
               <Select
                 value={formData.sport}
@@ -372,7 +373,7 @@ export function CreateSeriesDialog({
                   })
                 }
               >
-                <SelectTrigger id="sport">
+                <SelectTrigger id={testIds.seriesCreation.sportSelect}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -392,7 +393,7 @@ export function CreateSeriesDialog({
 
           {/* Format */}
           <div className="space-y-2">
-            <Label htmlFor="format">{t('series.formatLabel')}</Label>
+            <Label id={testIds.seriesCreation.formatLabel} htmlFor="format">{t('series.formatLabel')}</Label>
             {SUPPORTED_SERIES_FORMATS.length > 1 ? (
               <Select
                 value={formData.format}
@@ -403,7 +404,7 @@ export function CreateSeriesDialog({
                   }))
                 }
               >
-                <SelectTrigger id="format">
+                <SelectTrigger id={testIds.seriesCreation.formatSelect}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -457,9 +458,9 @@ export function CreateSeriesDialog({
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startsAt">{t('series.starts_at')} *</Label>
+              <Label id={testIds.seriesCreation.startDateLabel} htmlFor="startsAt">{t('series.starts_at')} *</Label>
               <Input
-                id="startsAt"
+                id={testIds.seriesCreation.startDateInput}
                 type="datetime-local"
                 value={formData.startsAt}
                 onChange={(e) =>
@@ -472,9 +473,9 @@ export function CreateSeriesDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endsAt">{t('series.ends_at')} *</Label>
+              <Label id={testIds.seriesCreation.endDateLabel} htmlFor="endsAt">{t('series.ends_at')} *</Label>
               <Input
-                id="endsAt"
+                id={testIds.seriesCreation.endDateInput}
                 type="datetime-local"
                 value={formData.endsAt}
                 onChange={(e) =>
@@ -487,13 +488,14 @@ export function CreateSeriesDialog({
 
           <DialogFooter>
             <Button
+              id={testIds.seriesCreation.cancelBtn}
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button id={testIds.seriesCreation.submitBtn} type="submit" disabled={loading}>
               {loading ? <LoadingSpinner size="sm" /> : t('common.create')}
             </Button>
           </DialogFooter>

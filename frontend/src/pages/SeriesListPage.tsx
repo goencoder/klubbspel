@@ -15,6 +15,7 @@ import type { Series, SeriesVisibility, Club } from '@/types/api'
 import { toast } from 'sonner'
 import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection } from './Styles'
 import { sportTranslationKey, seriesFormatTranslationKey } from '@/lib/sports'
+import { testIds } from '@/lib/testIds'
 
 interface SeriesByClub {
   [clubId: string]: {
@@ -164,11 +165,11 @@ export function SeriesListPage() {
     ? allSeries.filter(s => s.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
     : allSeries
 
-  const renderSeriesCard = (seriesItem: Series) => (
-    <Card key={seriesItem.id} className="hover:shadow-md transition-shadow">
+  const renderSeriesCard = (seriesItem: Series, index: number) => (
+    <Card key={seriesItem.id} id={testIds.seriesList.card(index)} className="hover:shadow-md transition-shadow">
       <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">{seriesItem.title}</CardTitle>
+          <CardTitle id={testIds.seriesList.cardTitle(index)} className="text-lg">{seriesItem.title}</CardTitle>
           <Badge variant={getVisibilityVariant(seriesItem.visibility)}>
             {getVisibilityLabel(seriesItem.visibility)}
           </Badge>
@@ -176,13 +177,13 @@ export function SeriesListPage() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <div className="flex items-center text-sm text-muted-foreground">
+          <div id={testIds.seriesList.cardDates(index)} className="flex items-center text-sm text-muted-foreground">
             <Calendar size={16} className="mr-2 text-current" />
             <span>
               {formatDateRange(seriesItem.startsAt, seriesItem.endsAt)}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div id={testIds.seriesList.cardBadges(index)} className="flex flex-wrap gap-2 text-xs">
             <Badge variant="outline">
               {t(sportTranslationKey(seriesItem.sport))}
             </Badge>
@@ -191,7 +192,7 @@ export function SeriesListPage() {
             </Badge>
           </div>
           <Link to={`/series/${seriesItem.id}`}>
-            <Button variant="outline" className="w-full">
+            <Button id={testIds.seriesList.viewBtn(index)} variant="outline" className="w-full">
               {t('series.viewDetails')}
             </Button>
           </Link>
@@ -201,13 +202,13 @@ export function SeriesListPage() {
   )
 
   return (
-    <PageWrapper>
-      <PageHeaderSection>
+    <PageWrapper id={testIds.seriesList.container}>
+      <PageHeaderSection id={testIds.seriesList.header}>
         <HeaderContent>
-          <h1 className="text-3xl font-bold text-foreground">{t('series.title')}</h1>
-          <p className="text-muted-foreground">{t('series.subtitle')}</p>
+          <h1 id={testIds.seriesList.title} className="text-3xl font-bold text-foreground">{t('series.title')}</h1>
+          <p id={testIds.seriesList.subtitle} className="text-muted-foreground">{t('series.subtitle')}</p>
         </HeaderContent>
-        <Button onClick={() => setShowCreateDialog(true)}>
+        <Button id={testIds.seriesList.createBtn} onClick={() => setShowCreateDialog(true)}>
           <Add size={16} className="text-current" />
           <span className="ml-2">{t('series.createNew')}</span>
         </Button>
@@ -217,6 +218,7 @@ export function SeriesListPage() {
         <div className="relative flex-1 max-w-md">
           <SearchNormal1 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
           <Input
+            id={testIds.seriesList.searchInput}
             placeholder={t('common.search') + '...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -228,7 +230,7 @@ export function SeriesListPage() {
       {loading ? (
         <LoadingSpinner />
       ) : filteredSeries.length === 0 ? (
-        <Card>
+        <Card id={testIds.seriesList.emptyState}>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Cup size={48} className="text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">{t('series.noSeries')}</h3>
@@ -246,8 +248,8 @@ export function SeriesListPage() {
       ) : debouncedSearchQuery ? (
         // Show filtered results without sections when searching
         <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredSeries.map(renderSeriesCard)}
+          <div id={testIds.seriesList.grid} className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredSeries.map((series, index) => renderSeriesCard(series, index))}
           </div>
         </div>
       ) : (
@@ -260,7 +262,7 @@ export function SeriesListPage() {
                 {clubData.club?.name || t('series.sections.unknownClub')}
               </h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {clubData.series.map(renderSeriesCard)}
+                {clubData.series.map((series, index) => renderSeriesCard(series, index))}
               </div>
             </div>
           ))}
@@ -270,7 +272,7 @@ export function SeriesListPage() {
             <div>
               <h2 className="text-xl font-semibold mb-4">{t('series.sections.openSeries')}</h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {openSeries.map(renderSeriesCard)}
+                {openSeries.map((series, index) => renderSeriesCard(series, index))}
               </div>
             </div>
           )}

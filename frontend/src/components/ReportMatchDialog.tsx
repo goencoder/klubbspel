@@ -11,6 +11,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
 import type { Player, ReportMatchRequest } from '@/types/api'
 import { toast } from 'sonner'
+import { testIds } from '@/lib/testIds'
 
 interface MatchFormState {
   player_a_id: string
@@ -253,9 +254,9 @@ export function ReportMatchDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px]" id={testIds.matchReport.dialog}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle id={testIds.matchReport.title} className="flex items-center gap-2">
             {t('matches.report')}
             {sessionCount > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -273,27 +274,29 @@ export function ReportMatchDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" id={testIds.matchReport.form}>
           <div className="grid gap-6">
             {/* Player Selection */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t('matches.player_a')} *</Label>
+                <Label id={testIds.matchReport.playerALabel}>{t('matches.player_a')} *</Label>
                 <PlayerSelector
                   ref={playerASelectorRef}
                   value={formData.player_a_id}
                   onPlayerSelected={handlePlayerASelected}
                   clubId={clubId}
                   excludePlayerId={formData.player_b_id}
+                  id={testIds.matchReport.playerASelector}
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t('matches.player_b')} *</Label>
+                <Label id={testIds.matchReport.playerBLabel}>{t('matches.player_b')} *</Label>
                 <PlayerSelector
                   value={formData.player_b_id}
                   onPlayerSelected={handlePlayerBSelected}
                   clubId={clubId}
                   excludePlayerId={formData.player_a_id}
+                  id={testIds.matchReport.playerBSelector}
                 />
               </div>
             </div>
@@ -301,9 +304,9 @@ export function ReportMatchDialog({
             {/* Score inputs */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="score_a">{t('matches.score_a')}</Label>
+                <Label htmlFor={testIds.matchReport.scoreA} id={testIds.matchReport.scoreALabel}>{t('matches.score_a')}</Label>
                 <Input
-                  id="score_a"
+                  id={testIds.matchReport.scoreA}
                   type="number"
                   min="0"
                   max="3"
@@ -316,9 +319,9 @@ export function ReportMatchDialog({
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="score_b">{t('matches.score_b')}</Label>
+                <Label htmlFor={testIds.matchReport.scoreB} id={testIds.matchReport.scoreBLabel}>{t('matches.score_b')}</Label>
                 <Input
-                  id="score_b"
+                  id={testIds.matchReport.scoreB}
                   type="number"
                   min="0"
                   max="3"
@@ -332,9 +335,9 @@ export function ReportMatchDialog({
             {/* Date and Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="played_at_date">{t('matches.played_at_date')} *</Label>
+                <Label htmlFor={testIds.matchReport.date} id={testIds.matchReport.dateLabel}>{t('matches.played_at_date')} *</Label>
                 <Input
-                  id="played_at_date"
+                  id={testIds.matchReport.date}
                   type="date"
                   value={formData.played_at_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, played_at_date: e.target.value }))}
@@ -342,9 +345,9 @@ export function ReportMatchDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="played_at_time">{t('matches.played_at_time')} *</Label>
+                <Label htmlFor={testIds.matchReport.time} id={testIds.matchReport.timeLabel}>{t('matches.played_at_time')} *</Label>
                 <Input
-                  id="played_at_time"
+                  id={testIds.matchReport.time}
                   type="time"
                   value={formData.played_at_time}
                   onChange={(e) => setFormData(prev => ({ ...prev, played_at_time: e.target.value }))}
@@ -356,11 +359,11 @@ export function ReportMatchDialog({
             {/* Multi-match toggle */}
             <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-lg">
               <Switch
-                id="keepOpen"
+                id={testIds.matchReport.keepOpenSwitch}
                 checked={keepDialogOpen}
                 onCheckedChange={setKeepDialogOpen}
               />
-              <Label htmlFor="keepOpen" className="text-sm">
+              <Label htmlFor={testIds.matchReport.keepOpenSwitch} id={testIds.matchReport.keepOpenLabel} className="text-sm">
                 Keep dialog open for multiple matches
                 <div className="text-xs text-muted-foreground">
                   Time will advance by 5 minutes between matches
@@ -369,7 +372,7 @@ export function ReportMatchDialog({
             </div>
 
             {/* Validation hints */}
-            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+            <div id={testIds.matchReport.validationHints} className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
               <ul className="space-y-1">
                 <li>• Best of 5 games format (winner must reach 3 games)</li>
                 <li>• Scores must be between 0 and 5</li>
@@ -381,6 +384,7 @@ export function ReportMatchDialog({
 
           <DialogFooter>
             <Button 
+              id={testIds.matchReport.cancelBtn}
               type="button" 
               variant="outline" 
               onClick={() => {
@@ -391,7 +395,7 @@ export function ReportMatchDialog({
             >
               {keepDialogOpen ? 'Close Session' : t('common.done')}
             </Button>
-            <Button type="submit" disabled={!isFormValid() || loading}>
+            <Button id={testIds.matchReport.submitBtn} type="submit" disabled={!isFormValid() || loading}>
               {loading ? (
                 <LoadingSpinner size="sm" />
               ) : (

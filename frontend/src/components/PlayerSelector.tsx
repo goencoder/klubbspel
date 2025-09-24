@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
 import type { Player } from '@/types/api'
 import { toast } from 'sonner'
+import { testIds } from '@/lib/testIds'
 
 interface PlayerSelectorProps {
   value?: string
@@ -17,6 +18,7 @@ interface PlayerSelectorProps {
   clubId?: string
   excludePlayerId?: string
   className?: string
+  id?: string
 }
 
 export type PlayerSelectorHandle = {
@@ -28,7 +30,8 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
   onPlayerSelected,
   clubId,
   excludePlayerId,
-  className
+  className,
+  id
 }: PlayerSelectorProps, ref) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -98,10 +101,18 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
     onPlayerSelected(player)
   }
 
+  // Generate IDs based on context
+  const selectorContext = id || 'default'
+  const triggerId = testIds.playerSelector.trigger(selectorContext)
+  const popoverId = testIds.playerSelector.popover(selectorContext)
+  const searchId = testIds.playerSelector.searchInput(selectorContext)
+  const optionsId = testIds.playerSelector.optionsList(selectorContext)
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          id={triggerId}
           ref={triggerRef}
           type="button"
           role="combobox"
@@ -112,9 +123,10 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
           <ArrowSwapVertical size={16} className="ml-2 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent id={popoverId} className="w-full p-0" align="start">
         <Command>
           <CommandInput 
+            id={searchId}
             placeholder={t('common.search') + '...'}
             value={searchQuery}
             onValueChange={setSearchQuery}
@@ -126,17 +138,20 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
               </p>
             </div>
           </CommandEmpty>
-          <CommandGroup>
+          <CommandGroup id={optionsId}>
             {loading && (
               <div className="py-2">
                 <LoadingSpinner size="sm" />
               </div>
             )}
-            {players.map((player) => (
+            {players.map((player, index) => (
               <CommandItem
                 key={player.id}
+                id={testIds.playerSelector.option(index)}
                 onSelect={() => handlePlayerSelect(player)}
                 className="cursor-pointer"
+                data-player-id={player.id}
+                data-player-name={player.displayName}
               >
                 <TickCircle
                   size={16}

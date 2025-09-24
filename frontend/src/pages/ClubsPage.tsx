@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, LoadingGrid, SharedEmptyState, ActionGroup } from './Styles'
 import { DEFAULT_SPORT, sportTranslationKey } from '@/lib/sports'
+import { testIds } from '@/lib/testIds'
 
 export function ClubsPage() {
   const { t } = useTranslation()
@@ -251,7 +252,7 @@ export function ClubsPage() {
     loadClubPlayers(club.id)
   }
 
-  const ClubCard = ({ club }: { club: Club }) => {
+  const ClubCard = ({ club, index }: { club: Club; index: number }) => {
     const { isClubAdmin, isPlatformOwner } = useAuthStore()
     const playerData = clubPlayers[club.id]
     const isLoadingPlayers = loadingClubPlayers[club.id]
@@ -268,7 +269,7 @@ export function ClubsPage() {
     }, [club.id, playerData, isLoadingPlayers])
 
     return (
-        <Card className="hover:shadow-md transition-shadow" data-testid={`club-card-${club.id}`}>
+        <Card id={testIds.clubsList.card(index)} className="hover:shadow-md transition-shadow">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-3">
@@ -276,8 +277,8 @@ export function ClubsPage() {
                   <Buildings2 className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-lg" data-testid={`club-name-${club.id}`}>{club.name}</CardTitle>
-                  <div className="flex items-center space-x-2 mt-1">
+                  <CardTitle id={testIds.clubsList.cardTitle(index)} className="text-lg">{club.name}</CardTitle>
+                  <div id={testIds.clubsList.cardStats(index)} className="flex items-center space-x-2 mt-1">
                     <div className="flex items-center space-x-1 text-sm text-muted-foreground">
                       <User size={14} />
                       <span>
@@ -286,11 +287,11 @@ export function ClubsPage() {
                     </div>
                     {playerData && playerData.count > 0 && (
                         <Button
+                            id={testIds.clubsList.viewBtn(index)}
                             variant="ghost"
                             size="sm"
                             onClick={() => openClubDetails(club)}
                             className="h-6 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
-                            data-testid={`view-club-details-${club.id}`}
                         >
                           <Eye size={14} className="mr-1" />
                           {t('common.viewDetails')}
@@ -307,13 +308,13 @@ export function ClubsPage() {
                   </div>
                 </div>
               </div>
-              <ActionGroup>
+              <ActionGroup id={testIds.clubsList.cardActions(index)}>
                 <Button
+                    id={testIds.clubsList.editBtn(index)}
                     variant="ghost"
                     size="sm"
                     onClick={() => openEditDialog(club)}
                     className="h-8 w-8 p-0"
-                    data-testid={`edit-club-${club.id}`}
                 >
                   <Edit2 size={16} />
                 </Button>
@@ -321,10 +322,10 @@ export function ClubsPage() {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
+                            id={testIds.clubsList.deleteBtn(index)}
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            data-testid={`delete-club-${club.id}`}
                         >
                           <Trash size={16} />
                         </Button>
@@ -357,25 +358,24 @@ export function ClubsPage() {
   }
 
   const CreateClubForm = () => (
-      <div className="space-y-4">
+      <div id={testIds.clubCreation.form} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="create-club-name">{t('clubs.name')} *</Label>
+          <Label id={testIds.clubCreation.nameLabel} htmlFor="create-club-name">{t('clubs.name')} *</Label>
           <Input
-              id="create-club-name"
+              id={testIds.clubCreation.nameInput}
               value={createFormData.name}
               onChange={(e) => setCreateFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder={t('clubs.name')}
               maxLength={80}
               autoFocus
-              data-testid="create-club-name-input"
           />
         </div>
         <DialogFooter>
           <Button
+              id={testIds.clubCreation.submitBtn}
               onClick={handleCreateClub}
               disabled={submitting || !createFormData.name.trim()}
               className="min-w-[80px]"
-              data-testid="create-club-submit-button"
           >
             {submitting ? t('common.loading') : t('common.create')}
           </Button>
@@ -411,24 +411,24 @@ export function ClubsPage() {
   )
 
   return (
-      <PageWrapper>
+      <PageWrapper id={testIds.clubsList.container}>
         {/* Header */}
-        <PageHeaderSection>
+        <PageHeaderSection id={testIds.clubsList.header}>
           <HeaderContent>
-            <h1 data-testid="clubs-title">{t('clubs.title')}</h1>
-            <p>{t('clubs.subtitle')}</p>
+            <h1 id={testIds.clubsList.title}>{t('clubs.title')}</h1>
+            <p id={testIds.clubsList.subtitle}>{t('clubs.subtitle')}</p>
           </HeaderContent>
 
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
-              <Button onClick={handleCreateClubClick} className="flex items-center space-x-2" data-testid="create-club-button">
+              <Button id={testIds.clubsList.createBtn} onClick={handleCreateClubClick} className="flex items-center space-x-2">
                 <Add size={18} color="white" />
                 <span>{t('clubs.createNew')}</span>
               </Button>
             </DialogTrigger>
-            <DialogContent data-testid="create-club-dialog">
+            <DialogContent id={testIds.clubCreation.dialog}>
               <DialogHeader>
-                <DialogTitle>{t('clubs.createNew')}</DialogTitle>
+                <DialogTitle id={testIds.clubCreation.title}>{t('clubs.createNew')}</DialogTitle>
                 <DialogDescription>
                   Create a new table tennis club to organize players and tournaments.
                 </DialogDescription>
@@ -442,10 +442,10 @@ export function ClubsPage() {
         <SearchSection>
           <SearchNormal1 size={18} color="var(--color-muted-foreground)" />
           <Input
+              id={testIds.clubsList.searchInput}
               placeholder={t('clubs.searchClubs')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              data-testid="search-clubs-input"
           />
         </SearchSection>
 
@@ -470,7 +470,7 @@ export function ClubsPage() {
               ))}
             </LoadingGrid>
         ) : clubs.length === 0 ? (
-            <Card className="p-12">
+            <Card id={testIds.clubsList.emptyState} className="p-12">
               <SharedEmptyState>
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
                   <Buildings2 size={32} />
@@ -488,10 +488,10 @@ export function ClubsPage() {
               </SharedEmptyState>
             </Card>
         ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-              {clubs.map((club) => (
+            <div id={testIds.clubsList.grid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+              {clubs.map((club, index) => (
                   <Link to={`/clubs/${club.id}`} key={club.id}>
-                    <ClubCard club={club} />
+                    <ClubCard club={club} index={index} />
                   </Link>
               ))}
             </div>

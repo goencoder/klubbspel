@@ -4,6 +4,47 @@
 
 Klubbspel is a table tennis tournament management system with Go backend (gRPC + MongoDB), React TypeScript frontend, and comprehensive testing infrastructure.
 
+## 🚨 CRITICAL MUST RULES - DETERMINISTIC UI TESTING 🚨
+
+### MANDATORY REQUIREMENT: ALL UI Components MUST Have Deterministic IDs
+
+**NEVER create, modify, or update ANY UI component without adding deterministic test IDs.**
+
+```tsx
+// 1. ALWAYS import testIds utility
+import { testIds } from '@/lib/testIds'
+
+// 2. Add IDs to ALL interactive elements
+<Dialog id={testIds.matchReport.dialog}>
+  <DialogTitle id={testIds.matchReport.title}>Report Match</DialogTitle>
+  <Input id={testIds.matchReport.playerAInput} />
+  <Button id={testIds.matchReport.submitBtn}>Submit</Button>
+</Dialog>
+
+// 3. Use indexed IDs for lists/tables
+{matches.map((match, index) => (
+  <tr key={match.id} id={testIds.matchesList.row(index)}>
+    <td id={testIds.matchesList.playerCell(index)}>{match.player}</td>
+    <Button id={testIds.matchesList.editBtn(index)}>Edit</Button>
+  </tr>
+))}
+```
+
+### ENFORCEMENT RULES:
+- ✅ **REQUIRED**: Every button, input, dialog, form element MUST have a deterministic ID
+- ✅ **REQUIRED**: Use `/src/lib/testIds.ts` utility for ALL IDs
+- ✅ **REQUIRED**: List items and table rows MUST use indexed ID functions
+- ❌ **FORBIDDEN**: Auto-generated selectors (e1274, e1349) are NOT acceptable
+- ❌ **FORBIDDEN**: Relying on className, text content, or DOM structure for testing
+
+### Before completing ANY component, verify:
+- [ ] All interactive elements have deterministic IDs
+- [ ] TestIds utility is updated with new IDs
+- [ ] Indexed functions used for repeated elements
+- [ ] Playwright tests can use stable selectors
+
+See `/memory-bank/deterministic-ui-testing.md` for complete implementation details.
+
 ## 🚀 Quick Bootstrap & Build (Essential Commands)
 
 Run these commands in order for a fresh clone:

@@ -14,6 +14,7 @@ import { colors } from '@/Styles'
 import { EditMatchDialog } from './EditMatchDialog'
 import { DeleteMatchDialog } from './DeleteMatchDialog'
 import { exportMatchesToCSV, type MatchCSVData } from '@/utils/csvExport'
+import { testIds } from '@/lib/testIds'
 
 // Status Icons with semantic colors using tokens
 const WinnerIcon = styled(TickCircle)`
@@ -135,7 +136,7 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
     return (
       <Card>
         <CardContent className="p-0">
-          <SharedEmptyState>
+          <SharedEmptyState id={testIds.matchesList.emptyState}>
             <Cup size={48} />
             <h3>{t('matches.empty')}</h3>
             <p>{t('matches.emptyDescription')}</p>
@@ -146,12 +147,13 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
   }
 
   return (
-    <div className="space-y-6">
+    <div id={testIds.matchesList.container} className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle>{t('matches.title')}</CardTitle>
+        <CardHeader id={testIds.matchesList.header} className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle id={testIds.matchesList.title}>{t('matches.title')}</CardTitle>
           {matches.length > 0 && (
             <Button
+              id={testIds.matchesList.exportBtn}
               variant="outline"
               size="sm"
               onClick={handleExportCSV}
@@ -165,8 +167,8 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
         <CardContent className="p-0">
           {/* Desktop Table View */}
           <div className="hidden md:block">
-            <Table>
-              <TableHeader>
+            <Table id={testIds.matchesList.table}>
+              <TableHeader id={testIds.matchesList.tableHeader}>
                 <TableRow>
                   <TableHead className="w-16">#</TableHead>
                   <TableHead>{t('matches.player_a')}</TableHead>
@@ -176,7 +178,7 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                   <TableHead className="text-center">{t('matches.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody id={testIds.matchesList.tableBody}>
                 {matches.map((match, index) => {
                   const [scoreA, scoreB] = getScores(match)
                   const playerAName = getPlayerName(match, 0)
@@ -185,23 +187,23 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                   const playedAt = new Date(match.metadata.playedAt)
 
                   return (
-                    <TableRow key={match.id}>
+                    <TableRow key={match.id} id={testIds.matchesList.row(index)} data-match-id={match.id}>
                       <TableCell className="text-center text-muted-foreground">
                         {index + 1}
                       </TableCell>
-                      <TableCell>
+                      <TableCell id={testIds.matchesList.playerACell(index)}>
                         <div className="flex items-center space-x-2">
                           <span className={playerAName === winner ? 'font-semibold' : ''}>
                             {playerAName}
                           </span>
                           {playerAName === winner ? (
-                            <WinnerIcon size={16} />
+                            <WinnerIcon id={testIds.matchesList.winnerIcon(index)} size={16} />
                           ) : (
                             <LoserIcon size={16} />
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell id={testIds.matchesList.scoreCell(index)} className="text-center">
                         <div className="flex items-center justify-center space-x-2">
                           <span className={scoreA > scoreB ? 'font-bold text-foreground' : 'text-muted-foreground'}>
                             {scoreA}
@@ -212,19 +214,19 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell id={testIds.matchesList.playerBCell(index)}>
                         <div className="flex items-center space-x-2">
                           <span className={playerBName === winner ? 'font-semibold' : ''}>
                             {playerBName}
                           </span>
                           {playerBName === winner ? (
-                            <WinnerIcon size={16} />
+                            <WinnerIcon id={testIds.matchesList.winnerIcon(index)} size={16} />
                           ) : (
                             <LoserIcon size={16} />
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell id={testIds.matchesList.dateCell(index)} className="text-muted-foreground">
                         <div className="flex flex-col items-start">
                           <span className="text-sm">
                             {playedAt.toLocaleDateString()}
@@ -237,9 +239,10 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell id={testIds.matchesList.actionsCell(index)}>
                         <div className="flex items-center justify-center space-x-2">
                           <Button
+                            id={testIds.matchesList.editBtn(index)}
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditMatch(match)}
@@ -248,6 +251,7 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button
+                            id={testIds.matchesList.deleteBtn(index)}
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteMatch(match)}
@@ -360,6 +364,7 @@ export function MatchesList({ seriesId, seriesStartDate, seriesEndDate, seriesNa
       {hasNextPage && (
         <div className="flex justify-center">
           <Button
+            id={testIds.matchesList.loadMoreBtn}
             variant="outline"
             onClick={() => loadMatches(nextPageToken)}
             disabled={loading}

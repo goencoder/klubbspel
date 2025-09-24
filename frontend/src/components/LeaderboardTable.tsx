@@ -11,6 +11,7 @@ import { Cup, Export, Medal, TickCircle, CloseCircle } from 'iconsax-reactjs'
 import { useTranslation } from 'react-i18next'
 import { exportLeaderboardToCSV, type LeaderboardCSVData } from '@/utils/csvExport'
 import { toast } from 'sonner'
+import { testIds } from '@/lib/testIds'
 
 export type UILBRow = {
   rank: number
@@ -74,20 +75,21 @@ export function LeaderboardTable({
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card id={testIds.leaderboard.container}>
+      <CardHeader id={testIds.leaderboard.header}>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle id={testIds.leaderboard.title} className="flex items-center gap-2">
               <Cup size={20} className="text-primary" />
               {title || t('leaderboard.title')}
             </CardTitle>
             {description && (
-              <CardDescription>{description}</CardDescription>
+              <CardDescription id={testIds.leaderboard.description}>{description}</CardDescription>
             )}
           </div>
           {showExport && leaderboard.length > 0 && (
             <Button
+              id={testIds.leaderboard.exportBtn}
               variant="outline"
               size="sm"
               onClick={handleExportCSV}
@@ -103,7 +105,7 @@ export function LeaderboardTable({
         {loading ? (
           <LoadingSpinner />
         ) : leaderboard.length === 0 ? (
-          <div className="text-center py-8">
+          <div id={testIds.leaderboard.emptyState} className="text-center py-8">
             <Cup size={48} className="mb-4 mx-auto text-muted-foreground" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
               {t('leaderboard.empty')}
@@ -114,8 +116,8 @@ export function LeaderboardTable({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
+            <Table id={testIds.leaderboard.table}>
+              <TableHeader id={testIds.leaderboard.tableHeader}>
                 <TableRow>
                   <TableHead className="w-20">{t('leaderboard.rank')}</TableHead>
                   <TableHead>{t('leaderboard.player')}</TableHead>
@@ -126,37 +128,41 @@ export function LeaderboardTable({
                   <TableHead className="text-center">{t('leaderboard.winrate')}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {leaderboard.map((row) => (
-                  <TableRow key={row.playerId}>
-                    <TableCell>
+              <TableBody id={testIds.leaderboard.tableBody}>
+                {leaderboard.map((row, index) => (
+                  <TableRow key={row.playerId} id={testIds.leaderboard.row(index)} data-rank={row.rank} data-player-id={row.playerId}>
+                    <TableCell id={testIds.leaderboard.rankCell(index)}>
                       <div className="flex items-center space-x-2">
-                        {getRankIcon(row.rank)}
+                        {getRankIcon(row.rank) && (
+                          <div id={testIds.leaderboard.rankIcon(index)}>
+                            {getRankIcon(row.rank)}
+                          </div>
+                        )}
                         <Badge variant={getRankBadge(row.rank)}>#{row.rank}</Badge>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell id={testIds.leaderboard.playerCell(index)}>
                       <span className="font-medium">{row.displayName}</span>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell id={testIds.leaderboard.ratingCell(index)} className="text-center">
                       <span className="font-mono font-semibold">
                         {Math.round(row.rating)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center">{row.games}</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell id={testIds.leaderboard.gamesCell(index)} className="text-center">{row.games}</TableCell>
+                    <TableCell id={testIds.leaderboard.winsCell(index)} className="text-center">
                       <div className="flex items-center justify-center space-x-1">
                         <TickCircle size={14} className="text-green-600" />
                         <span className="text-green-600 font-medium">{row.wins}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell id={testIds.leaderboard.lossesCell(index)} className="text-center">
                       <div className="flex items-center justify-center space-x-1">
                         <CloseCircle size={14} className="text-red-600" />
                         <span className="text-red-600 font-medium">{row.losses}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell id={testIds.leaderboard.winrateCell(index)} className="text-center">
                       <span
                         className={`font-medium ${calculateWinRate(row.wins, row.games) >= 60
                           ? 'text-green-600'
