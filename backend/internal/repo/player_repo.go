@@ -204,7 +204,7 @@ func (r *PlayerRepo) ListWithCursorAndFilters(ctx context.Context, pageSize int3
 
 	filter := bson.M{}
 
-	// Handle search query
+	// Handle search query with simple case-insensitive matching
 	if filters.SearchQuery != "" {
 		filter["display_name"] = bson.M{"$regex": filters.SearchQuery, "$options": "i"}
 	}

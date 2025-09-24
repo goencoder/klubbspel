@@ -12,6 +12,9 @@
       "name": "ClubService"
     },
     {
+      "name": "PlayerService"
+    },
+    {
       "name": "ClubMembershipService"
     },
     {
@@ -19,9 +22,6 @@
     },
     {
       "name": "MatchService"
-    },
-    {
-      "name": "PlayerService"
     },
     {
       "name": "SeriesService"

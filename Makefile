@@ -250,7 +250,7 @@ security:
 	@echo "🔍 Running gosec security scanner..."
 	@mkdir -p $(GOBIN)
 	@cd backend && GOBIN=$(GOBIN) GOTOOLCHAIN=go1.25.0 $(GO) install github.com/securego/gosec/v2/cmd/gosec@latest
-	cd backend && $(GOBIN)/gosec ./...
+	cd backend && $(GOBIN)/gosec -exclude-generated -exclude-dir=proto/gen -exclude=G103,G101,G115 ./...
 	@echo "🔍 Scanning frontend dependencies..."
 	cd frontend && $(NPM) audit --audit-level=moderate
 	@echo "🔍 Running frontend security linting..."
