@@ -74,6 +74,7 @@ export function CreateSeriesDialog({
     endsAt: string
     sport: Sport
     format: SeriesFormat
+    setsToPlay: number
   }>({
     title: '',
     visibility: 'SERIES_VISIBILITY_OPEN',
@@ -82,6 +83,7 @@ export function CreateSeriesDialog({
     endsAt: '',
     sport: DEFAULT_SPORT,
     format: DEFAULT_SERIES_FORMAT,
+    setsToPlay: 5,
   })
   const [hasManualClubSelection, setHasManualClubSelection] = useState(false)
 
@@ -130,6 +132,7 @@ export function CreateSeriesDialog({
         endsAt: '',
         sport: DEFAULT_SPORT,
         format: DEFAULT_SERIES_FORMAT,
+        setsToPlay: 5,
       })
       setAvailableSports(SUPPORTED_SPORTS)
       setClubs([])
@@ -195,6 +198,7 @@ export function CreateSeriesDialog({
         clubId?: string
         sport: Sport
         format: SeriesFormat
+        setsToPlay: number
       } = {
         title: formData.title,
         visibility: formData.visibility,
@@ -202,6 +206,7 @@ export function CreateSeriesDialog({
         endsAt,
         sport: formData.sport,
         format: formData.format,
+        setsToPlay: formData.setsToPlay,
         ...(formData.clubId && { clubId: formData.clubId }),
         ...clubIdPayload,
       }
@@ -394,6 +399,30 @@ export function CreateSeriesDialog({
               </div>
             )}
           </div>
+
+          {/* Sets to Play (for Table Tennis) */}
+          {formData.sport === 'SPORT_TABLE_TENNIS' && (
+            <div className="space-y-2">
+              <Label htmlFor="setsToPlay">{t('series.setsToPlay', 'Sets to Play')} *</Label>
+              <Select
+                value={formData.setsToPlay.toString()}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    setsToPlay: parseInt(value, 10),
+                  }))
+                }
+              >
+                <SelectTrigger id="setsToPlay">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">{t('series.bestOf3', 'Best of 3')}</SelectItem>
+                  <SelectItem value="5">{t('series.bestOf5', 'Best of 5')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">

@@ -29,21 +29,40 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 		return nil, err
 	}
 
-	series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format))
+	// Set scoring profile based on sport if not specified
+	scoringProfile := in.GetScoringProfile()
+	if scoringProfile == pb.ScoringProfile_SCORING_PROFILE_UNSPECIFIED {
+		switch sport {
+		case pb.Sport_SPORT_TABLE_TENNIS:
+			scoringProfile = pb.ScoringProfile_SCORING_PROFILE_TABLE_TENNIS_SETS
+		default:
+			return nil, status.Error(codes.InvalidArgument, "SCORING_PROFILE_REQUIRED_FOR_SPORT")
+		}
+	}
+
+	// Set sets_to_play default for table tennis
+	setsToPlay := in.GetSetsToPlay()
+	if setsToPlay == 0 && sport == pb.Sport_SPORT_TABLE_TENNIS {
+		setsToPlay = 5 // Default to best-of-5
+	}
+
+	series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format), int32(scoringProfile), setsToPlay)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "SERIES_CREATE_FAILED")
 	}
 
 	return &pb.CreateSeriesResponse{
 		Series: &pb.Series{
-			Id:         series.ID.Hex(),
-			ClubId:     series.ClubID,
-			Title:      series.Title,
-			StartsAt:   timestamppb.New(series.StartsAt),
-			EndsAt:     timestamppb.New(series.EndsAt),
-			Visibility: pb.SeriesVisibility(series.Visibility),
-			Sport:      pbSeriesSport(series.Sport),
-			Format:     pbSeriesFormat(series.Format),
+			Id:             series.ID.Hex(),
+			ClubId:         series.ClubID,
+			Title:          series.Title,
+			StartsAt:       timestamppb.New(series.StartsAt),
+			EndsAt:         timestamppb.New(series.EndsAt),
+			Visibility:     pb.SeriesVisibility(series.Visibility),
+			Sport:          pbSeriesSport(series.Sport),
+			Format:         pbSeriesFormat(series.Format),
+			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
+			SetsToPlay:     series.SetsToPlay,
 		},
 	}, nil
 }
@@ -84,14 +103,16 @@ func (s *SeriesService) ListSeries(ctx context.Context, in *pb.ListSeriesRequest
 	var pbSeries []*pb.Series
 	for _, series := range seriesList {
 		pbSeries = append(pbSeries, &pb.Series{
-			Id:         series.ID.Hex(),
-			ClubId:     series.ClubID,
-			Title:      series.Title,
-			StartsAt:   timestamppb.New(series.StartsAt),
-			EndsAt:     timestamppb.New(series.EndsAt),
-			Visibility: pb.SeriesVisibility(series.Visibility),
-			Sport:      pbSeriesSport(series.Sport),
-			Format:     pbSeriesFormat(series.Format),
+			Id:             series.ID.Hex(),
+			ClubId:         series.ClubID,
+			Title:          series.Title,
+			StartsAt:       timestamppb.New(series.StartsAt),
+			EndsAt:         timestamppb.New(series.EndsAt),
+			Visibility:     pb.SeriesVisibility(series.Visibility),
+			Sport:          pbSeriesSport(series.Sport),
+			Format:         pbSeriesFormat(series.Format),
+			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
+			SetsToPlay:     series.SetsToPlay,
 		})
 	}
 
@@ -119,14 +140,16 @@ func (s *SeriesService) GetSeries(ctx context.Context, in *pb.GetSeriesRequest) 
 
 	return &pb.GetSeriesResponse{
 		Series: &pb.Series{
-			Id:         series.ID.Hex(),
-			ClubId:     series.ClubID,
-			Title:      series.Title,
-			StartsAt:   timestamppb.New(series.StartsAt),
-			EndsAt:     timestamppb.New(series.EndsAt),
-			Visibility: pb.SeriesVisibility(series.Visibility),
-			Sport:      pbSeriesSport(series.Sport),
-			Format:     pbSeriesFormat(series.Format),
+			Id:             series.ID.Hex(),
+			ClubId:         series.ClubID,
+			Title:          series.Title,
+			StartsAt:       timestamppb.New(series.StartsAt),
+			EndsAt:         timestamppb.New(series.EndsAt),
+			Visibility:     pb.SeriesVisibility(series.Visibility),
+			Sport:          pbSeriesSport(series.Sport),
+			Format:         pbSeriesFormat(series.Format),
+			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
+			SetsToPlay:     series.SetsToPlay,
 		},
 	}, nil
 }
@@ -158,6 +181,10 @@ func (s *SeriesService) UpdateSeries(ctx context.Context, in *pb.UpdateSeriesReq
 					return nil, err
 				}
 				updates["format"] = int32(format)
+			case "scoring_profile":
+				updates["scoring_profile"] = int32(in.GetSeries().GetScoringProfile())
+			case "sets_to_play":
+				updates["sets_to_play"] = in.GetSeries().GetSetsToPlay()
 			}
 		}
 	} else {
@@ -176,6 +203,8 @@ func (s *SeriesService) UpdateSeries(ctx context.Context, in *pb.UpdateSeriesReq
 			return nil, err
 		}
 		updates["format"] = int32(format)
+		updates["scoring_profile"] = int32(in.GetSeries().GetScoringProfile())
+		updates["sets_to_play"] = in.GetSeries().GetSetsToPlay()
 	}
 
 	if len(updates) == 0 {
@@ -189,14 +218,16 @@ func (s *SeriesService) UpdateSeries(ctx context.Context, in *pb.UpdateSeriesReq
 
 	return &pb.UpdateSeriesResponse{
 		Series: &pb.Series{
-			Id:         series.ID.Hex(),
-			ClubId:     series.ClubID,
-			Title:      series.Title,
-			StartsAt:   timestamppb.New(series.StartsAt),
-			EndsAt:     timestamppb.New(series.EndsAt),
-			Visibility: pb.SeriesVisibility(series.Visibility),
-			Sport:      pbSeriesSport(series.Sport),
-			Format:     pbSeriesFormat(series.Format),
+			Id:             series.ID.Hex(),
+			ClubId:         series.ClubID,
+			Title:          series.Title,
+			StartsAt:       timestamppb.New(series.StartsAt),
+			EndsAt:         timestamppb.New(series.EndsAt),
+			Visibility:     pb.SeriesVisibility(series.Visibility),
+			Sport:          pbSeriesSport(series.Sport),
+			Format:         pbSeriesFormat(series.Format),
+			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
+			SetsToPlay:     series.SetsToPlay,
 		},
 	}, nil
 }

@@ -36,6 +36,7 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
+  const [clubNames, setClubNames] = useState<Map<string, string>>(new Map())
   const triggerRef = useRef<HTMLButtonElement | null>(null)
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -61,6 +62,42 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
       )
       
       setPlayers(filteredPlayers)
+
+            // Fetch club names for clubs we don't have cached - simplified approach
+      const clubIdsToFetch = new Set<string>()
+      filteredPlayers.forEach(player => {
+        player.clubMemberships?.forEach(membership => {
+          if (membership.active) {
+            clubIdsToFetch.add(membership.clubId)
+          }
+        })
+      })
+
+      // Fetch missing club names asynchronously without affecting search state
+      if (clubIdsToFetch.size > 0) {
+        Promise.allSettled(
+          Array.from(clubIdsToFetch).map(async (clubId) => {
+            try {
+              const club = await apiClient.getClub(clubId)
+              setClubNames(prev => {
+                const newMap = new Map(prev)
+                if (!newMap.has(clubId)) { // Only set if not already cached
+                  newMap.set(clubId, club.name)
+                }
+                return newMap
+              })
+            } catch (_error) {
+              setClubNames(prev => {
+                const newMap = new Map(prev)
+                if (!newMap.has(clubId)) { // Only set if not already cached
+                  newMap.set(clubId, t('common.unknownClub', 'Unknown Club'))
+                }
+                return newMap
+              })
+            }
+          })
+        )
+      }
     } catch (error: unknown) {
       toast.error((error as Error).message || t('errors.generic'))
     } finally {
@@ -106,14 +143,27 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
           type="button"
           role="combobox"
           aria-expanded={open}
-          className={cn(buttonVariants({ variant: 'outline' }), 'w-full justify-between', className)}
+          className={cn(buttonVariants({ variant: 'outline' }), 'w-full justify-between text-left', className)}
         >
-          {selectedPlayer ? selectedPlayer.displayName : t('players.selectPlayer')}
-          <ArrowSwapVertical size={16} className="ml-2 opacity-50" />
+          {selectedPlayer ? (
+            <div className="flex-1 min-w-0">
+              <div className="font-medium truncate">{selectedPlayer.displayName}</div>
+              {(() => {
+                const primaryClub = selectedPlayer.clubMemberships?.find(m => m.active) || selectedPlayer.clubMemberships?.[0]
+                const clubName = primaryClub ? clubNames.get(primaryClub.clubId) : undefined
+                return clubName ? (
+                  <div className="text-xs text-muted-foreground truncate">{clubName}</div>
+                ) : null
+              })()}
+            </div>
+          ) : (
+            <span className="text-muted-foreground">{t('players.selectPlayer')}</span>
+          )}
+          <ArrowSwapVertical size={16} className="ml-2 opacity-50 flex-shrink-0" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput 
             placeholder={t('common.search') + '...'}
             value={searchQuery}
@@ -132,24 +182,35 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
                 <LoadingSpinner size="sm" />
               </div>
             )}
-            {players.map((player) => (
-              <CommandItem
-                key={player.id}
-                onSelect={() => handlePlayerSelect(player)}
-                className="cursor-pointer"
-              >
-                <TickCircle
-                  size={16}
-                  className={cn(
-                    "mr-2",
-                    selectedPlayer?.id === player.id ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                <div className="flex-1">
-                  <div className="font-medium">{player.displayName}</div>
-                </div>
-              </CommandItem>
-            ))}
+            {players.map((player) => {
+              // Get the primary active club membership for display
+              const primaryClub = player.clubMemberships?.find(m => m.active) || player.clubMemberships?.[0]
+              const clubName = primaryClub ? clubNames.get(primaryClub.clubId) : undefined
+              
+              return (
+                <CommandItem
+                  key={player.id}
+                  onSelect={() => handlePlayerSelect(player)}
+                  className="cursor-pointer"
+                >
+                  <TickCircle
+                    size={16}
+                    className={cn(
+                      "mr-2",
+                      selectedPlayer?.id === player.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{player.displayName}</div>
+                    {clubName && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {clubName}
+                      </div>
+                    )}
+                  </div>
+                </CommandItem>
+              )
+            })}
           </CommandGroup>
         </Command>
       </PopoverContent>

@@ -28,6 +28,13 @@ export type Sport =
   | 'SPORT_TENNIS'
   | 'SPORT_PADEL'
 
+export type ScoringProfile =
+  | 'SCORING_PROFILE_UNSPECIFIED'
+  | 'SCORING_PROFILE_TABLE_TENNIS_SETS'
+  | 'SCORING_PROFILE_SCORELINE'
+  | 'SCORING_PROFILE_STROKE_CARD'
+  | 'SCORING_PROFILE_WEIGH_IN'
+
 export type SeriesFormat =
   | 'SERIES_FORMAT_UNSPECIFIED'
   | 'SERIES_FORMAT_OPEN_PLAY'
@@ -166,6 +173,8 @@ export interface Series {
   visibility: SeriesVisibility
   sport: Sport
   format: SeriesFormat
+  scoringProfile: ScoringProfile
+  setsToPlay: number  // For table tennis: 3 or 5
 }
 
 export interface CreateSeriesRequest {
@@ -176,6 +185,8 @@ export interface CreateSeriesRequest {
   visibility: SeriesVisibility
   sport?: Sport
   format?: SeriesFormat
+  scoringProfile?: ScoringProfile
+  setsToPlay?: number
 }
 
 export interface UpdateSeriesRequest {
@@ -224,6 +235,51 @@ export interface ReportMatchRequest {
 }
 
 export interface ReportMatchResponse {
+  matchId: string
+}
+
+// V2 Match types for multi-sport support
+export interface MatchParticipant {
+  playerId?: string
+  teamId?: string
+}
+
+export interface TableTennisResult {
+  setsA: number
+  setsB: number
+}
+
+export interface ScorelineResult {
+  scoreA: number
+  scoreB: number
+  shootout?: boolean
+}
+
+export interface StrokeCardResult {
+  totalStrokes: number
+}
+
+export interface WeighInResult {
+  totalWeightKg: number
+  count: number
+}
+
+export interface MatchResult {
+  tableTennis?: TableTennisResult
+  scoreline?: ScorelineResult
+  strokeCard?: StrokeCardResult
+  weighIn?: WeighInResult
+}
+
+export interface ReportMatchV2Request {
+  seriesId: string
+  participantA: MatchParticipant
+  participantB: MatchParticipant
+  result: MatchResult
+  playedAt: string
+}
+
+export interface ReportMatchV2Response {
   matchId: string
 }
 

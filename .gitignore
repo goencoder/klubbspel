@@ -67,6 +67,9 @@ proto/gen/
 backend/proto/gen/
 frontend/src/proto/
 
+# Third-party dependencies (downloaded temporarily for offline builds)
+third_party/
+
 # Package files
 *.tar.gz
 *.zip

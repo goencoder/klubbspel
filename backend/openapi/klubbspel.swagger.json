@@ -1437,6 +1437,40 @@
           "MatchService"
         ]
       }
+    },
+    "/v2/matches:report": {
+      "post": {
+        "summary": "V2 Report the result of a completed match with multi-sport support",
+        "description": "AUTHORIZATION: No explicit authentication check in service code\n\nPURPOSE: Records match results with extensible sport-specific validation\n\nDATA MODEL CHANGES:\n- Creates new Match document in MongoDB\n- Validates match according to series scoring profile\n- Supports future expansion to multiple sports\n\nTODO: Should require authentication and verify participant eligibility",
+        "operationId": "MatchService_ReportMatchV2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReportMatchV2Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReportMatchV2Request"
+            }
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -1757,6 +1791,15 @@
         "format": {
           "$ref": "#/definitions/v1SeriesFormat",
           "description": "Competition format. Defaults to LADDER."
+        },
+        "scoringProfile": {
+          "$ref": "#/definitions/v1ScoringProfile",
+          "description": "Scoring profile for match validation. Defaults based on sport."
+        },
+        "setsToPlay": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Number of sets to play (for table tennis). Defaults to 5."
         }
       },
       "title": "Request to create a new tournament series"
@@ -2158,6 +2201,42 @@
       },
       "title": "Response containing list of series and cursor pagination info"
     },
+    "v1MatchParticipant": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "title": "Individual player ID"
+        },
+        "teamId": {
+          "type": "string",
+          "title": "Team ID (future expansion for team sports)"
+        }
+      },
+      "description": "MatchParticipant represents a participant in a match (individual or team)\nCurrently only individual players are supported, but this allows future\nexpansion to team-based sports."
+    },
+    "v1MatchResult": {
+      "type": "object",
+      "properties": {
+        "tableTennis": {
+          "$ref": "#/definitions/v1TableTennisResult",
+          "title": "Table tennis set-based result"
+        },
+        "scoreline": {
+          "$ref": "#/definitions/v1ScorelineResult",
+          "title": "Goal/point-based result (future)"
+        },
+        "strokeCard": {
+          "$ref": "#/definitions/v1StrokeCardResult",
+          "title": "Stroke-based result (future)"
+        },
+        "weighIn": {
+          "$ref": "#/definitions/v1WeighInResult",
+          "title": "Weight-based result (future)"
+        }
+      },
+      "title": "MatchResult contains the result of a match in sport-specific format"
+    },
     "v1MatchView": {
       "type": "object",
       "properties": {
@@ -2363,7 +2442,7 @@
           "title": "When the match was played (must be within series time boundaries)"
         }
       },
-      "title": "Request to report the result of a table tennis match"
+      "title": "Request to report the result of a table tennis match\nDEPRECATED: Use ReportMatchV2Request for new implementations"
     },
     "v1ReportMatchResponse": {
       "type": "object",
@@ -2374,6 +2453,43 @@
         }
       },
       "title": "Response after successfully reporting a match"
+    },
+    "v1ReportMatchV2Request": {
+      "type": "object",
+      "properties": {
+        "seriesId": {
+          "type": "string",
+          "title": "ID of the tournament series this match belongs to"
+        },
+        "participantA": {
+          "$ref": "#/definitions/v1MatchParticipant",
+          "title": "First participant in the match"
+        },
+        "participantB": {
+          "$ref": "#/definitions/v1MatchParticipant",
+          "title": "Second participant in the match"
+        },
+        "result": {
+          "$ref": "#/definitions/v1MatchResult",
+          "title": "Match result in sport-specific format"
+        },
+        "playedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the match was played (must be within series time boundaries)"
+        }
+      },
+      "title": "V2 Request to report the result of a match with multi-sport support"
+    },
+    "v1ReportMatchV2Response": {
+      "type": "object",
+      "properties": {
+        "matchId": {
+          "type": "string",
+          "title": "ID of the created match record"
+        }
+      },
+      "title": "V2 Response after successfully reporting a match"
     },
     "v1RevokeTokenRequest": {
       "type": "object",
@@ -2389,6 +2505,38 @@
         }
       },
       "title": "Response after revoking a token"
+    },
+    "v1ScorelineResult": {
+      "type": "object",
+      "properties": {
+        "scoreA": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Score for participant A"
+        },
+        "scoreB": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Score for participant B"
+        },
+        "shootout": {
+          "type": "boolean",
+          "title": "Whether the match went to shootout/overtime"
+        }
+      },
+      "title": "ScorelineResult represents goal/point-based scoring (future: football, basketball, etc.)"
+    },
+    "v1ScoringProfile": {
+      "type": "string",
+      "enum": [
+        "SCORING_PROFILE_UNSPECIFIED",
+        "SCORING_PROFILE_TABLE_TENNIS_SETS",
+        "SCORING_PROFILE_SCORELINE",
+        "SCORING_PROFILE_STROKE_CARD",
+        "SCORING_PROFILE_WEIGH_IN"
+      ],
+      "default": "SCORING_PROFILE_UNSPECIFIED",
+      "description": "ScoringProfile defines how match results are scored and validated\nfor different sports, enabling extensible multi-sport support.\n\n - SCORING_PROFILE_UNSPECIFIED: Default value, should not be used explicitly.\n - SCORING_PROFILE_TABLE_TENNIS_SETS: Table tennis set-based scoring (best-of-3 or best-of-5)\n - SCORING_PROFILE_SCORELINE: Goal/point-based scoring (e.g., football, basketball, hockey)\n - SCORING_PROFILE_STROKE_CARD: Stroke-based scoring (e.g., golf, disc golf)\n - SCORING_PROFILE_WEIGH_IN: Weight-based scoring (e.g., fishing competitions)"
     },
     "v1SendMagicLinkRequest": {
       "type": "object",
@@ -2455,6 +2603,15 @@
         "format": {
           "$ref": "#/definitions/v1SeriesFormat",
           "description": "Competition format for the series."
+        },
+        "scoringProfile": {
+          "$ref": "#/definitions/v1ScoringProfile",
+          "title": "Scoring profile that determines how matches are validated and scored"
+        },
+        "setsToPlay": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of sets to play (for table tennis: 3 or 5)"
         }
       },
       "title": "Series represents a time-bound table tennis tournament"
@@ -2491,6 +2648,33 @@
       ],
       "default": "SPORT_UNSPECIFIED",
       "description": "Sport enumerates racket/paddle sports supported by the platform.\nTable tennis is currently the only fully supported sport but we define\nadditional values so that the API is future proof.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis."
+    },
+    "v1StrokeCardResult": {
+      "type": "object",
+      "properties": {
+        "totalStrokes": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Total strokes taken (can be expanded to per-hole later)"
+        }
+      },
+      "title": "StrokeCardResult represents stroke-based scoring (future: golf, disc golf)"
+    },
+    "v1TableTennisResult": {
+      "type": "object",
+      "properties": {
+        "setsA": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of sets won by participant A (0-5 for best-of-5)"
+        },
+        "setsB": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of sets won by participant B (0-5 for best-of-5)"
+        }
+      },
+      "title": "TableTennisResult represents set-based scoring for table tennis"
     },
     "v1UpdateClubResponse": {
       "type": "object",
@@ -2598,6 +2782,22 @@
         }
       },
       "title": "Response containing the API token for authenticated requests"
+    },
+    "v1WeighInResult": {
+      "type": "object",
+      "properties": {
+        "totalWeightKg": {
+          "type": "number",
+          "format": "double",
+          "title": "Total weight in kilograms"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of fish/items weighed"
+        }
+      },
+      "title": "WeighInResult represents weight-based scoring (future: fishing competitions)"
     }
   }
 }

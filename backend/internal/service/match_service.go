@@ -24,23 +24,14 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 		return nil, status.Error(codes.InvalidArgument, "VALIDATION_REQUIRED")
 	}
 
-	// No ties allowed
-	if in.GetScoreA() == in.GetScoreB() {
-		return nil, status.Error(codes.InvalidArgument, "VALIDATION_SCORE_TIE")
-	}
-
-	// Best of 5 validation (winner must reach 3)
-	maxScore := in.GetScoreA()
-	if in.GetScoreB() > maxScore {
-		maxScore = in.GetScoreB()
-	}
-	if maxScore < 3 {
-		return nil, status.Error(codes.InvalidArgument, "VALIDATION_BEST_OF_FIVE")
-	}
-
 	// Players cannot be the same
 	if in.GetPlayerAId() == in.GetPlayerBId() {
 		return nil, status.Error(codes.InvalidArgument, "VALIDATION_SAME_PLAYER")
+	}
+
+	// Validate table tennis scores using new helper
+	if err := validateTableTennisScore(in.GetScoreA(), in.GetScoreB(), 5); err != nil {
+		return nil, err
 	}
 
 	playedAt := in.GetPlayedAt().AsTime()
@@ -51,17 +42,9 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 		return nil, status.Errorf(codes.Internal, "failed to find series: %v", err)
 	}
 
-	// Convert match date to start of day and series dates to inclusive ranges
-	matchDate := in.GetPlayedAt().AsTime()
-	seriesStart := series.StartsAt.Truncate(24 * time.Hour)                                 // Start of start date
-	seriesEnd := series.EndsAt.Truncate(24 * time.Hour).Add(24*time.Hour - time.Nanosecond) // End of end date
-
-	if matchDate.Before(seriesStart) || matchDate.After(seriesEnd) {
-		return nil, status.Errorf(codes.InvalidArgument,
-			"match date %v must be between series start date %v and end date %v (inclusive)",
-			matchDate.Format("2006-01-02"),
-			series.StartsAt.Format("2006-01-02"),
-			series.EndsAt.Format("2006-01-02"))
+	// Use common time validation helper
+	if err := validateMatchTimeWindow(playedAt, series.StartsAt, series.EndsAt); err != nil {
+		return nil, err
 	}
 
 	// TODO: Add ELO rating calculation
@@ -72,6 +55,144 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 	}
 
 	return &pb.ReportMatchResponse{
+		MatchId: match.ID.Hex(),
+	}, nil
+}
+
+// validateTableTennisScore validates table tennis scoring rules
+func validateTableTennisScore(setsA, setsB, setsToPlay int32) error {
+	// No ties allowed
+	if setsA == setsB {
+		return status.Error(codes.InvalidArgument, "VALIDATION_SCORE_TIE")
+	}
+
+	// Calculate required wins to win the match
+	requiredSets := (setsToPlay + 1) / 2
+	
+	// Check if either player has reached the required sets to win
+	if setsA < requiredSets && setsB < requiredSets {
+		if setsToPlay == 3 {
+			return status.Error(codes.InvalidArgument, "VALIDATION_BEST_OF_THREE")
+		}
+		return status.Error(codes.InvalidArgument, "VALIDATION_BEST_OF_FIVE")
+	}
+
+	// Check that scores don't exceed what's possible
+	if setsA > requiredSets || setsB > requiredSets {
+		return status.Error(codes.InvalidArgument, "VALIDATION_SCORE_INVALID")
+	}
+
+	// Check that the loser didn't get too many sets
+	// In a valid match, the loser can have at most requiredSets-1 sets
+	if setsA == requiredSets && setsB >= requiredSets {
+		return status.Error(codes.InvalidArgument, "VALIDATION_SCORE_INVALID")
+	}
+	if setsB == requiredSets && setsA >= requiredSets {
+		return status.Error(codes.InvalidArgument, "VALIDATION_SCORE_INVALID")
+	}
+
+	return nil
+}
+
+// validateMatchTimeWindow validates that a match was played within series bounds
+func validateMatchTimeWindow(matchTime, seriesStart, seriesEnd time.Time) error {
+	// Convert to inclusive date ranges
+	seriesStartDate := seriesStart.Truncate(24 * time.Hour)
+	seriesEndDate := seriesEnd.Truncate(24 * time.Hour).Add(24*time.Hour - time.Nanosecond)
+
+	if matchTime.Before(seriesStartDate) || matchTime.After(seriesEndDate) {
+		return status.Errorf(codes.InvalidArgument,
+			"match date %v must be between series start date %v and end date %v (inclusive)",
+			matchTime.Format("2006-01-02"),
+			seriesStart.Format("2006-01-02"),
+			seriesEnd.Format("2006-01-02"))
+	}
+	return nil
+}
+
+func (s *MatchService) ReportMatchV2(ctx context.Context, in *pb.ReportMatchV2Request) (*pb.ReportMatchV2Response, error) {
+	// Basic validation
+	if in.GetSeriesId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "VALIDATION_SERIES_ID_REQUIRED")
+	}
+	
+	if in.GetParticipantA() == nil || in.GetParticipantB() == nil {
+		return nil, status.Error(codes.InvalidArgument, "VALIDATION_PARTICIPANTS_REQUIRED")
+	}
+	
+	if in.GetResult() == nil {
+		return nil, status.Error(codes.InvalidArgument, "VALIDATION_RESULT_REQUIRED")
+	}
+
+	// Get series to check scoring profile and validation rules
+	series, err := s.Series.FindByID(ctx, in.GetSeriesId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to find series: %v", err)
+	}
+
+	// Extract participant IDs (only support individual players for now)
+	var playerAId, playerBId string
+	
+	if pA := in.GetParticipantA().GetPlayerId(); pA != "" {
+		playerAId = pA
+	} else {
+		return nil, status.Error(codes.InvalidArgument, "VALIDATION_ONLY_INDIVIDUAL_PLAYERS_SUPPORTED")
+	}
+	
+	if pB := in.GetParticipantB().GetPlayerId(); pB != "" {
+		playerBId = pB
+	} else {
+		return nil, status.Error(codes.InvalidArgument, "VALIDATION_ONLY_INDIVIDUAL_PLAYERS_SUPPORTED")
+	}
+
+	// Players cannot be the same
+	if playerAId == playerBId {
+		return nil, status.Error(codes.InvalidArgument, "VALIDATION_SAME_PLAYER")
+	}
+
+	// Validate result according to series scoring profile
+	var scoreA, scoreB int32
+	
+	switch series.Sport {
+	case int32(pb.Sport_SPORT_TABLE_TENNIS):
+		// For table tennis, use TABLE_TENNIS_SETS scoring
+		ttResult := in.GetResult().GetTableTennis()
+		if ttResult == nil {
+			return nil, status.Error(codes.InvalidArgument, "VALIDATION_TABLE_TENNIS_RESULT_REQUIRED")
+		}
+		
+		scoreA = ttResult.GetSetsA()
+		scoreB = ttResult.GetSetsB()
+		
+		// Determine sets to play (default to 5 if not set)
+		setsToPlay := series.SetsToPlay
+		if setsToPlay == 0 {
+			setsToPlay = 5
+		}
+		
+		// Validate table tennis scores
+		if err := validateTableTennisScore(scoreA, scoreB, setsToPlay); err != nil {
+			return nil, err
+		}
+		
+	default:
+		return nil, status.Error(codes.Unimplemented, "SPORT_NOT_SUPPORTED")
+	}
+
+	playedAt := in.GetPlayedAt().AsTime()
+
+	// Validate match time window
+	if err := validateMatchTimeWindow(playedAt, series.StartsAt, series.EndsAt); err != nil {
+		return nil, err
+	}
+
+	// Create match using existing repository method
+	match, err := s.Matches.Create(ctx, in.GetSeriesId(), playerAId, playerBId, scoreA, scoreB, playedAt)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "MATCH_CREATE_FAILED")
+	}
+
+	return &pb.ReportMatchV2Response{
 		MatchId: match.ID.Hex(),
 	}, nil
 }

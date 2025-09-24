@@ -73,6 +73,7 @@ confidence:
 # File exclusions
 exclude-dir:
   - vendor/
+  - proto/gen/go/
   - proto/gen/
   - api/
   - node_modules/
@@ -81,3 +82,5 @@ exclude-file:
   - "*_test.go"      # Exclude test files where some patterns may be acceptable
   - "mock_*.go"      # Exclude mock files
   - "*.pb.go"        # Exclude protobuf generated files
+  - "*.pb.gw.go"     # Exclude protobuf gateway generated files
+  - "*_grpc.pb.go"   # Exclude gRPC generated files

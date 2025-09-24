@@ -270,6 +270,7 @@ export function SeriesDetailPage() {
         clubId={series.visibility === 'SERIES_VISIBILITY_CLUB_ONLY' ? series.clubId : undefined}
         seriesStartDate={series.startsAt}
         seriesEndDate={series.endsAt}
+        series={series}
         onMatchReported={handleMatchReported}
       />
     </div>

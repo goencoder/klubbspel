@@ -152,8 +152,11 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 		return entries[i].EloRating > entries[j].EloRating
 	})
 
-	// Add ranks
+	// Add ranks with overflow protection
 	for i, entry := range entries {
+		if i+1 > math.MaxInt32 {
+			return nil, fmt.Errorf("rank overflow: too many entries (%d)", i+1)
+		}
 		entry.Rank = int32(i + 1)
 	}
 
@@ -163,7 +166,10 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 		pageSize = 20
 	}
 
-	// Apply pagination to entries based on cursors
+	// Apply pagination to entries based on cursors with overflow protection
+	if len(entries) > math.MaxInt32 {
+		return nil, fmt.Errorf("entries overflow: too many entries (%d)", len(entries))
+	}
 	totalPlayers := int32(len(entries))
 	startIdx := 0
 	endIdx := len(entries)

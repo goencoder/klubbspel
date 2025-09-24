@@ -1,7 +1,23 @@
 // Match validation utilities for table tennis scoring
-export const VALID_TABLE_TENNIS_RESULTS = [
-  [3, 0], [0, 3], [3, 1], [1, 3], [3, 2], [2, 3]
-] as const
+
+/**
+ * Generates valid table tennis results for a given number of sets to play
+ */
+export function getValidTableTennisResults(setsToPlay: number): [number, number][] {
+  const requiredWins = Math.ceil(setsToPlay / 2)
+  const validResults: [number, number][] = []
+  
+  // Winner gets requiredWins, loser gets 0 to requiredWins-1
+  for (let loserSets = 0; loserSets < requiredWins; loserSets++) {
+    validResults.push([requiredWins, loserSets])
+    validResults.push([loserSets, requiredWins])
+  }
+  
+  return validResults
+}
+
+// Backward compatibility: best-of-5 results
+export const VALID_TABLE_TENNIS_RESULTS = getValidTableTennisResults(5)
 
 export type TableTennisScore = [number, number]
 
@@ -19,10 +35,11 @@ export interface ScoreAutoCompletion {
 }
 
 /**
- * Validates if a table tennis score is valid according to best-of-5 rules
+ * Validates if a table tennis score is valid according to sets-to-play rules
  */
-export function validateTableTennisScore(scoreA: number, scoreB: number): boolean {
-  return VALID_TABLE_TENNIS_RESULTS.some(([a, b]) => a === scoreA && b === scoreB)
+export function validateTableTennisScore(scoreA: number, scoreB: number, setsToPlay: number = 5): boolean {
+  const validResults = getValidTableTennisResults(setsToPlay)
+  return validResults.some(([a, b]) => a === scoreA && b === scoreB)
 }
 
 /**

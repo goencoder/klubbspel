@@ -62,6 +62,9 @@
       "cup": "Cup",
       "unknown": "Kommer snart"
     },
+    "setsToPlay": "Antal set att spela",
+    "bestOf3": "Bäst av 3",
+    "bestOf5": "Bäst av 5",
     "sections": {
       "openSeries": "Öppna serier",
       "unknownClub": "Okänd klubb"
