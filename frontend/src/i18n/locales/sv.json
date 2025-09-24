@@ -1,6 +1,8 @@
 {
   "common": {
     "loading": "Laddar...",
+    "loadingMore": "Laddar fler...",
+    "scrollForMore": "Scrolla ned för fler resultat",
     "save": "Spara",
     "saving": "Sparar...",
     "cancel": "Avbryt",

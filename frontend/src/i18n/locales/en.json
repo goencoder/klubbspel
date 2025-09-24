@@ -1,6 +1,8 @@
 {
   "common": {
     "loading": "Loading...",
+    "loadingMore": "Loading more...",
+    "scrollForMore": "Scroll down for more results",
     "save": "Save",
     "saving": "Saving...",
     "cancel": "Cancel",

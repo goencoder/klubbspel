@@ -38,8 +38,14 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
   const [searchQuery, setSearchQuery] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
+  const [pagination, setPagination] = useState<{
+    hasNextPage: boolean
+    endCursor?: string
+  }>({ hasNextPage: false })
   const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
@@ -49,12 +55,14 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
     }
   }))
 
+  // Load initial page of players
   const loadPlayers = useCallback(async () => {
     try {
       setLoading(true)
+      const clubFilter = clubId ? [clubId] : undefined
       const response = await apiClient.listPlayers({
         searchQuery: debouncedSearchQuery || undefined,
-        clubId: clubId,
+        clubFilter,
         pageSize: 50
       }, 'player-selector')
 
@@ -64,12 +72,60 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
       )
       
       setPlayers(filteredPlayers)
+      setPagination({
+        hasNextPage: response.hasNextPage,
+        endCursor: response.endCursor
+      })
     } catch (error: unknown) {
       toast.error((error as Error).message || t('errors.generic'))
     } finally {
       setLoading(false)
     }
   }, [debouncedSearchQuery, clubId, excludePlayerId, t])
+
+  // Load more players for infinite scroll
+  const loadMorePlayers = useCallback(async () => {
+    if (!pagination.hasNextPage || loadingMore || !pagination.endCursor) {
+      return
+    }
+
+    try {
+      setLoadingMore(true)
+      const clubFilter = clubId ? [clubId] : undefined
+      const response = await apiClient.listPlayers({
+        searchQuery: debouncedSearchQuery || undefined,
+        clubFilter,
+        pageSize: 25,
+        cursorAfter: pagination.endCursor
+      }, 'player-selector-more')
+
+      // Filter out excluded player
+      const filteredNewPlayers = response.items.filter(p => 
+        p.active && p.id !== excludePlayerId
+      )
+      
+      // Append new players to existing list
+      setPlayers(prev => [...prev, ...filteredNewPlayers])
+      setPagination({
+        hasNextPage: response.hasNextPage,
+        endCursor: response.endCursor
+      })
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('errors.generic'))
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [debouncedSearchQuery, clubId, excludePlayerId, pagination.hasNextPage, pagination.endCursor, loadingMore, t])
+
+  // Handle scroll for infinite loading
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50
+    
+    if (isNearBottom && pagination.hasNextPage && !loadingMore && !debouncedSearchQuery) {
+      loadMorePlayers()
+    }
+  }, [pagination.hasNextPage, loadingMore, debouncedSearchQuery, loadMorePlayers])
 
   useEffect(() => {
     if (open || debouncedSearchQuery) {
@@ -138,34 +194,55 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
               </p>
             </div>
           </CommandEmpty>
-          <CommandGroup id={optionsId}>
-            {loading && (
-              <div className="py-2">
-                <LoadingSpinner size="sm" />
-              </div>
-            )}
-            {players.map((player, index) => (
-              <CommandItem
-                key={player.id}
-                id={testIds.playerSelector.option(index)}
-                onSelect={() => handlePlayerSelect(player)}
-                className="cursor-pointer"
-                data-player-id={player.id}
-                data-player-name={player.displayName}
-              >
-                <TickCircle
-                  size={16}
-                  className={cn(
-                    "mr-2",
-                    selectedPlayer?.id === player.id ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                <div className="flex-1">
-                  <div className="font-medium">{player.displayName}</div>
+          <div 
+            ref={scrollContainerRef}
+            className="max-h-[300px] overflow-y-auto"
+            onScroll={handleScroll}
+          >
+            <CommandGroup id={optionsId}>
+              {loading && (
+                <div className="py-2 text-center">
+                  <LoadingSpinner size="sm" />
                 </div>
-              </CommandItem>
-            ))}
-          </CommandGroup>
+              )}
+              {players.map((player, index) => (
+                <CommandItem
+                  key={player.id}
+                  id={testIds.playerSelector.option(index)}
+                  onSelect={() => handlePlayerSelect(player)}
+                  className="cursor-pointer"
+                  data-player-id={player.id}
+                  data-player-name={player.displayName}
+                >
+                  <TickCircle
+                    size={16}
+                    className={cn(
+                      "mr-2",
+                      selectedPlayer?.id === player.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{player.displayName}</div>
+                  </div>
+                </CommandItem>
+              ))}
+              {loadingMore && (
+                <div className="py-2 text-center">
+                  <LoadingSpinner size="sm" />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('common.loadingMore')}
+                  </p>
+                </div>
+              )}
+              {pagination.hasNextPage && !loadingMore && !debouncedSearchQuery && players.length > 0 && (
+                <div className="py-2 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    {t('common.scrollForMore')}
+                  </p>
+                </div>
+              )}
+            </CommandGroup>
+          </div>
         </Command>
       </PopoverContent>
     </Popover>
