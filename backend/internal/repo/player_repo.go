@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goencoder/klubbspel/backend/internal/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -46,7 +47,7 @@ type Player struct {
 	IsPlatformOwner bool             `bson:"is_platform_owner"`
 	CreatedAt       time.Time        `bson:"created_at"`
 	LastLoginAt     *time.Time       `bson:"last_login_at,omitempty"`
-	
+
 	// Enhanced search functionality
 	SearchKeys *SearchKeys `bson:"search_keys,omitempty"`
 }
@@ -88,6 +89,12 @@ func (r *PlayerRepo) createIndexes(ctx context.Context) error {
 		},
 		{
 			Keys: bson.D{{Key: "display_name", Value: 1}}, // Index for name searches
+		},
+		{
+			Keys: bson.D{{Key: "search_keys.normalized", Value: 1}}, // Index for fuzzy search
+		},
+		{
+			Keys: bson.D{{Key: "search_keys.prefixes", Value: 1}}, // Index for prefix matching
 		},
 	})
 	return err
@@ -216,9 +223,41 @@ func (r *PlayerRepo) ListWithCursorAndFilters(ctx context.Context, pageSize int3
 
 	filter := bson.M{}
 
-	// Handle search query with simple case-insensitive matching
+	// Handle search query with fuzzy matching using search keys
 	if filters.SearchQuery != "" {
-		filter["display_name"] = bson.M{"$regex": filters.SearchQuery, "$options": "i"}
+		searchKeys := util.GenerateSearchKeys(filters.SearchQuery)
+
+		// Build fuzzy search conditions that match how the stored search keys work
+		var searchConditions []bson.M
+
+		// 1. Exact match on normalized text (highest priority)
+		searchConditions = append(searchConditions, bson.M{
+			"search_keys.normalized": searchKeys.Normalized,
+		})
+
+		// 2. Case-insensitive regex on normalized text for partial matches
+		if searchKeys.Normalized != "" {
+			searchConditions = append(searchConditions, bson.M{
+				"search_keys.normalized": bson.M{"$regex": searchKeys.Normalized, "$options": "i"},
+			})
+		}
+
+		// 3. Prefix matching - check if any stored prefixes start with our search
+		if len(searchKeys.Prefixes) > 0 {
+			for _, prefix := range searchKeys.Prefixes {
+				searchConditions = append(searchConditions, bson.M{
+					"search_keys.prefixes": prefix,
+				})
+			}
+		}
+
+		// 4. Fallback to display_name for backwards compatibility
+		searchConditions = append(searchConditions, bson.M{
+			"display_name": bson.M{"$regex": filters.SearchQuery, "$options": "i"},
+		})
+
+		// Use OR to match any of the search conditions
+		filter["$or"] = searchConditions
 	}
 
 	// Handle club filtering
@@ -1071,16 +1110,16 @@ func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubI
 	if pageSize <= 0 || pageSize > 100 {
 		pageSize = 20
 	}
-	
+
 	pipeline := mongo.Pipeline{}
-	
+
 	// Match stage for basic filtering
 	matchStage := bson.D{}
-	
+
 	// Club filtering
 	if len(clubIDs) > 0 || includeOpen {
 		var clubConditions []bson.M
-		
+
 		if len(clubIDs) > 0 {
 			var clubObjectIDs []primitive.ObjectID
 			for _, clubID := range clubIDs {
@@ -1088,7 +1127,7 @@ func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubI
 					clubObjectIDs = append(clubObjectIDs, objectID)
 				}
 			}
-			
+
 			if len(clubObjectIDs) > 0 {
 				clubConditions = append(clubConditions, bson.M{
 					"club_memberships": bson.M{
@@ -1099,7 +1138,7 @@ func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubI
 				})
 			}
 		}
-		
+
 		if includeOpen {
 			clubConditions = append(clubConditions, bson.M{
 				"$or": []bson.M{
@@ -1108,45 +1147,45 @@ func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubI
 				},
 			})
 		}
-		
+
 		if len(clubConditions) > 0 {
 			matchStage = append(matchStage, bson.E{Key: "$or", Value: clubConditions})
 		}
 	}
-	
+
 	// Search functionality
 	var searchConditions []bson.M
-	
+
 	if query != "" {
 		// Simple regex search on display_name
 		searchConditions = append(searchConditions, bson.M{
 			"display_name": bson.M{"$regex": query, "$options": "i"},
 		})
-		
+
 		// If search_keys exist, add fuzzy matching conditions
 		searchConditions = append(searchConditions, bson.M{
 			"search_keys.normalized": bson.M{"$regex": query, "$options": "i"},
 		})
-		
+
 		// Prefix match
 		searchConditions = append(searchConditions, bson.M{
 			"search_keys.prefixes": bson.M{"$regex": "^" + query, "$options": "i"},
 		})
-		
+
 		// Trigram overlap (simplified)
 		searchConditions = append(searchConditions, bson.M{
 			"search_keys.trigrams": bson.M{"$regex": query, "$options": "i"},
 		})
 	}
-	
+
 	if len(searchConditions) > 0 {
 		matchStage = append(matchStage, bson.E{Key: "$or", Value: searchConditions})
 	}
-	
+
 	if len(matchStage) > 0 {
 		pipeline = append(pipeline, bson.D{{Key: "$match", Value: matchStage}})
 	}
-	
+
 	// Add scoring stage (simplified scoring)
 	if query != "" {
 		scoringStage := bson.D{
@@ -1168,7 +1207,7 @@ func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubI
 		}
 		pipeline = append(pipeline, scoringStage)
 	}
-	
+
 	// Sort by score and then by display_name
 	sortStage := bson.D{{Key: "$sort", Value: bson.D{
 		{Key: "score", Value: -1},
@@ -1176,7 +1215,7 @@ func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubI
 		{Key: "_id", Value: 1},
 	}}}
 	pipeline = append(pipeline, sortStage)
-	
+
 	// Handle pagination
 	if pageToken != "" {
 		if objID, err := primitive.ObjectIDFromHex(pageToken); err == nil {
@@ -1186,46 +1225,46 @@ func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubI
 			pipeline = append(pipeline, paginationStage)
 		}
 	}
-	
+
 	// Limit results (add 1 to check for more pages)
 	limitStage := bson.D{{Key: "$limit", Value: int64(pageSize + 1)}}
 	pipeline = append(pipeline, limitStage)
-	
+
 	// Execute aggregation
 	cursor, err := r.c.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, "", false, fmt.Errorf("aggregation failed: %w", err)
 	}
 	defer cursor.Close(ctx)
-	
+
 	var results []*FuzzySearchResult
 	for cursor.Next(ctx) {
 		var doc struct {
 			Player
 			Score float64 `bson:"score"`
 		}
-		
+
 		if err := cursor.Decode(&doc); err != nil {
 			continue
 		}
-		
+
 		result := &FuzzySearchResult{
 			Player: &doc.Player,
 			Score:  doc.Score,
 		}
 		results = append(results, result)
 	}
-	
+
 	// Check for more pages and set next page token
 	hasNextPage := len(results) > int(pageSize)
 	if hasNextPage {
 		results = results[:pageSize]
 	}
-	
+
 	var nextPageToken string
 	if hasNextPage && len(results) > 0 {
 		nextPageToken = results[len(results)-1].Player.ID.Hex()
 	}
-	
+
 	return results, nextPageToken, hasNextPage, nil
 }
