@@ -35,6 +35,9 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
   const [searchQuery, setSearchQuery] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasNextPage, setHasNextPage] = useState(false)
+  const [nextPageToken, setNextPageToken] = useState<string | undefined>()
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const [clubNames, setClubNames] = useState<Map<string, string>>(new Map())
   const triggerRef = useRef<HTMLButtonElement | null>(null)
@@ -47,13 +50,19 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
     }
   }))
 
-  const loadPlayers = useCallback(async () => {
+  const loadPlayers = useCallback(async (isLoadMore = false) => {
     try {
-      setLoading(true)
+      if (isLoadMore) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
+      
       const response = await apiClient.listPlayers({
         searchQuery: debouncedSearchQuery || undefined,
         clubId: clubId,
-        pageSize: 50
+        pageSize: 50,
+        cursorAfter: isLoadMore ? nextPageToken : undefined
       }, 'player-selector')
 
       // Filter out excluded player
@@ -61,13 +70,20 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
         p.active && p.id !== excludePlayerId
       )
       
-      setPlayers(filteredPlayers)
+      if (isLoadMore) {
+        setPlayers(prev => [...prev, ...filteredPlayers])
+      } else {
+        setPlayers(filteredPlayers)
+      }
+      
+      setHasNextPage(response.hasNextPage)
+      setNextPageToken(response.endCursor)
 
-            // Fetch club names for clubs we don't have cached - simplified approach
+      // Fetch club names for clubs we don't have cached - simplified approach
       const clubIdsToFetch = new Set<string>()
       filteredPlayers.forEach(player => {
         player.clubMemberships?.forEach(membership => {
-          if (membership.active) {
+          if (membership.active && !clubNames.has(membership.clubId)) {
             clubIdsToFetch.add(membership.clubId)
           }
         })
@@ -81,7 +97,7 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
               const club = await apiClient.getClub(clubId)
               setClubNames(prev => {
                 const newMap = new Map(prev)
-                if (!newMap.has(clubId)) { // Only set if not already cached
+                if (!newMap.has(clubId)) {
                   newMap.set(clubId, club.name)
                 }
                 return newMap
@@ -89,7 +105,7 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
             } catch (_error) {
               setClubNames(prev => {
                 const newMap = new Map(prev)
-                if (!newMap.has(clubId)) { // Only set if not already cached
+                if (!newMap.has(clubId)) {
                   newMap.set(clubId, t('common.unknownClub', 'Unknown Club'))
                 }
                 return newMap
@@ -102,14 +118,32 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
       toast.error((error as Error).message || t('errors.generic'))
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
-  }, [debouncedSearchQuery, clubId, excludePlayerId, t])
+  }, [debouncedSearchQuery, clubId, excludePlayerId, t, clubNames, nextPageToken])
 
+  const loadMorePlayers = useCallback(() => {
+    if (hasNextPage && !loadingMore) {
+      loadPlayers(true)
+    }
+  }, [hasNextPage, loadingMore, loadPlayers])
+
+  useEffect(() => {
+    // Reset pagination when search query changes
+    setNextPageToken(undefined)
+    setHasNextPage(false)
+    
+    if (open || debouncedSearchQuery) {
+      loadPlayers()
+    }
+  }, [open, debouncedSearchQuery])
+
+  // Separate effect for loadPlayers dependency to avoid infinite loops
   useEffect(() => {
     if (open || debouncedSearchQuery) {
       loadPlayers()
     }
-  }, [open, debouncedSearchQuery, loadPlayers])
+  }, [loadPlayers])
 
   useEffect(() => {
     if (!value) {
@@ -176,8 +210,8 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
               </p>
             </div>
           </CommandEmpty>
-          <CommandGroup>
-            {loading && (
+          <CommandGroup className="max-h-60 overflow-y-auto">
+            {loading && players.length === 0 && (
               <div className="py-2">
                 <LoadingSpinner size="sm" />
               </div>
@@ -211,6 +245,24 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
                 </CommandItem>
               )
             })}
+            {hasNextPage && (
+              <div className="py-2 px-2">
+                <button
+                  onClick={loadMorePlayers}
+                  disabled={loadingMore}
+                  className="w-full text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <LoadingSpinner size="sm" />
+                      {t('common.loading')}
+                    </div>
+                  ) : (
+                    t('common.loadMore', 'Load more...')
+                  )}
+                </button>
+              </div>
+            )}
           </CommandGroup>
         </Command>
       </PopoverContent>

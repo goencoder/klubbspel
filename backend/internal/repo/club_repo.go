@@ -14,6 +14,9 @@ type Club struct {
 	ID              primitive.ObjectID `bson:"_id,omitempty"`
 	Name            string             `bson:"name"`
 	SupportedSports []int32            `bson:"supported_sports"`
+	
+	// Enhanced search functionality
+	SearchKeys *SearchKeys `bson:"search_keys,omitempty"`
 }
 
 type ClubRepo struct{ c *mongo.Collection }
@@ -169,4 +172,101 @@ func (r *ClubRepo) List(ctx context.Context, query string, pageSize int32, pageT
 	}
 
 	return clubs, "", nil
+}
+
+// FuzzySearchClubs performs fuzzy search for clubs using precomputed search keys
+func (r *ClubRepo) FuzzySearchClubs(ctx context.Context, query string, pageSize int32, pageToken string) ([]*Club, string, bool, error) {
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 20
+	}
+	
+	pipeline := mongo.Pipeline{}
+	
+	// Search functionality
+	if query != "" {
+		searchConditions := []bson.M{
+			// Simple regex search on name
+			{"name": bson.M{"$regex": query, "$options": "i"}},
+			// If search_keys exist, add fuzzy matching conditions
+			{"search_keys.normalized": bson.M{"$regex": query, "$options": "i"}},
+			{"search_keys.prefixes": bson.M{"$regex": "^" + query, "$options": "i"}},
+			{"search_keys.trigrams": bson.M{"$regex": query, "$options": "i"}},
+		}
+		
+		matchStage := bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$or", Value: searchConditions},
+		}}}
+		pipeline = append(pipeline, matchStage)
+		
+		// Add scoring stage
+		scoringStage := bson.D{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "score", Value: bson.D{
+					{Key: "$cond", Value: bson.D{
+						{Key: "if", Value: bson.D{
+							{Key: "$regexMatch", Value: bson.D{
+								{Key: "input", Value: "$name"},
+								{Key: "regex", Value: query},
+								{Key: "options", Value: "i"},
+							}},
+						}},
+						{Key: "then", Value: 1.0},
+						{Key: "else", Value: 0.7},
+					}},
+				}},
+			}},
+		}
+		pipeline = append(pipeline, scoringStage)
+	}
+	
+	// Sort by score and then by name
+	sortStage := bson.D{{Key: "$sort", Value: bson.D{
+		{Key: "score", Value: -1},
+		{Key: "name", Value: 1},
+		{Key: "_id", Value: 1},
+	}}}
+	pipeline = append(pipeline, sortStage)
+	
+	// Handle pagination
+	if pageToken != "" {
+		if objID, err := primitive.ObjectIDFromHex(pageToken); err == nil {
+			paginationStage := bson.D{{Key: "$match", Value: bson.D{
+				{Key: "_id", Value: bson.D{{Key: "$gt", Value: objID}}},
+			}}}
+			pipeline = append(pipeline, paginationStage)
+		}
+	}
+	
+	// Limit results (add 1 to check for more pages)
+	limitStage := bson.D{{Key: "$limit", Value: int64(pageSize + 1)}}
+	pipeline = append(pipeline, limitStage)
+	
+	// Execute aggregation
+	cursor, err := r.c.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, "", false, fmt.Errorf("aggregation failed: %w", err)
+	}
+	defer cursor.Close(ctx)
+	
+	var clubs []*Club
+	for cursor.Next(ctx) {
+		var club Club
+		if err := cursor.Decode(&club); err != nil {
+			continue
+		}
+		clubs = append(clubs, &club)
+	}
+	
+	// Check for more pages and set next page token
+	hasNextPage := len(clubs) > int(pageSize)
+	if hasNextPage {
+		clubs = clubs[:pageSize]
+	}
+	
+	var nextPageToken string
+	if hasNextPage && len(clubs) > 0 {
+		nextPageToken = clubs[len(clubs)-1].ID.Hex()
+	}
+	
+	return clubs, nextPageToken, hasNextPage, nil
 }

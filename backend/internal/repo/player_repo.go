@@ -46,6 +46,18 @@ type Player struct {
 	IsPlatformOwner bool             `bson:"is_platform_owner"`
 	CreatedAt       time.Time        `bson:"created_at"`
 	LastLoginAt     *time.Time       `bson:"last_login_at,omitempty"`
+	
+	// Enhanced search functionality
+	SearchKeys *SearchKeys `bson:"search_keys,omitempty"`
+}
+
+// SearchKeys contains precomputed search keys for fuzzy matching
+type SearchKeys struct {
+	Normalized string   `bson:"normalized"`
+	Prefixes   []string `bson:"prefixes"`
+	Trigrams   []string `bson:"trigrams"`
+	Consonants string   `bson:"consonants"`
+	Phonetics  []string `bson:"phonetics"`
 }
 
 type PlayerRepo struct{ c *mongo.Collection }
@@ -1046,4 +1058,174 @@ func (r *PlayerRepo) FindAllEmaillessPlayersInClub(ctx context.Context, clubID s
 	fmt.Printf("DEBUG: Found %d email-less players with filter: %v\n", len(players), filter)
 
 	return players, nil
+}
+
+// FuzzySearchResult represents a player search result with score
+type FuzzySearchResult struct {
+	Player *Player `bson:"player"`
+	Score  float64 `bson:"score"`
+}
+
+// FuzzySearchPlayers performs fuzzy search using precomputed search keys
+func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubIDs []string, includeOpen bool, pageSize int32, pageToken string) ([]*FuzzySearchResult, string, bool, error) {
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 20
+	}
+	
+	pipeline := mongo.Pipeline{}
+	
+	// Match stage for basic filtering
+	matchStage := bson.D{}
+	
+	// Club filtering
+	if len(clubIDs) > 0 || includeOpen {
+		var clubConditions []bson.M
+		
+		if len(clubIDs) > 0 {
+			var clubObjectIDs []primitive.ObjectID
+			for _, clubID := range clubIDs {
+				if objectID, err := primitive.ObjectIDFromHex(clubID); err == nil {
+					clubObjectIDs = append(clubObjectIDs, objectID)
+				}
+			}
+			
+			if len(clubObjectIDs) > 0 {
+				clubConditions = append(clubConditions, bson.M{
+					"club_memberships": bson.M{
+						"$elemMatch": bson.M{
+							"club_id": bson.M{"$in": clubObjectIDs},
+						},
+					},
+				})
+			}
+		}
+		
+		if includeOpen {
+			clubConditions = append(clubConditions, bson.M{
+				"$or": []bson.M{
+					{"club_memberships": bson.M{"$exists": false}},
+					{"club_memberships": bson.M{"$size": 0}},
+				},
+			})
+		}
+		
+		if len(clubConditions) > 0 {
+			matchStage = append(matchStage, bson.E{Key: "$or", Value: clubConditions})
+		}
+	}
+	
+	// Search functionality
+	var searchConditions []bson.M
+	
+	if query != "" {
+		// Simple regex search on display_name
+		searchConditions = append(searchConditions, bson.M{
+			"display_name": bson.M{"$regex": query, "$options": "i"},
+		})
+		
+		// If search_keys exist, add fuzzy matching conditions
+		searchConditions = append(searchConditions, bson.M{
+			"search_keys.normalized": bson.M{"$regex": query, "$options": "i"},
+		})
+		
+		// Prefix match
+		searchConditions = append(searchConditions, bson.M{
+			"search_keys.prefixes": bson.M{"$regex": "^" + query, "$options": "i"},
+		})
+		
+		// Trigram overlap (simplified)
+		searchConditions = append(searchConditions, bson.M{
+			"search_keys.trigrams": bson.M{"$regex": query, "$options": "i"},
+		})
+	}
+	
+	if len(searchConditions) > 0 {
+		matchStage = append(matchStage, bson.E{Key: "$or", Value: searchConditions})
+	}
+	
+	if len(matchStage) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: matchStage}})
+	}
+	
+	// Add scoring stage (simplified scoring)
+	if query != "" {
+		scoringStage := bson.D{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "score", Value: bson.D{
+					{Key: "$cond", Value: bson.D{
+						{Key: "if", Value: bson.D{
+							{Key: "$regexMatch", Value: bson.D{
+								{Key: "input", Value: "$display_name"},
+								{Key: "regex", Value: query},
+								{Key: "options", Value: "i"},
+							}},
+						}},
+						{Key: "then", Value: 1.0},
+						{Key: "else", Value: 0.5},
+					}},
+				}},
+			}},
+		}
+		pipeline = append(pipeline, scoringStage)
+	}
+	
+	// Sort by score and then by display_name
+	sortStage := bson.D{{Key: "$sort", Value: bson.D{
+		{Key: "score", Value: -1},
+		{Key: "display_name", Value: 1},
+		{Key: "_id", Value: 1},
+	}}}
+	pipeline = append(pipeline, sortStage)
+	
+	// Handle pagination
+	if pageToken != "" {
+		if objID, err := primitive.ObjectIDFromHex(pageToken); err == nil {
+			paginationStage := bson.D{{Key: "$match", Value: bson.D{
+				{Key: "_id", Value: bson.D{{Key: "$gt", Value: objID}}},
+			}}}
+			pipeline = append(pipeline, paginationStage)
+		}
+	}
+	
+	// Limit results (add 1 to check for more pages)
+	limitStage := bson.D{{Key: "$limit", Value: int64(pageSize + 1)}}
+	pipeline = append(pipeline, limitStage)
+	
+	// Execute aggregation
+	cursor, err := r.c.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, "", false, fmt.Errorf("aggregation failed: %w", err)
+	}
+	defer cursor.Close(ctx)
+	
+	var results []*FuzzySearchResult
+	for cursor.Next(ctx) {
+		var doc struct {
+			Player
+			Score float64 `bson:"score"`
+		}
+		
+		if err := cursor.Decode(&doc); err != nil {
+			continue
+		}
+		
+		result := &FuzzySearchResult{
+			Player: &doc.Player,
+			Score:  doc.Score,
+		}
+		results = append(results, result)
+	}
+	
+	// Check for more pages and set next page token
+	hasNextPage := len(results) > int(pageSize)
+	if hasNextPage {
+		results = results[:pageSize]
+	}
+	
+	var nextPageToken string
+	if hasNextPage && len(results) > 0 {
+		nextPageToken = results[len(results)-1].Player.ID.Hex()
+	}
+	
+	return results, nextPageToken, hasNextPage, nil
 }
