@@ -279,7 +279,7 @@ func (m *Migration) AddScoringProfiles(ctx context.Context) error {
 
 		processed++
 		seriesID := series["_id"].(primitive.ObjectID)
-		
+
 		// Get sport value, default to table tennis if not set
 		sport := int32(1) // SPORT_TABLE_TENNIS
 		if sportVal, exists := series["sport"]; exists {
@@ -334,22 +334,22 @@ func (m *Migration) AddScoringProfiles(ctx context.Context) error {
 // AddSearchKeys migrates existing players and clubs to include search keys
 func (m *Migration) AddSearchKeys(ctx context.Context) error {
 	log.Println("Starting search keys migration...")
-	
+
 	// Add search keys to players
 	if err := m.addSearchKeysToPlayers(ctx); err != nil {
 		return fmt.Errorf("failed to add search keys to players: %w", err)
 	}
-	
+
 	// Add search keys to clubs
 	if err := m.addSearchKeysToClubs(ctx); err != nil {
 		return fmt.Errorf("failed to add search keys to clubs: %w", err)
 	}
-	
+
 	// Create indexes for search keys
 	if err := m.addSearchKeysIndexes(ctx); err != nil {
 		return fmt.Errorf("failed to create search keys indexes: %w", err)
 	}
-	
+
 	log.Println("Search keys migration completed successfully")
 	return nil
 }
@@ -357,41 +357,45 @@ func (m *Migration) AddSearchKeys(ctx context.Context) error {
 // addSearchKeysToPlayers migrates existing players to include search keys
 func (m *Migration) addSearchKeysToPlayers(ctx context.Context) error {
 	log.Println("Adding search keys to players...")
-	
+
 	collection := m.db.Collection("players")
-	
+
 	// Find all players without search_keys field
 	filter := bson.M{
 		"search_keys": bson.M{"$exists": false},
 	}
-	
+
 	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("failed to find players for migration: %w", err)
 	}
-	defer cursor.Close(ctx)
-	
+	defer func() {
+		if closeErr := cursor.Close(ctx); closeErr != nil {
+			log.Printf("Failed to close cursor: %v", closeErr)
+		}
+	}()
+
 	var processed, updated int
-	
+
 	for cursor.Next(ctx) {
 		var player bson.M
 		if err := cursor.Decode(&player); err != nil {
 			log.Printf("Failed to decode player: %v", err)
 			continue
 		}
-		
+
 		processed++
-		
+
 		// Extract display name
 		displayName, ok := player["display_name"].(string)
 		if !ok || displayName == "" {
 			log.Printf("Player %v has no display_name, skipping", player["_id"])
 			continue
 		}
-		
+
 		// Generate search keys (simplified version without util package dependency)
 		searchKeys := generateSimpleSearchKeys(displayName)
-		
+
 		// Update the player with search keys
 		updateFilter := bson.M{"_id": player["_id"]}
 		update := bson.M{
@@ -399,13 +403,13 @@ func (m *Migration) addSearchKeysToPlayers(ctx context.Context) error {
 				"search_keys": searchKeys,
 			},
 		}
-		
+
 		result, err := collection.UpdateOne(ctx, updateFilter, update)
 		if err != nil {
 			log.Printf("Failed to update player %v: %v", player["_id"], err)
 			continue
 		}
-		
+
 		if result.ModifiedCount > 0 {
 			updated++
 			if updated%100 == 0 {
@@ -413,11 +417,11 @@ func (m *Migration) addSearchKeysToPlayers(ctx context.Context) error {
 			}
 		}
 	}
-	
+
 	if err := cursor.Err(); err != nil {
 		return fmt.Errorf("cursor error during migration: %w", err)
 	}
-	
+
 	log.Printf("Search keys migration for players completed: processed %d players, updated %d players", processed, updated)
 	return nil
 }
@@ -425,41 +429,45 @@ func (m *Migration) addSearchKeysToPlayers(ctx context.Context) error {
 // addSearchKeysToClubs migrates existing clubs to include search keys
 func (m *Migration) addSearchKeysToClubs(ctx context.Context) error {
 	log.Println("Adding search keys to clubs...")
-	
+
 	collection := m.db.Collection("clubs")
-	
+
 	// Find all clubs without search_keys field
 	filter := bson.M{
 		"search_keys": bson.M{"$exists": false},
 	}
-	
+
 	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("failed to find clubs for migration: %w", err)
 	}
-	defer cursor.Close(ctx)
-	
+	defer func() {
+		if closeErr := cursor.Close(ctx); closeErr != nil {
+			log.Printf("Failed to close cursor: %v", closeErr)
+		}
+	}()
+
 	var processed, updated int
-	
+
 	for cursor.Next(ctx) {
 		var club bson.M
 		if err := cursor.Decode(&club); err != nil {
 			log.Printf("Failed to decode club: %v", err)
 			continue
 		}
-		
+
 		processed++
-		
+
 		// Extract club name
 		clubName, ok := club["name"].(string)
 		if !ok || clubName == "" {
 			log.Printf("Club %v has no name, skipping", club["_id"])
 			continue
 		}
-		
+
 		// Generate search keys
 		searchKeys := generateSimpleSearchKeys(clubName)
-		
+
 		// Update the club with search keys
 		updateFilter := bson.M{"_id": club["_id"]}
 		update := bson.M{
@@ -467,22 +475,22 @@ func (m *Migration) addSearchKeysToClubs(ctx context.Context) error {
 				"search_keys": searchKeys,
 			},
 		}
-		
+
 		result, err := collection.UpdateOne(ctx, updateFilter, update)
 		if err != nil {
 			log.Printf("Failed to update club %v: %v", club["_id"], err)
 			continue
 		}
-		
+
 		if result.ModifiedCount > 0 {
 			updated++
 		}
 	}
-	
+
 	if err := cursor.Err(); err != nil {
 		return fmt.Errorf("cursor error during migration: %w", err)
 	}
-	
+
 	log.Printf("Search keys migration for clubs completed: processed %d clubs, updated %d clubs", processed, updated)
 	return nil
 }
@@ -490,7 +498,7 @@ func (m *Migration) addSearchKeysToClubs(ctx context.Context) error {
 // addSearchKeysIndexes creates indexes for fuzzy search on search keys
 func (m *Migration) addSearchKeysIndexes(ctx context.Context) error {
 	log.Println("Creating search keys indexes...")
-	
+
 	// Player indexes
 	playersCollection := m.db.Collection("players")
 	playerIndexes := []md.IndexModel{
@@ -510,12 +518,12 @@ func (m *Migration) addSearchKeysIndexes(ctx context.Context) error {
 			},
 		},
 	}
-	
+
 	_, err := playersCollection.Indexes().CreateMany(ctx, playerIndexes)
 	if err != nil {
 		return fmt.Errorf("failed to create player search indexes: %w", err)
 	}
-	
+
 	// Club indexes
 	clubsCollection := m.db.Collection("clubs")
 	clubIndexes := []md.IndexModel{
@@ -535,12 +543,12 @@ func (m *Migration) addSearchKeysIndexes(ctx context.Context) error {
 			},
 		},
 	}
-	
+
 	_, err = clubsCollection.Indexes().CreateMany(ctx, clubIndexes)
 	if err != nil {
 		return fmt.Errorf("failed to create club search indexes: %w", err)
 	}
-	
+
 	log.Printf("Search keys indexes created successfully")
 	return nil
 }
@@ -548,13 +556,13 @@ func (m *Migration) addSearchKeysIndexes(ctx context.Context) error {
 // generateSimpleSearchKeys creates basic search keys without external dependencies
 func generateSimpleSearchKeys(text string) bson.M {
 	normalized := strings.ToLower(text)
-	
+
 	// Simple diacritic folding for common Swedish characters
 	normalized = strings.ReplaceAll(normalized, "å", "a")
 	normalized = strings.ReplaceAll(normalized, "ä", "a")
 	normalized = strings.ReplaceAll(normalized, "ö", "o")
 	normalized = strings.ReplaceAll(normalized, "é", "e")
-	
+
 	// Generate simple prefixes
 	var prefixes []string
 	words := strings.Fields(normalized)
@@ -563,7 +571,7 @@ func generateSimpleSearchKeys(text string) bson.M {
 			prefixes = append(prefixes, word[:i])
 		}
 	}
-	
+
 	// Generate trigrams
 	var trigrams []string
 	for _, word := range words {
@@ -572,7 +580,7 @@ func generateSimpleSearchKeys(text string) bson.M {
 			trigrams = append(trigrams, padded[i:i+3])
 		}
 	}
-	
+
 	return bson.M{
 		"normalized": normalized,
 		"prefixes":   prefixes,

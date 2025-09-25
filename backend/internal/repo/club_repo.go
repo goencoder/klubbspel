@@ -14,7 +14,7 @@ type Club struct {
 	ID              primitive.ObjectID `bson:"_id,omitempty"`
 	Name            string             `bson:"name"`
 	SupportedSports []int32            `bson:"supported_sports"`
-	
+
 	// Enhanced search functionality
 	SearchKeys *SearchKeys `bson:"search_keys,omitempty"`
 }
@@ -179,9 +179,9 @@ func (r *ClubRepo) FuzzySearchClubs(ctx context.Context, query string, pageSize 
 	if pageSize <= 0 || pageSize > 100 {
 		pageSize = 20
 	}
-	
+
 	pipeline := mongo.Pipeline{}
-	
+
 	// Search functionality
 	if query != "" {
 		searchConditions := []bson.M{
@@ -192,12 +192,12 @@ func (r *ClubRepo) FuzzySearchClubs(ctx context.Context, query string, pageSize 
 			{"search_keys.prefixes": bson.M{"$regex": "^" + query, "$options": "i"}},
 			{"search_keys.trigrams": bson.M{"$regex": query, "$options": "i"}},
 		}
-		
+
 		matchStage := bson.D{{Key: "$match", Value: bson.D{
 			{Key: "$or", Value: searchConditions},
 		}}}
 		pipeline = append(pipeline, matchStage)
-		
+
 		// Add scoring stage
 		scoringStage := bson.D{
 			{Key: "$addFields", Value: bson.D{
@@ -218,7 +218,7 @@ func (r *ClubRepo) FuzzySearchClubs(ctx context.Context, query string, pageSize 
 		}
 		pipeline = append(pipeline, scoringStage)
 	}
-	
+
 	// Sort by score and then by name
 	sortStage := bson.D{{Key: "$sort", Value: bson.D{
 		{Key: "score", Value: -1},
@@ -226,7 +226,7 @@ func (r *ClubRepo) FuzzySearchClubs(ctx context.Context, query string, pageSize 
 		{Key: "_id", Value: 1},
 	}}}
 	pipeline = append(pipeline, sortStage)
-	
+
 	// Handle pagination
 	if pageToken != "" {
 		if objID, err := primitive.ObjectIDFromHex(pageToken); err == nil {
@@ -236,18 +236,20 @@ func (r *ClubRepo) FuzzySearchClubs(ctx context.Context, query string, pageSize 
 			pipeline = append(pipeline, paginationStage)
 		}
 	}
-	
+
 	// Limit results (add 1 to check for more pages)
 	limitStage := bson.D{{Key: "$limit", Value: int64(pageSize + 1)}}
 	pipeline = append(pipeline, limitStage)
-	
+
 	// Execute aggregation
 	cursor, err := r.c.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, "", false, fmt.Errorf("aggregation failed: %w", err)
 	}
-	defer cursor.Close(ctx)
-	
+	defer func() {
+		_ = cursor.Close(ctx) // Ignore close errors for read operations
+	}()
+
 	var clubs []*Club
 	for cursor.Next(ctx) {
 		var club Club
@@ -256,17 +258,17 @@ func (r *ClubRepo) FuzzySearchClubs(ctx context.Context, query string, pageSize 
 		}
 		clubs = append(clubs, &club)
 	}
-	
+
 	// Check for more pages and set next page token
 	hasNextPage := len(clubs) > int(pageSize)
 	if hasNextPage {
 		clubs = clubs[:pageSize]
 	}
-	
+
 	var nextPageToken string
 	if hasNextPage && len(clubs) > 0 {
 		nextPageToken = clubs[len(clubs)-1].ID.Hex()
 	}
-	
+
 	return clubs, nextPageToken, hasNextPage, nil
 }

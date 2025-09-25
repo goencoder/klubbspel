@@ -1,4 +1,4 @@
-.PHONY: generate be.run be.build swagger clean clean-all dev-clean pre-test rebuild validate-db deps tidy tools test lint security deps-update all help
+.PHONY: generate be.run be.build swagger clean clean-all dev-clean pre-test rebuild validate-db deps tidy tools test lint security deps-update update all help
 .PHONY: up down logs docker-build test-integration test-api
 .PHONY: dev-start dev-stop dev-restart dev-logs dev-status
 .PHONY: host-dev host-be host-fe host-mongo host-services host-stop host-restart host-install
@@ -266,16 +266,21 @@ security:
 	@grep -r -i "password\|secret\|key\|token" frontend/src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" | grep -v "// " | grep -v "/\*" || echo "✅ No obvious hardcoded secrets found"
 	@echo "✅ Security scans complete"
 
-# Update dependencies (patch and minor versions only)
+# Update dependencies (minor and patch versions)
 deps-update:
-	@echo "📦 Updating dependencies (patch + minor only)..."
+	@echo "📦 Updating dependencies (minor + patch versions)..."
 	@echo "🔄 Updating Go dependencies..."
-	cd backend && $(GO) get -u=patch ./...
+	cd backend && $(GO) get -t -u ./...
 	cd backend && $(GO) mod tidy
+	@echo "🔄 Updating protobuf dependencies..."
+	buf dep update proto
 	@echo "🔄 Updating frontend dependencies..."
 	cd frontend && $(NPM) update
 	@echo "✅ Dependencies updated"
 	@echo "⚠️  Please test thoroughly after dependency updates!"
+
+# Alias for deps-update (easier to remember)
+update: deps-update
 
 # All-in-one: generate, deps, build
 all: generate deps be.build
@@ -409,6 +414,7 @@ help:
 	@echo "  be.build       - Build the backend binary"
 	@echo "  be.run         - Run the backend server locally"
 	@echo "  deps           - Download Go dependencies"
+	@echo "  update         - Update dependencies (patch + minor versions)"
 	@echo "  tidy           - Tidy Go modules"
 	@echo "  test           - Run unit tests"
 	@echo "  lint           - Run linting"

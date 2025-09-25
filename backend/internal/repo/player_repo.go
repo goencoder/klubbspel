@@ -1235,7 +1235,9 @@ func (r *PlayerRepo) FuzzySearchPlayers(ctx context.Context, query string, clubI
 	if err != nil {
 		return nil, "", false, fmt.Errorf("aggregation failed: %w", err)
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx) // Ignore close errors for read operations
+	}()
 
 	var results []*FuzzySearchResult
 	for cursor.Next(ctx) {

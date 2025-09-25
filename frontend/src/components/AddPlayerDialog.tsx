@@ -114,7 +114,9 @@ export function AddPlayerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('clubs.members.addPlayerToClub', { clubName })}</DialogTitle>
+          <DialogTitle>
+            {t('clubs.members.addPlayerToClub').replace('{clubName}', clubName || 'Unknown Club')}
+          </DialogTitle>
           <DialogDescription>
             Add a new player to this club. If an email is provided, they will be notified.
           </DialogDescription>
