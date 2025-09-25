@@ -27,8 +27,8 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 	log.Info().Str("seriesId", in.GetSeriesId()).Msg("GetLeaderboard called")
 	fmt.Printf("DEBUG GetLeaderboard: seriesId=%s (LEADERBOARD_VERSION=%d)\n", in.GetSeriesId(), LEADERBOARD_VERSION)
 
-	// Get all matches for the series
-	matches, err := s.Matches.ListBySeries(ctx, in.GetSeriesId())
+	// Get all matches for the series (sorted chronologically for ELO calculation)
+	matches, err := s.Matches.FindBySeriesID(ctx, in.GetSeriesId())
 	if err != nil {
 		log.Error().Str("seriesId", in.GetSeriesId()).Err(err).Msg("Failed to get matches")
 		fmt.Printf("DEBUG GetLeaderboard: Failed to get matches for series %s: %v\n", in.GetSeriesId(), err)

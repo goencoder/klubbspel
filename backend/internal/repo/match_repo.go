@@ -56,6 +56,8 @@ func (r *MatchRepo) Create(ctx context.Context, seriesID, playerAID, playerBID s
 	return m, err
 }
 
+// ListBySeriesID retrieves matches with player names for UI display, supports pagination.
+// Returns matches sorted chronologically (played_at ascending) for consistent ordering.
 func (r *MatchRepo) ListBySeriesID(ctx context.Context, seriesID string, pageSize int32, pageToken string) ([]*MatchView, string, error) {
 	filter := bson.M{"series_id": seriesID}
 
@@ -75,8 +77,8 @@ func (r *MatchRepo) ListBySeriesID(ctx context.Context, seriesID string, pageSiz
 
 	// Apply pagination with limit and sorting
 	findOptions := options.Find().
-		SetLimit(int64(pageSize + 1)).                                         // +1 to check for more results
-		SetSort(bson.D{{Key: "played_at", Value: -1}, {Key: "_id", Value: 1}}) // Sort by played_at descending, then ID ascending
+		SetLimit(int64(pageSize + 1)).                                        // +1 to check for more results
+		SetSort(bson.D{{Key: "played_at", Value: 1}, {Key: "_id", Value: 1}}) // Sort by played_at ascending (chronological), then ID ascending
 
 	cursor, err := r.c.Find(ctx, filter, findOptions)
 	if err != nil {
@@ -156,14 +158,15 @@ func (r *MatchRepo) ListBySeriesID(ctx context.Context, seriesID string, pageSiz
 	return matchViews, nextPageToken, nil
 }
 
-func (r *MatchRepo) ListBySeries(ctx context.Context, seriesID string) ([]*Match, error) {
-	return r.FindBySeriesID(ctx, seriesID)
-}
-
+// FindBySeriesID retrieves all matches for ELO calculations and internal processing.
+// Returns matches sorted chronologically (played_at ascending) for correct ELO calculation order.
 func (r *MatchRepo) FindBySeriesID(ctx context.Context, seriesID string) ([]*Match, error) {
 	filter := bson.M{"series_id": seriesID}
 
-	cursor, err := r.c.Find(ctx, filter)
+	// CRITICAL: Sort by played_at ASCENDING for correct ELO calculation order
+	findOptions := options.Find().SetSort(bson.D{{Key: "played_at", Value: 1}})
+
+	cursor, err := r.c.Find(ctx, filter, findOptions)
 	if err != nil {
 		return nil, err
 	}
