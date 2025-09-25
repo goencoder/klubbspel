@@ -7,7 +7,7 @@ import { TickCircle, ArrowSwapVertical } from 'iconsax-reactjs'
 import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
-import { apiClient } from '@/services/api'
+import { apiClient, handleApiError } from '@/services/api'
 import type { Player } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -115,7 +115,9 @@ export const PlayerSelector = forwardRef<PlayerSelectorHandle, PlayerSelectorPro
         )
       }
     } catch (error: unknown) {
-      toast.error((error as Error).message || t('errors.generic'))
+      handleApiError(error, (apiError) => {
+        toast.error(apiError.message || t('errors.generic'))
+      })
     } finally {
       setLoading(false)
       setLoadingMore(false)

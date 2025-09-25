@@ -1,4 +1,13 @@
 import { useAppStore } from '@/store'
+
+// Custom error class to identify cancelled requests
+export class RequestCancelledError extends Error {
+  constructor() {
+    super('Request was cancelled')
+    this.name = 'RequestCancelledError'
+  }
+}
+
 import type {
   ApiError,
   Club,
@@ -146,9 +155,9 @@ class ApiClient {
         this.abortControllers.delete(requestId)
       }
 
-      // Don't throw on abort
+      // Silently ignore abort errors - these are expected during navigation/component unmounting
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Request cancelled')
+        return Promise.reject(new RequestCancelledError())
       }
 
       // Re-throw API errors
@@ -468,6 +477,23 @@ class ApiClient {
     this.abortControllers.forEach(controller => controller.abort())
     this.abortControllers.clear()
   }
+}
+
+// Utility function to check if an error is a request cancellation
+export function isRequestCancelled(error: unknown): boolean {
+  return error instanceof RequestCancelledError || 
+         (error instanceof Error && error.message === 'Request was cancelled')
+}
+
+// Utility function to handle API errors in components, filtering out cancellation errors
+export function handleApiError(error: unknown, onError?: (error: ApiError) => void): void {
+  if (isRequestCancelled(error)) {
+    // Silently ignore cancellation errors
+    return
+  }
+  
+  const apiError = error as ApiError
+  onError?.(apiError)
 }
 
 export const apiClient = new ApiClient()

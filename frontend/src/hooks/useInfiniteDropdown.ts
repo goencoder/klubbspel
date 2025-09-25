@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDebounce } from './useDebounce'
+import { isRequestCancelled } from '@/services/api'
 
 export interface UseInfiniteDropdownOptions<T> {
   loadItems: (query: string, pageToken?: string) => Promise<{
@@ -85,8 +86,8 @@ export function useInfiniteDropdown<T>({
       setHasNextPage(response.hasNextPage)
       setNextPageToken(response.endCursor)
     } catch (error) {
-      // Ignore abort errors
-      if (error instanceof Error && error.name === 'AbortError') {
+      // Ignore abort errors and cancelled requests
+      if (error instanceof Error && error.name === 'AbortError' || isRequestCancelled(error)) {
         return
       }
       

@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
-import { apiClient } from '@/services/api'
+import { apiClient, handleApiError } from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import type { Series, Club } from '@/types/api'
 import { Chart, CloseCircle, Cup, Export, Medal, TickCircle } from 'iconsax-reactjs'
@@ -154,8 +154,10 @@ export function LeaderboardPage() {
       const resp = await apiClient.getLeaderboard({ seriesId, pageSize: 50 }, 'leaderboard')
       setLeaderboard(normalizeLeaderboard(resp))
     } catch (error: unknown) {
-      toast.error((error as Error)?.message || t('error.generic'))
-      setLeaderboard([])
+      handleApiError(error, (apiError) => {
+        toast.error(apiError.message || t('error.generic'))
+        setLeaderboard([])
+      })
     } finally {
       setLoadingLeaderboard(false)
     }
