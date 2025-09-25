@@ -255,6 +255,87 @@ docker system prune -f               # Clean everything
 - **Testing**: Go testing, Playwright for UI, MongoDB integration tests
 - **Tools**: Buf for protobuf, Docker Compose for development
 
+## 🗄️ **MIGRATION STRATEGY** (MUST FOLLOW)
+
+**⚠️ CRITICAL: ALL data structure changes MUST use the migration system**
+
+### Migration Framework
+- **Location**: `backend/internal/migration/`
+- **Manager**: `MigrationManager` with distributed locking
+- **Usage**: REQUIRED for any schema or data changes
+
+### Migration Process (MANDATORY)
+1. **Create Migration Function**:
+   ```go
+   func MigrateFunctionName(ctx context.Context, db *mongo.Database) error {
+       // Migration logic here
+       return nil
+   }
+   ```
+
+2. **Run with Manager**:
+   ```go
+   migrationManager := migration.NewMigrationManager(db)  
+   err := migrationManager.RunMigration(ctx, "migration-name", MigrateFunctionName)
+   ```
+
+3. **Application Startup Integration**:
+   - Migrations run automatically on startup
+   - Uses DB locks with lease expiry (30 min default)
+   - Prevents concurrent execution across instances
+   - Tracks completion status in `migrations` collection
+
+### Migration Rules (ENFORCE STRICTLY)
+- **MUST** use unique migration names (e.g., "add-search-keys-v1")
+- **MUST** be idempotent - safe to run multiple times
+- **MUST** handle both MongoDB 8 (Docker) and MongoDB Atlas (production)
+- **MUST** include proper error handling and rollback strategy
+- **MUST** log progress for large datasets (every 100 records)
+
+### Example Migration:
+```go
+// In backend/internal/migration/
+func AddSearchKeysToPlayers(ctx context.Context, db *mongo.Database) error {
+    collection := db.Collection("players")
+    
+    // Find documents without new field
+    filter := bson.M{"search_keys": bson.M{"$exists": false}}
+    cursor, err := collection.Find(ctx, filter)
+    if err != nil {
+        return fmt.Errorf("failed to find players: %w", err)
+    }
+    defer cursor.Close(ctx)
+    
+    var processed int
+    for cursor.Next(ctx) {
+        // Process each document
+        processed++
+        if processed%100 == 0 {
+            log.Printf("Processed %d documents...", processed)
+        }
+    }
+    
+    log.Printf("Migration completed: %d documents processed", processed)
+    return nil
+}
+```
+
+### Running Migrations:
+```bash
+# Application startup (automatic)
+./bin/api  # Runs all pending migrations
+
+# Manual execution (development)
+cd backend && go run cmd/migrate/main.go migration-name
+```
+
+### Monitoring Migration Status:
+- Check `migrations` collection in MongoDB
+- Status: `pending`, `running`, `completed`, `failed`
+- Includes timestamps, error messages, and lease information
+
+**🚨 NEVER bypass this system for data structure changes!**
+
 ## 🌐 Service URLs & Endpoints
 
 When development environment is running:

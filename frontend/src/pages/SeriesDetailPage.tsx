@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { apiClient } from '@/services/api'
+import { apiClient, handleApiError } from '@/services/api'
 import type { Series, SeriesVisibility } from '@/types/api'
 import { Add, ArrowLeft2, Calendar, ClipboardTick, Cup } from 'iconsax-reactjs'
 import { useCallback, useEffect, useState } from 'react'
@@ -41,13 +41,14 @@ export function SeriesDetailPage() {
         loadClubName(seriesData.clubId)
       }
     } catch (error: unknown) {
-      const errorMessage = (error as Error).message || '';
-      // If getSeries is not implemented, show a helpful error
-      if (errorMessage.includes('not implemented')) {
-        toast.error('Series details endpoint not yet implemented in backend')
-      } else {
-        toast.error(errorMessage || t('errors.generic'))
-      }
+      handleApiError(error, (apiError) => {
+        // If getSeries is not implemented, show a helpful error
+        if (apiError.message?.includes('not implemented')) {
+          toast.error('Series details endpoint not yet implemented in backend')
+        } else {
+          toast.error(apiError.message || t('errors.generic'))
+        }
+      })
     } finally {
       setLoading(false)
     }

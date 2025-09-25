@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebounce } from '@/hooks/useDebounce'
-import { apiClient } from '@/services/api'
+import { apiClient, handleApiError } from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import type { ApiError, Club, CreateClubRequest, Player, UpdateClubRequest } from '@/types/api'
 import { Add, Buildings2, Edit2, Eye, SearchNormal1, Trash, User } from 'iconsax-reactjs'
@@ -95,8 +95,9 @@ export function ClubsPage() {
 
       setClubs(filteredClubs)
     } catch (error) {
-      const apiError = error as ApiError
-      toast.error(apiError.message || t('errors.unexpectedError'))
+      handleApiError(error, (apiError) => {
+        toast.error(apiError.message || t('errors.unexpectedError'))
+      })
     } finally {
       setLoading(false)
     }

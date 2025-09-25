@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+// Removed Select import - using native dropdown to avoid scroll lock
 import apiClient from '@/services/api'
 import { useAppStore } from '@/store'
 import { useAuthStore } from '@/store/auth'
@@ -100,15 +100,15 @@ export function SettingsPage() {
           <CardContent>
             <div className="space-y-2">
               <Label htmlFor="language-select">{t('settings.language')}</Label>
-              <Select value={language || undefined} onValueChange={handleLanguageChange}>
-                <SelectTrigger id="language-select" className="w-full max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sv">{t('settings.language.sv')}</SelectItem>
-                  <SelectItem value="en">{t('settings.language.en')}</SelectItem>
-                </SelectContent>
-              </Select>
+              <select
+                id="language-select"
+                value={language || 'sv'}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="flex h-9 w-full max-w-xs items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="sv">{t('settings.language.sv')}</option>
+                <option value="en">{t('settings.language.en')}</option>
+              </select>
             </div>
           </CardContent>
         </Card>
