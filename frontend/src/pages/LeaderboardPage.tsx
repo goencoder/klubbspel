@@ -4,10 +4,8 @@ import { Button } from '@/components/ui/button'
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle
 } from '@/components/ui/card'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
+// Removed Select import - using native dropdown to avoid scroll lock
+// Removed Separator import - not needed with native select
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
@@ -60,6 +58,7 @@ export function LeaderboardPage() {
   const { selectedClubId, user } = useAuthStore()
 
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(seriesIdFromParams || '')
+  const [seriesDropdownOpen, setSeriesDropdownOpen] = useState(false)
   const [leaderboard, setLeaderboard] = useState<UILBRow[]>([])
   const [seriesByClub, setSeriesByClub] = useState<SeriesByClub>({})
   const [openSeries, setOpenSeries] = useState<Series[]>([])
@@ -237,43 +236,126 @@ export function LeaderboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={selectedSeriesId || undefined} onValueChange={setSelectedSeriesId}>
-            <SelectTrigger className="w-full max-w-md">
-              <SelectValue placeholder={t('leaderboard.select.series')} />
-            </SelectTrigger>
-            <SelectContent>
-              {/* Club Series Sections First */}
-              {Object.entries(seriesByClub).map(([clubId, clubData]) => [
-                // Club name header
-                <div key={`header-${clubId}`} className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
-                  {clubData.club?.name || t('series.sections.unknownClub')}
-                </div>,
-                // Club series
-                ...clubData.series.map((seriesItem) => (
-                  <SelectItem key={seriesItem.id} value={seriesItem.id}>
-                    {seriesItem.title}
-                  </SelectItem>
-                ))
-              ]).flat()}
-              
-              {/* Separator if we have both club series and open series */}
-              {Object.keys(seriesByClub).length > 0 && openSeries.length > 0 && (
-                <Separator className="my-1" />
-              )}
-              
-              {/* Open Series Section */}
-              {openSeries.length > 0 && [
-                <div key="open-header" className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
-                  {t('series.sections.openSeries')}
-                </div>,
-                ...openSeries.map((seriesItem) => (
-                  <SelectItem key={seriesItem.id} value={seriesItem.id}>
-                    {seriesItem.title}
-                  </SelectItem>
-                ))
-              ]}
-            </SelectContent>
-          </Select>
+          <div className="relative max-w-md">
+            {/* Trigger Button */}
+            <button
+              type="button"
+              role="combobox"
+              aria-expanded={seriesDropdownOpen}
+              onClick={() => setSeriesDropdownOpen(!seriesDropdownOpen)}
+              className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <div className="flex items-center space-x-2">
+                <Cup size={16} className="text-emerald-600" />
+                <span className="truncate">
+                  {selectedSeries ? selectedSeries.title : t('leaderboard.select.series')}
+                </span>
+              </div>
+              <svg
+                className="ml-2 h-4 w-4 shrink-0 opacity-50"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="6,9 12,15 18,9" />
+              </svg>
+            </button>
+
+            {/* Native Dropdown - No Radix, No Body Scroll Lock */}
+            {seriesDropdownOpen && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setSeriesDropdownOpen(false)}
+                />
+                
+                {/* Dropdown Content */}
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover text-popover-foreground rounded-md border shadow-md">
+                  <div className="max-h-60 overflow-y-auto overscroll-contain p-1" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
+                    {/* Club Series Sections First */}
+                    {Object.entries(seriesByClub).map(([clubId, clubData]) => [
+                      // Club header
+                      <div key={`header-${clubId}`} className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 rounded-sm">
+                        {clubData.club?.name || t('series.sections.unknownClub')}
+                      </div>,
+                      // Club series
+                      ...clubData.series.map((seriesItem) => (
+                        <div
+                          key={seriesItem.id}
+                          onClick={() => {
+                            setSelectedSeriesId(seriesItem.id)
+                            setSeriesDropdownOpen(false)
+                          }}
+                          className="flex items-center space-x-2 px-2 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm ml-4"
+                        >
+                          <Cup size={16} className="text-emerald-600" />
+                          <span className="flex-1">{seriesItem.title}</span>
+                          {selectedSeriesId === seriesItem.id && (
+                            <svg
+                              className="ml-auto h-4 w-4 text-emerald-600"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="20,6 9,17 4,12" />
+                            </svg>
+                          )}
+                        </div>
+                      ))
+                    ]).flat()}
+                    
+                    {/* Separator if we have both club series and open series */}
+                    {Object.keys(seriesByClub).length > 0 && openSeries.length > 0 && (
+                      <div className="border-t border-border my-1" />
+                    )}
+                    
+                    {/* Open Series Section */}
+                    {openSeries.length > 0 && [
+                      <div key="open-header" className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 rounded-sm">
+                        {t('series.sections.openSeries')}
+                      </div>,
+                      ...openSeries.map((seriesItem) => (
+                        <div
+                          key={seriesItem.id}
+                          onClick={() => {
+                            setSelectedSeriesId(seriesItem.id)
+                            setSeriesDropdownOpen(false)
+                          }}
+                          className="flex items-center space-x-2 px-2 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm ml-4"
+                        >
+                          <Cup size={16} className="text-emerald-600" />
+                          <span className="flex-1">{seriesItem.title}</span>
+                          {selectedSeriesId === seriesItem.id && (
+                            <svg
+                              className="ml-auto h-4 w-4 text-emerald-600"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="20,6 9,17 4,12" />
+                            </svg>
+                          )}
+                        </div>
+                      ))
+                    ]}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 
