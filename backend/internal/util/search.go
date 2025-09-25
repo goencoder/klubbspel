@@ -156,7 +156,7 @@ func DoubleMetaphone(text string) []string {
 }
 
 // doubleMetaphoneWord processes a single word - simplified implementation
-func doubleMetaphoneWord(word string) (primary, secondary string) {
+func doubleMetaphoneWord(word string) (string, string) {
 	if len(word) == 0 {
 		return "", ""
 	}
@@ -164,121 +164,121 @@ func doubleMetaphoneWord(word string) (primary, secondary string) {
 	word = strings.ToUpper(word)
 	
 	// Very basic phonetic mapping for common Swedish/English patterns
-	var primary strings.Builder
-	var secondary strings.Builder
+	var primaryBuilder strings.Builder
+	var secondaryBuilder strings.Builder
 	
 	i := 0
 	for i < len(word) {
 		switch word[i] {
 		case 'B':
-			primary.WriteByte('P')
-			secondary.WriteByte('P')
+			primaryBuilder.WriteByte('P')
+			secondaryBuilder.WriteByte('P')
 		case 'C':
 			if i+1 < len(word) && (word[i+1] == 'H' || word[i+1] == 'K') {
-				primary.WriteByte('K')
-				secondary.WriteByte('K')
+				primaryBuilder.WriteByte('K')
+				secondaryBuilder.WriteByte('K')
 				if word[i+1] == 'H' {
 					i++ // skip H
 				}
 			} else {
-				primary.WriteByte('K')
-				secondary.WriteByte('S')
+				primaryBuilder.WriteByte('K')
+				secondaryBuilder.WriteByte('S')
 			}
 		case 'D':
-			primary.WriteByte('T')
-			secondary.WriteByte('T')
+			primaryBuilder.WriteByte('T')
+			secondaryBuilder.WriteByte('T')
 		case 'F':
-			primary.WriteByte('F')
-			secondary.WriteByte('F')
+			primaryBuilder.WriteByte('F')
+			secondaryBuilder.WriteByte('F')
 		case 'G':
-			primary.WriteByte('K')
-			secondary.WriteByte('J')
+			primaryBuilder.WriteByte('K')
+			secondaryBuilder.WriteByte('J')
 		case 'H':
 			if i == 0 || isVowel(word[i-1]) {
-				primary.WriteByte('H')
-				secondary.WriteByte('H')
+				primaryBuilder.WriteByte('H')
+				secondaryBuilder.WriteByte('H')
 			}
 		case 'J':
-			primary.WriteByte('J')
-			secondary.WriteByte('Y')
+			primaryBuilder.WriteByte('J')
+			secondaryBuilder.WriteByte('Y')
 		case 'K':
-			primary.WriteByte('K')
-			secondary.WriteByte('K')
+			primaryBuilder.WriteByte('K')
+			secondaryBuilder.WriteByte('K')
 		case 'L':
-			primary.WriteByte('L')
-			secondary.WriteByte('L')
+			primaryBuilder.WriteByte('L')
+			secondaryBuilder.WriteByte('L')
 		case 'M':
-			primary.WriteByte('M')
-			secondary.WriteByte('M')
+			primaryBuilder.WriteByte('M')
+			secondaryBuilder.WriteByte('M')
 		case 'N':
-			primary.WriteByte('N')
-			secondary.WriteByte('N')
+			primaryBuilder.WriteByte('N')
+			secondaryBuilder.WriteByte('N')
 		case 'P':
 			if i+1 < len(word) && word[i+1] == 'H' {
-				primary.WriteByte('F')
-				secondary.WriteByte('F')
+				primaryBuilder.WriteByte('F')
+				secondaryBuilder.WriteByte('F')
 				i++ // skip H
 			} else {
-				primary.WriteByte('P')
-				secondary.WriteByte('P')
+				primaryBuilder.WriteByte('P')
+				secondaryBuilder.WriteByte('P')
 			}
 		case 'Q':
-			primary.WriteByte('K')
-			secondary.WriteByte('K')
+			primaryBuilder.WriteByte('K')
+			secondaryBuilder.WriteByte('K')
 		case 'R':
-			primary.WriteByte('R')
-			secondary.WriteByte('R')
+			primaryBuilder.WriteByte('R')
+			secondaryBuilder.WriteByte('R')
 		case 'S':
 			if i+1 < len(word) && word[i+1] == 'H' {
-				primary.WriteByte('X')
-				secondary.WriteByte('X')
+				primaryBuilder.WriteByte('X')
+				secondaryBuilder.WriteByte('X')
 				i++ // skip H
 			} else {
-				primary.WriteByte('S')
-				secondary.WriteByte('S')
+				primaryBuilder.WriteByte('S')
+				secondaryBuilder.WriteByte('S')
 			}
 		case 'T':
 			if i+1 < len(word) && word[i+1] == 'H' {
-				primary.WriteByte('0') // TH sound
-				secondary.WriteByte('T')
+				primaryBuilder.WriteByte('0') // TH sound
+				secondaryBuilder.WriteByte('T')
 				i++ // skip H
 			} else {
-				primary.WriteByte('T')
-				secondary.WriteByte('T')
+				primaryBuilder.WriteByte('T')
+				secondaryBuilder.WriteByte('T')
 			}
 		case 'V':
-			primary.WriteByte('F')
-			secondary.WriteByte('V')
+			primaryBuilder.WriteByte('F')
+			secondaryBuilder.WriteByte('V')
 		case 'W':
-			primary.WriteByte('V')
-			secondary.WriteByte('W')
+			primaryBuilder.WriteByte('V')
+			secondaryBuilder.WriteByte('W')
 		case 'X':
-			primary.WriteByte('K')
-			secondary.WriteByte('K')
+			primaryBuilder.WriteByte('K')
+			secondaryBuilder.WriteByte('K')
 		case 'Y':
-			primary.WriteByte('Y')
-			secondary.WriteByte('Y')
+			primaryBuilder.WriteByte('Y')
+			secondaryBuilder.WriteByte('Y')
 		case 'Z':
-			primary.WriteByte('S')
-			secondary.WriteByte('T')
+			primaryBuilder.WriteByte('S')
+			secondaryBuilder.WriteByte('T')
 		case 'Å', 'Ä':
-			primary.WriteByte('A')
-			secondary.WriteByte('E')
+			primaryBuilder.WriteByte('A')
+			secondaryBuilder.WriteByte('E')
 		case 'Ö':
-			primary.WriteByte('O')
-			secondary.WriteByte('U')
+			primaryBuilder.WriteByte('O')
+			secondaryBuilder.WriteByte('U')
 		default:
 			if isVowel(word[i]) {
 				if i == 0 {
-					primary.WriteByte('A')
-					secondary.WriteByte('A')
+					primaryBuilder.WriteByte('A')
+					secondaryBuilder.WriteByte('A')
 				}
 			}
 		}
 		i++
 	}
 	
-	return primary.String(), secondary.String()
+	return primaryBuilder.String(), secondaryBuilder.String()
 }
 
 // isVowel checks if a character is a vowel (including Swedish vowels)
