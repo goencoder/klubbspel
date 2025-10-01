@@ -172,9 +172,6 @@ func (s *ClubService) DeleteClub(ctx context.Context, in *pb.DeleteClubRequest) 
 		}
 	}
 
-	// TODO: Delete all memberships for this club
-	// TODO: Delete all club-specific series for this club
-
 	// Delete all memberships for this club
 	err = s.Players.RemoveAllClubMemberships(ctx, in.GetId())
 	if err != nil {

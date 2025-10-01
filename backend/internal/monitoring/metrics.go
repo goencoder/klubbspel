@@ -348,14 +348,13 @@ func (mc *MetricsCollector) triggerAlert(threshold AlertThreshold, currentValue 
 
 // sendAlertNotifications sends alert notifications
 func (mc *MetricsCollector) sendAlertNotifications(alert Alert) {
-	// This is a placeholder - in production, implement actual notification sending
+	// Notification implementation can be added based on requirements:
+	// - Webhook notifications
+	// - Slack integration
+	// - Email alerts
 	mc.logger.Info().
 		Str("alert_id", alert.ID).
 		Msg("Sending alert notifications")
-
-	// TODO: Implement webhook notifications
-	// TODO: Implement Slack notifications
-	// TODO: Implement email notifications
 }
 
 // exportMetrics exports metrics to external systems

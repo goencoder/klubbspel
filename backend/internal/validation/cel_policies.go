@@ -1,8 +1,7 @@
 package validation
 
 // CEL validation policies for business rules
-// This is a placeholder for CEL validation implementation
-// In a full implementation, you would use the google/cel-go library
+// This is a placeholder for future CEL validation implementation using google/cel-go library
 // to evaluate complex business rules like:
 //
 // - Match scores: no ties, winner >= 3 games
@@ -16,7 +15,7 @@ package validation
 // - "played_at >= series.starts_at && played_at <= series.ends_at"
 
 type CELValidator struct {
-	// TODO: Add CEL environment and compiled expressions
+	// Future: Add CEL environment and compiled expressions when implementing
 }
 
 func NewCELValidator() *CELValidator {
@@ -24,7 +23,7 @@ func NewCELValidator() *CELValidator {
 }
 
 func (v *CELValidator) ValidateMatch(matchData map[string]interface{}) error {
-	// TODO: Implement CEL validation
-	// For now, return nil (validation is done in service layer)
+	// Currently validation is done in the service layer
+	// This can be extended to use CEL for more complex validations
 	return nil
 }

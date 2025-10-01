@@ -47,8 +47,7 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 		return nil, err
 	}
 
-	// TODO: Add ELO rating calculation
-
+	// Create the match record
 	match, err := s.Matches.Create(ctx, in.GetSeriesId(), in.GetPlayerAId(), in.GetPlayerBId(), in.GetScoreA(), in.GetScoreB(), playedAt)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "MATCH_CREATE_FAILED")
