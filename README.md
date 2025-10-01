@@ -39,8 +39,8 @@ Ett svenskt hanteringssystem för bordtennisklubbar byggt med Go, React, MongoDB
 
 ```bash
 # 1. Klona och gå in i katalogen
-git clone https://github.com/goencoder/motionsserien.git
-cd motionsserien
+git clone https://github.com/goencoder/klubbspel.git
+cd klubbspel
 
 # 2. Installera beroenden
 make host-install
