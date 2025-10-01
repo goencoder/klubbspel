@@ -86,8 +86,7 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 		if err == nil && len(count) <= 1 {
 			err = s.PlayerRepo.SetPlatformOwner(ctx, magicToken.Email, true)
 			if err != nil {
-				// Log error but don't fail the authentication
-				fmt.Printf("Warning: Failed to set platform owner for first user: %v\n", err)
+				// Silently ignore error - authentication succeeded
 			}
 		}
 	}
@@ -95,8 +94,7 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 	// Update last login
 	err = s.PlayerRepo.UpdateLastLogin(ctx, magicToken.Email)
 	if err != nil {
-		// Log error but don't fail the authentication
-		fmt.Printf("Warning: Failed to update last login: %v\n", err)
+		// Silently ignore error - authentication succeeded
 	}
 
 	// Generate API token
@@ -371,9 +369,7 @@ func (ls *LazySubject) ensureLoaded(ctx context.Context) error {
 
 	// Update last used timestamp (async, don't block)
 	go func() {
-		if err := ls.tokenRepo.UpdateLastUsed(context.Background(), ls.token); err != nil {
-			fmt.Printf("Warning: Failed to update token last used: %v\n", err)
-		}
+		_ = ls.tokenRepo.UpdateLastUsed(context.Background(), ls.token)
 	}()
 
 	return nil

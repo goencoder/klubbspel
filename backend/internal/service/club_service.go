@@ -56,8 +56,7 @@ func (s *ClubService) CreateClub(ctx context.Context, in *pb.CreateClubRequest) 
 
 	err = s.Players.AddClubMembership(ctx, subject.GetEmail(), membership)
 	if err != nil {
-		// Log error but don't fail the club creation
-		fmt.Printf("Warning: Failed to add club creator as member: %v\n", err)
+		// Silently ignore membership addition errors - club was created successfully
 	}
 
 	return &pb.CreateClubResponse{
@@ -175,15 +174,13 @@ func (s *ClubService) DeleteClub(ctx context.Context, in *pb.DeleteClubRequest) 
 	// Delete all memberships for this club
 	err = s.Players.RemoveAllClubMemberships(ctx, in.GetId())
 	if err != nil {
-		// Log error but don't fail the club deletion
-		fmt.Printf("Warning: Failed to remove club memberships: %v\n", err)
+		// Silently continue - memberships will be orphaned but club deletion should succeed
 	}
 
 	// Delete all club-specific series for this club
 	err = s.Series.DeleteByClubID(ctx, in.GetId())
 	if err != nil {
-		// Log error but don't fail the club deletion
-		fmt.Printf("Warning: Failed to delete club series: %v\n", err)
+		// Silently continue - series will be orphaned but club deletion should succeed
 	}
 
 	err = s.Clubs.Delete(ctx, in.GetId())
@@ -197,22 +194,15 @@ func (s *ClubService) DeleteClub(ctx context.Context, in *pb.DeleteClubRequest) 
 }
 
 func (s *ClubService) ListClubs(ctx context.Context, in *pb.ListClubsRequest) (*pb.ListClubsResponse, error) {
-	// DEBUG: Log the request parameters
-	fmt.Printf("DEBUG ClubService.ListClubs: pageSize=%d, searchQuery='%s', cursorAfter='%s', cursorBefore='%s'\n",
-		in.GetPageSize(), in.GetSearchQuery(), in.GetCursorAfter(), in.GetCursorBefore())
-
 	// Defensive page size handling
 	pageSize := in.GetPageSize()
 	if pageSize <= 0 {
-		fmt.Printf("DEBUG ClubService.ListClubs: Invalid pageSize %d, setting to 20\n", pageSize)
 		pageSize = 20
 	}
 	if pageSize > 100 {
-		fmt.Printf("DEBUG ClubService.ListClubs: PageSize %d too large, setting to 100\n", pageSize)
 		pageSize = 100
 	}
 
-	fmt.Printf("DEBUG ClubService.ListClubs: Final pageSize=%d\n", pageSize)
 	clubs, startCursor, endCursor, hasNext, hasPrev, err := s.Clubs.ListWithCursor(ctx, in.GetSearchQuery(), pageSize, in.GetCursorAfter(), in.GetCursorBefore())
 	if err != nil {
 		return nil, status.Error(codes.Internal, "CLUB_LIST_FAILED")

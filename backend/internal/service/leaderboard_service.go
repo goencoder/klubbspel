@@ -24,23 +24,18 @@ type LeaderboardService struct {
 
 func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeaderboardRequest) (*pb.GetLeaderboardResponse, error) {
 	log.Info().Str("seriesId", in.GetSeriesId()).Msg("GetLeaderboard called")
-	log.Info().Str("seriesId", in.GetSeriesId()).Msg("GetLeaderboard called")
-	fmt.Printf("DEBUG GetLeaderboard: seriesId=%s (LEADERBOARD_VERSION=%d)\n", in.GetSeriesId(), LEADERBOARD_VERSION)
 
 	// Get all matches for the series (sorted chronologically for ELO calculation)
 	matches, err := s.Matches.FindBySeriesID(ctx, in.GetSeriesId())
 	if err != nil {
 		log.Error().Str("seriesId", in.GetSeriesId()).Err(err).Msg("Failed to get matches")
-		fmt.Printf("DEBUG GetLeaderboard: Failed to get matches for series %s: %v\n", in.GetSeriesId(), err)
 		return nil, status.Error(codes.Internal, "LEADERBOARD_FETCH_FAILED")
 	}
 	log.Debug().Str("seriesId", in.GetSeriesId()).Int("matchCount", len(matches)).Msg("Retrieved matches")
-	fmt.Printf("DEBUG GetLeaderboard: Found %d matches for series %s\n", len(matches), in.GetSeriesId())
 
 	// Collect all unique player IDs first
 	playerIDSet := make(map[string]bool)
 	for _, match := range matches {
-		fmt.Printf("DEBUG Match: PlayerAID='%s', PlayerBID='%s'\n", match.PlayerAID, match.PlayerBID)
 		playerIDSet[match.PlayerAID] = true
 		playerIDSet[match.PlayerBID] = true
 	}
@@ -50,8 +45,6 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 	for playerID := range playerIDSet {
 		playerIDs = append(playerIDs, playerID)
 	}
-
-	fmt.Printf("DEBUG PlayerIDs collected: %v\n", playerIDs)
 
 	// Batch fetch all player names in a single database query
 	log.Info().Int("playerCount", len(playerIDs)).Msg("Batch looking up players by IDs")
@@ -67,12 +60,10 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 		if player, exists := playersMap[playerID]; exists {
 			playerNames[playerID] = player.DisplayName
 			log.Info().Str("playerId", playerID).Str("displayName", player.DisplayName).Msg("Found player")
-			fmt.Printf("DEBUG LeaderboardService: Found player %s -> %s\n", playerID, player.DisplayName)
 		} else {
 			// If we can't find the player, use a fallback name
 			playerNames[playerID] = "Unknown Player"
 			log.Error().Str("playerId", playerID).Msg("Player not found in batch lookup")
-			fmt.Printf("DEBUG LeaderboardService: Failed to find player %s\n", playerID)
 		}
 	}
 

@@ -215,8 +215,7 @@ func (s *ClubMembershipService) InvitePlayer(ctx context.Context, req *pb.Invite
 	if s.EmailSvc != nil {
 		err = s.EmailSvc.SendInvitation(ctx, req.Email, club.Name, subject.GetDisplayName())
 		if err != nil {
-			// Log error but don't fail the invitation - membership was already created
-			s.Logger.Error().Err(err).Str("email", req.Email).Msg("Failed to send invitation email")
+			// Email sending failed but don't fail the invitation - membership was already created
 		} else {
 			invitationSent = true
 		}
@@ -408,8 +407,7 @@ func (s *ClubMembershipService) AddPlayerToClub(ctx context.Context, req *pb.Add
 		}
 
 		if err != nil {
-			// Log error but don't fail the operation - membership was already created
-			s.Logger.Error().Err(err).Str("email", req.Email).Msg("Failed to send club invitation email")
+			// Email sending failed but don't fail the operation - membership was already created
 		} else {
 			notificationSent = true
 		}
