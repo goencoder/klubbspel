@@ -1,0 +1,39 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+// Standardized error frame for REST via grpc-gateway
+message Error {
+  string code = 1;      // STABLE_CODE like PLAYER_DUPLICATE_SUSPECTED
+  string message = 2;   // localized message
+  map<string,string> args = 3; // interpolation args
+}
+
+// Sport enumerates racket/paddle sports supported by the platform.
+// Table tennis is currently the only fully supported sport but we define
+// additional values so that the API is future proof.
+enum Sport {
+  // Default value, should not be used explicitly.
+  SPORT_UNSPECIFIED = 0;
+  // Classic ping pong / table tennis.
+  SPORT_TABLE_TENNIS = 1;
+  // Lawn/indoor tennis.
+  SPORT_TENNIS = 2;
+  // Padel tennis.
+  SPORT_PADEL = 3;
+}
+
+// ScoringProfile defines how match results are scored and validated
+// for different sports, enabling extensible multi-sport support.
+enum ScoringProfile {
+  // Default value, should not be used explicitly.
+  SCORING_PROFILE_UNSPECIFIED = 0;
+  // Table tennis set-based scoring (best-of-3 or best-of-5)
+  SCORING_PROFILE_TABLE_TENNIS_SETS = 1;
+  // Goal/point-based scoring (e.g., football, basketball, hockey)
+  SCORING_PROFILE_SCORELINE = 2;
+  // Stroke-based scoring (e.g., golf, disc golf)
+  SCORING_PROFILE_STROKE_CARD = 3;
+  // Weight-based scoring (e.g., fishing competitions)
+  SCORING_PROFILE_WEIGH_IN = 4;
+}

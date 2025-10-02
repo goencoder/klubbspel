@@ -1,0 +1,259 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "buf/validate/validate.proto";
+import "klubbspel/v1/auth.proto";
+import "klubbspel/v1/player.proto";
+
+// ClubMembershipService handles club membership management
+service ClubMembershipService {
+  // Join a club (self-registration)
+  //
+  // AUTHORIZATION: Requires valid authentication
+  //
+  // PURPOSE: Allows authenticated users to join a club as a regular member
+  //
+  // DATA MODEL CHANGES:
+  // - Deactivates any existing membership for the same club
+  // - Adds new ClubMembership to authenticated user's Player document with "member" role
+  // - Uses AddClubMembership() with SetUpsert(false) - POTENTIAL BUG if player not found
+  //
+  // TODO: Fix AddClubMembership bug - SetUpsert(false) may fail if player document doesn't exist
+  rpc JoinClub(JoinClubRequest) returns (JoinClubResponse) {
+    option (google.api.http) = { post: "/v1/clubs/{club_id}/members" body: "*" };
+  }
+  
+  // Leave a club
+  //
+  // AUTHORIZATION: Requires valid authentication. User can leave themselves, or club admin can remove others.
+  //
+  // PURPOSE: Remove user from club membership by deactivating their membership
+  //
+  // DATA MODEL CHANGES: Deactivates ClubMembership and sets left_at timestamp
+  //
+  // SECURITY: User can only remove themselves unless they are club admin
+  rpc LeaveClub(LeaveClubRequest) returns (LeaveClubResponse) {
+    option (google.api.http) = { delete: "/v1/clubs/{club_id}/members/{player_id}" };
+  }
+  
+  // Invite a player to join a club (admin only)
+  //
+  // AUTHORIZATION: Requires valid authentication and club admin role
+  //
+  // PURPOSE: Club admins can invite users by email to join their club
+  //
+  // DATA MODEL CHANGES:
+  // - Creates or finds Player by email
+  // - Adds ClubMembership with specified role
+  // - Uses AddClubMembership() with SetUpsert(false) - POTENTIAL BUG if player not found
+  // - Sends invitation email via email service
+  //
+  // TODO: Fix AddClubMembership bug - SetUpsert(false) may fail if player document doesn't exist
+  rpc InvitePlayer(InvitePlayerRequest) returns (InvitePlayerResponse) {
+    option (google.api.http) = { post: "/v1/clubs/{club_id}/invitations" body: "*" };
+  }
+  
+  // Add a player to a club (admin only)
+  //
+  // AUTHORIZATION: Requires valid authentication and club admin role
+  //
+  // PURPOSE: Club admins can add players by name and optional email to join their club
+  //
+  // DATA MODEL CHANGES:
+  // - Creates new Player with first_name, last_name, and optional email
+  // - If email provided and player exists, adds membership to existing player
+  // - If email provided and player doesn't exist, creates new player with email
+  // - If no email provided, creates new player without email (local club member)
+  // - Adds ClubMembership with member role
+  // - Sends notification email if email provided
+  rpc AddPlayerToClub(AddPlayerToClubRequest) returns (AddPlayerToClubResponse) {
+    option (google.api.http) = { post: "/v1/clubs/{club_id}/players" body: "*" };
+  }
+  
+  // Update a member's role (promote/demote)
+  //
+  // AUTHORIZATION: Not implemented (always returns Unimplemented error)
+  //
+  // PURPOSE: Change member role between "member" and "admin"
+  //
+  // DATA MODEL CHANGES: Would update ClubMembership.role field
+  //
+  // TODO: Implement this method - currently returns Unimplemented
+  // TODO: Should require club admin authorization
+  // TODO: Should prevent self-demotion of last admin
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse) {
+    option (google.api.http) = { patch: "/v1/clubs/{club_id}/members/{player_id}/role" body: "*" };
+  }
+  
+  // List members of a club
+  //
+  // AUTHORIZATION: Not implemented (always returns Unimplemented error)
+  //
+  // PURPOSE: Browse club membership for management and display
+  //
+  // DATA MODEL CHANGES: None (read-only operation with player joins)
+  //
+  // TODO: Implement this method - currently returns Unimplemented
+  // TODO: Consider authorization - public vs members-only access
+  rpc ListClubMembers(ListClubMembersRequest) returns (ListClubMembersResponse) {
+    option (google.api.http) = { get: "/v1/clubs/{club_id}/members" };
+  }
+  
+  // List a player's club memberships
+  //
+  // AUTHORIZATION: Not implemented (always returns Unimplemented error)
+  //
+  // PURPOSE: Show which clubs a player belongs to and their roles
+  //
+  // DATA MODEL CHANGES: None (read-only operation with club joins)
+  //
+  // TODO: Implement this method - currently returns Unimplemented
+  // TODO: Should require user to be target player or platform owner
+  rpc ListPlayerMemberships(ListPlayerMembershipsRequest) returns (ListPlayerMembershipsResponse) {
+    option (google.api.http) = { get: "/v1/players/{player_id}/memberships" };
+  }
+}
+
+// Request to join a club
+message JoinClubRequest {
+  // ID of the club to join
+  string club_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response after joining a club
+message JoinClubResponse {
+  // Success confirmation
+  bool success = 1;
+  // The created membership
+  ClubMembership membership = 2;
+}
+
+// Request to leave a club
+message LeaveClubRequest {
+  // ID of the club to leave
+  string club_id = 1 [(buf.validate.field).string.min_len = 1];
+  // ID of the player leaving (must match authenticated user or be admin)
+  string player_id = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response after leaving a club
+message LeaveClubResponse {
+  // Success confirmation
+  bool success = 1;
+}
+
+// Request to invite a player to a club
+message InvitePlayerRequest {
+  // ID of the club
+  string club_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Email of the player to invite
+  string email = 2 [(buf.validate.field).string.email = true];
+  // Initial role for the invited player
+  MembershipRole role = 3;
+}
+
+// Response after inviting a player
+message InvitePlayerResponse {
+  // Success confirmation
+  bool success = 1;
+  // Whether an email invitation was sent
+  bool invitation_sent = 2;
+}
+
+// Request to add a player to a club
+message AddPlayerToClubRequest {
+  // ID of the club
+  string club_id = 1 [(buf.validate.field).string.min_len = 1];
+  // First name of the player (required)
+  string first_name = 2 [(buf.validate.field).string.min_len = 1];
+  // Last name of the player (required)
+  string last_name = 3 [(buf.validate.field).string.min_len = 1];
+  // Email of the player (optional)
+  string email = 4 [(buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE, (buf.validate.field).string.email = true];
+}
+
+// Response after adding a player to a club
+message AddPlayerToClubResponse {
+  // Success confirmation
+  bool success = 1;
+  // The created or updated player
+  Player player = 2;
+  // Whether an email notification was sent
+  bool notification_sent = 3;
+  // Whether this was a new player or existing player
+  bool was_new_player = 4;
+}
+
+// Request to update a member's role
+message UpdateMemberRoleRequest {
+  // ID of the club
+  string club_id = 1 [(buf.validate.field).string.min_len = 1];
+  // ID of the player whose role to update
+  string player_id = 2 [(buf.validate.field).string.min_len = 1];
+  // New role for the player
+  MembershipRole role = 3;
+}
+
+// Response after updating a member's role
+message UpdateMemberRoleResponse {
+  // Success confirmation
+  bool success = 1;
+  // Updated membership
+  ClubMembership membership = 2;
+}
+
+// Request to list club members
+message ListClubMembersRequest {
+  // ID of the club
+  string club_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Maximum number of members to return
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
+  // Cursor for pagination
+  string page_token = 3;
+  // Filter by active status
+  optional bool active_only = 4;
+}
+
+// Response with club members
+message ListClubMembersResponse {
+  // List of club memberships
+  repeated ClubMemberInfo members = 1;
+  // Token for next page
+  string next_page_token = 2;
+}
+
+// Club member information
+message ClubMemberInfo {
+  // Player information
+  string player_id = 1;
+  string display_name = 2;
+  string email = 3;
+  // Membership details
+  ClubMembership membership = 4;
+}
+
+// Request to list player memberships
+message ListPlayerMembershipsRequest {
+  // ID of the player
+  string player_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Filter by active status
+  optional bool active_only = 2;
+}
+
+// Response with player memberships
+message ListPlayerMembershipsResponse {
+  // List of player's club memberships
+  repeated PlayerMembershipInfo memberships = 1;
+}
+
+// Player membership information
+message PlayerMembershipInfo {
+  // Club information
+  string club_id = 1;
+  string club_name = 2;
+  // Membership details
+  ClubMembership membership = 3;
+}

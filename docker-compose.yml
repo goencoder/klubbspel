@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: pingis123
+      MONGO_INITDB_DATABASE: pingis
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # HTTP UI/API
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8080:8080"  # REST gateway
+      - "9090:9090"  # gRPC
+      - "8081:8081"  # Health/OpenAPI
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    environment:
+      MONGO_URI: mongodb://root:pingis123@mongodb:27017/pingis?authSource=admin
+      MONGO_DB: pingis
+      GRPC_ADDR: :9090
+      HTTP_ADDR: :8080
+      SITE_ADDR: :8081
+      DEFAULT_LOCALE: sv
+    volumes:
+      - ./backend/internal/i18n:/app/i18n
+
+volumes:
+  mongo_data:

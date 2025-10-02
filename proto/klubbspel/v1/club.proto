@@ -1,0 +1,173 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/field_mask.proto";
+import "buf/validate/validate.proto";
+import "klubbspel/v1/common.proto";
+
+// Club represents a table tennis club that can host series and have players
+message Club {
+  // Unique identifier for the club (MongoDB ObjectID as hex string)
+  string id = 1;
+  // Display name of the club (e.g., "Stockholm TK", "Malmö Bordtennis")
+  string name = 2 [(buf.validate.field).string = {min_len: 2, max_len: 80}];
+  // Sports supported by this club. Defaults to table tennis for now.
+  repeated Sport supported_sports = 3;
+}
+
+// Request to create a new club
+message CreateClubRequest {
+  // Club name (must be unique)
+  string name = 1 [(buf.validate.field).string = {min_len: 2, max_len: 80}];
+  // Optional sports to enable for this club. Defaults to table tennis.
+  repeated Sport supported_sports = 2;
+}
+
+// Response containing the created club
+message CreateClubResponse { 
+  // The newly created club
+  Club club = 1; 
+}
+
+// Request to get a specific club by ID
+message GetClubRequest {
+  // ID of the club to retrieve
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response containing the requested club
+message GetClubResponse {
+  // The requested club
+  Club club = 1;
+}
+
+// Request to update a club with field mask for partial updates
+message UpdateClubRequest {
+  // ID of the club to update
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  // The club data to update (only fields specified in field_mask will be updated)
+  Club club = 2 [(buf.validate.field).required = true];
+  // Field mask specifying which fields to update
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// Response containing the updated club
+message UpdateClubResponse {
+  // The updated club
+  Club club = 1;
+}
+
+// Request to delete a club
+message DeleteClubRequest {
+  // ID of the club to delete
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response after deleting a club
+message DeleteClubResponse {
+  // Success confirmation
+  bool success = 1;
+}
+
+// Request to list clubs with optional search and cursor-based pagination
+message ListClubsRequest { 
+  // Search query to filter clubs by name (case-insensitive partial match)
+  string search_query = 1;
+  // Maximum number of clubs to return (default: 20, max: 100)
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
+  
+  // Cursor-based pagination (use one of the following):
+  // ID to start listing after (for forward pagination)
+  string cursor_after = 3;
+  // ID to start listing before (for backward pagination)
+  string cursor_before = 4;
+}
+
+// Response containing list of clubs and cursor pagination info
+message ListClubsResponse { 
+  // List of clubs matching the search criteria (ordered by ID)
+  repeated Club items = 1; 
+  
+  // Cursor pagination tokens
+  // ID of the first item in this page (for backward pagination)
+  string start_cursor = 2;
+  // ID of the last item in this page (for forward pagination)
+  string end_cursor = 3;
+  // Whether there are more items after end_cursor
+  bool has_next_page = 4;
+  // Whether there are more items before start_cursor
+  bool has_previous_page = 5;
+}
+
+// Service for managing table tennis clubs
+service ClubService {
+  // Create a new club
+  //
+  // AUTHORIZATION: Requires valid authentication. User must have completed profile (firstName + lastName).
+  // 
+  // PURPOSE: Creates a new table tennis club and automatically adds the creator as an admin member.
+  //
+  // DATA MODEL CHANGES:
+  // - Creates new Club document in MongoDB
+  // - Automatically adds creator to the club with admin role via AddClubMembership()
+  // - Sets membership as active with current timestamp
+  //
+  // TODO: Potential bug in AddClubMembership() - uses SetUpsert(false) which may fail if player document doesn't exist
+  rpc CreateClub(CreateClubRequest) returns (CreateClubResponse) {
+    option (google.api.http) = { post: "/v1/clubs" body: "*" };
+  }
+  
+  // Get a specific club by ID
+  //
+  // AUTHORIZATION: No authentication required (public endpoint)
+  //
+  // PURPOSE: Retrieves club information by ID for display purposes
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc GetClub(GetClubRequest) returns (GetClubResponse) {
+    option (google.api.http) = { get: "/v1/clubs/{id}" };
+  }
+  
+  // Update a club using field mask for partial updates
+  //
+  // AUTHORIZATION: Not implemented - no auth check in service code
+  //
+  // PURPOSE: Updates club information (currently only name)
+  //
+  // DATA MODEL CHANGES: Modifies existing Club document name field
+  //
+  // TODO: Missing authorization - should require club admin membership
+  rpc UpdateClub(UpdateClubRequest) returns (UpdateClubResponse) {
+    option (google.api.http) = { 
+      patch: "/v1/clubs/{id}" 
+      body: "club" 
+    };
+  }
+  
+  // Delete a club by ID
+  //
+  // AUTHORIZATION: Not implemented - no auth check in service code
+  //
+  // PURPOSE: Permanently removes a club from the system
+  //
+  // DATA MODEL CHANGES: Deletes Club document from MongoDB
+  //
+  // TODO: Missing authorization - should require club admin membership or platform owner
+  // TODO: Should also clean up related data (series, matches, memberships)
+  rpc DeleteClub(DeleteClubRequest) returns (DeleteClubResponse) {
+    option (google.api.http) = { delete: "/v1/clubs/{id}" };
+  }
+  
+  // List clubs with optional search filtering and pagination
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Lists all clubs with search and pagination support for club discovery
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc ListClubs(ListClubsRequest) returns (ListClubsResponse) {
+    option (google.api.http) = { get: "/v1/clubs" };
+  }
+}

@@ -1,0 +1,190 @@
+@import 'tailwindcss';
+@import "tw-animate-css";
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  /* Fix date input icon visibility */
+  input[type="date"], 
+  input[type="datetime-local"], 
+  input[type="time"] {
+    position: relative !important;
+    padding-right: 2.5rem !important; /* Add space for the icon */
+  }
+
+  /* Force display of calendar picker indicator */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    position: absolute !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #6b7280 !important;
+    cursor: pointer !important;
+    width: 20px !important;
+    height: 20px !important;
+    background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%3E%0A%20%20%3Cpath%20d%3D%22M8%202v3M16%202v3M3.5%209.09h17M21%208.5V17c0%203-1.5%205-5%205H8c-3.5%200-5-2-5-5V8.5c0-3%201.5-5%205-5h8c3.5%200%205%202%205%205Z%22%20stroke%3D%22currentColor%22%20stroke-width%3D%221.5%22%20stroke-miterlimit%3D%2210%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M15.695%2013.7h.009M15.695%2016.7h.009M11.995%2013.7h.01M11.995%2016.7h.01M8.294%2013.7h.01M8.294%2016.7h.01%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E") no-repeat center !important;
+    background-size: 16px 16px !important;
+    opacity: 1 !important;
+    filter: none !important;
+    z-index: 10 !important;
+    display: block !important;
+    visibility: visible !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    border: none !important;
+    outline: none !important;
+  }
+
+  /* Style for better icon visibility on hover */
+  input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+  input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    color: #1f2937 !important;
+    opacity: 1 !important;
+    background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%3E%0A%20%20%3Cpath%20d%3D%22M8%202v3M16%202v3M3.5%209.09h17M21%208.5V17c0%203-1.5%205-5%205H8c-3.5%200-5-2-5-5V8.5c0-3%201.5-5%205-5h8c3.5%200%205%202%205%205Z%22%20stroke%3D%22%25231f2937%22%20stroke-width%3D%221.5%22%20stroke-miterlimit%3D%2210%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M15.695%2013.7h.009M15.695%2016.7h.009M11.995%2013.7h.01M11.995%2016.7h.01M8.294%2013.7h.01M8.294%2016.7h.01%22%20stroke%3D%22%25231f2937%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E") no-repeat center !important;
+    background-size: 16px 16px !important;
+  }
+
+  /* Fix iconsax-react SVG icons to inherit stroke color */
+  svg.text-current,
+  svg.text-current path,
+  svg.text-current circle,
+  svg.text-current line,
+  svg.text-current rect,
+  svg.text-current ellipse,
+  svg.text-current polygon,
+  svg.text-current polyline {
+    stroke: currentColor;
+  }
+
+  /* Also fix other text color classes for stroke-based SVGs */
+  svg.text-muted-foreground,
+  svg.text-muted-foreground path,
+  svg.text-muted-foreground circle,
+  svg.text-muted-foreground line,
+  svg.text-muted-foreground rect,
+  svg.text-muted-foreground ellipse,
+  svg.text-muted-foreground polygon,
+  svg.text-muted-foreground polyline {
+    stroke: hsl(var(--muted-foreground));
+  }
+
+  svg.text-blue-600,
+  svg.text-blue-600 path,
+  svg.text-blue-600 circle,
+  svg.text-blue-600 line,
+  svg.text-blue-600 rect,
+  svg.text-blue-600 ellipse,
+  svg.text-blue-600 polygon,
+  svg.text-blue-600 polyline {
+    stroke: rgb(37 99 235);
+  }
+
+  svg.text-green-600,
+  svg.text-green-600 path,
+  svg.text-green-600 circle,
+  svg.text-green-600 line,
+  svg.text-green-600 rect,
+  svg.text-green-600 ellipse,
+  svg.text-green-600 polygon,
+  svg.text-green-600 polyline {
+    stroke: rgb(34 197 94);
+  }
+
+  svg.text-red-600,
+  svg.text-red-600 path,
+  svg.text-red-600 circle,
+  svg.text-red-600 line,
+  svg.text-red-600 rect,
+  svg.text-red-600 ellipse,
+  svg.text-red-600 polygon,
+  svg.text-red-600 polyline {
+    stroke: rgb(220 38 38);
+  }
+}
+
+:root {
+  /* Color palette for Klubbspel */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.25 0.08 250);
+
+  --card: oklch(0.98 0.01 250);
+  --card-foreground: oklch(0.25 0.08 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.08 250);
+
+  /* Deep blue primary for trust and authority */
+  --primary: oklch(0.45 0.15 250);
+  --primary-foreground: oklch(1 0 0);
+  
+  /* Light gray secondary for subtle backgrounds */
+  --secondary: oklch(0.96 0.01 250);
+  --secondary-foreground: oklch(0.25 0.08 250);
+  
+  --muted: oklch(0.96 0.01 250);
+  --muted-foreground: oklch(0.556 0.05 250);
+  
+  /* Warm orange accent for highlights and CTAs */
+  --accent: oklch(0.70 0.15 45);
+  --accent-foreground: oklch(1 0 0);
+  
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+  
+  /* Success color for winners and positive states */
+  --success: oklch(0.65 0.15 145);
+  --success-foreground: oklch(1 0 0);
+  
+  --border: oklch(0.922 0.01 250);
+  --input: oklch(0.922 0.01 250);
+  --ring: oklch(0.45 0.15 250);
+
+  --radius: 0.5rem;
+
+  --font-sans: Roboto;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.5);
+  --radius-xl: calc(var(--radius) * 2);
+  --radius-2xl: calc(var(--radius) * 3);
+  --radius-full: 9999px;
+
+  /* Inter font family */
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  }
+}

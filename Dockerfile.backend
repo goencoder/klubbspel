@@ -1,0 +1,60 @@
+# Build stage
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache protoc make curl
+
+# Install buf
+RUN BIN="/usr/local/bin" && \
+    VERSION="1.40.1" && \
+    curl -sSL \
+    "https://github.com/bufbuild/buf/releases/download/v${VERSION}/buf-$(uname -s)-$(uname -m)" \
+    -o "${BIN}/buf" && \
+    chmod +x "${BIN}/buf"
+
+# Copy go mod files
+COPY backend/go.mod backend/go.sum ./
+RUN go mod download
+
+# Install protoc plugins with compatible versions
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.2 && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1 && \
+    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.20.0 && \
+    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.20.0
+
+# Copy source code
+COPY . .
+
+# Generate protobuf code directly with buf
+RUN PATH=$PATH:/go/bin buf generate
+
+# Build the application
+RUN cd backend && CGO_ENABLED=0 GOOS=linux go build -o /app/bin/api ./cmd/api
+
+# Runtime stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates tzdata
+
+WORKDIR /app
+
+# Copy the binary
+COPY --from=builder /app/bin/api .
+
+# Copy i18n files
+COPY --from=builder /app/backend/internal/i18n ./i18n
+
+# Copy generated OpenAPI files
+COPY --from=builder /app/backend/openapi ./backend/openapi
+
+# Create non-root user
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
+USER appuser
+
+EXPOSE 8080 9090 8081
+
+CMD ["./api"]

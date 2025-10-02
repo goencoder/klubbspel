@@ -1,0 +1,314 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "buf/validate/validate.proto";
+import "klubbspel/v1/common.proto";
+
+// MatchParticipant represents a participant in a match (individual or team)
+// Currently only individual players are supported, but this allows future
+// expansion to team-based sports.
+message MatchParticipant {
+  oneof ref {
+    // Individual player ID
+    string player_id = 1;
+    // Team ID (future expansion for team sports)
+    string team_id = 2;
+  }
+}
+
+// TableTennisResult represents set-based scoring for table tennis
+message TableTennisResult {
+  // Number of sets won by participant A (0-5 for best-of-5)
+  int32 sets_a = 1 [(buf.validate.field).int32 = {gte: 0, lte: 5}];
+  // Number of sets won by participant B (0-5 for best-of-5) 
+  int32 sets_b = 2 [(buf.validate.field).int32 = {gte: 0, lte: 5}];
+}
+
+// ScorelineResult represents goal/point-based scoring (future: football, basketball, etc.)
+message ScorelineResult {
+  // Score for participant A
+  int32 score_a = 1;
+  // Score for participant B 
+  int32 score_b = 2;
+  // Whether the match went to shootout/overtime
+  bool shootout = 3;
+}
+
+// StrokeCardResult represents stroke-based scoring (future: golf, disc golf)
+message StrokeCardResult {
+  // Total strokes taken (can be expanded to per-hole later)
+  int32 total_strokes = 1;
+}
+
+// WeighInResult represents weight-based scoring (future: fishing competitions)
+message WeighInResult {
+  // Total weight in kilograms
+  double total_weight_kg = 1;
+  // Number of fish/items weighed
+  int32 count = 2;
+}
+
+// MatchResult contains the result of a match in sport-specific format
+message MatchResult {
+  oneof kind {
+    // Table tennis set-based result
+    TableTennisResult table_tennis = 1;
+    // Goal/point-based result (future)
+    ScorelineResult scoreline = 2;
+    // Stroke-based result (future)
+    StrokeCardResult stroke_card = 3;
+    // Weight-based result (future)
+    WeighInResult weigh_in = 4;
+  }
+}
+
+// Request to report the result of a table tennis match
+// DEPRECATED: Use ReportMatchV2Request for new implementations
+message ReportMatchRequest {
+  // ID of the tournament series this match belongs to
+  string series_id = 1 [(buf.validate.field).string.min_len = 1];
+  // ID of the first player
+  string player_a_id = 2 [(buf.validate.field).string.min_len = 1];
+  // ID of the second player
+  string player_b_id = 3 [(buf.validate.field).string.min_len = 1];
+  // Number of games won by player A (0-5 in best-of-5 format)
+  int32 score_a = 4 [(buf.validate.field).int32 = {gte: 0, lte: 5}];
+  // Number of games won by player B (0-5 in best-of-5 format)
+  int32 score_b = 5 [(buf.validate.field).int32 = {gte: 0, lte: 5}];
+  // When the match was played (must be within series time boundaries)
+  google.protobuf.Timestamp played_at = 6 [(buf.validate.field).required = true];
+  
+  // Business rule validations using CEL
+  option (buf.validate.message).cel = {
+    id: "match_no_tie"
+    expression: "this.score_a != this.score_b"
+    message: "A match cannot end in a tie"
+  };
+  option (buf.validate.message).cel = {
+    id: "match_best_of_five"
+    expression: "int(this.score_a) > int(this.score_b) ? this.score_a >= 3 : this.score_b >= 3"
+    message: "Winner must reach at least 3 games (best of five)"
+  };
+  option (buf.validate.message).cel = {
+    id: "match_different_players"
+    expression: "this.player_a_id != this.player_b_id"
+    message: "A player cannot play against themselves"
+  };
+}
+
+// Response after successfully reporting a match
+message ReportMatchResponse { 
+  // ID of the created match record
+  string match_id = 1; 
+}
+
+// V2 Request to report the result of a match with multi-sport support
+message ReportMatchV2Request {
+  // ID of the tournament series this match belongs to
+  string series_id = 1 [(buf.validate.field).string.min_len = 1];
+  // First participant in the match
+  MatchParticipant participant_a = 2 [(buf.validate.field).required = true];
+  // Second participant in the match
+  MatchParticipant participant_b = 3 [(buf.validate.field).required = true];
+  // Match result in sport-specific format
+  MatchResult result = 4 [(buf.validate.field).required = true];
+  // When the match was played (must be within series time boundaries)
+  google.protobuf.Timestamp played_at = 5 [(buf.validate.field).required = true];
+
+  // Business rule validations using CEL
+  // Note: Sport-specific validations (like no ties in table tennis) are handled server-side
+  // since they require checking the series scoring profile and sets_to_play
+}
+
+// V2 Response after successfully reporting a match
+message ReportMatchV2Response {
+  // ID of the created match record
+  string match_id = 1;
+}
+
+// Request to update an existing match
+message UpdateMatchRequest {
+  // ID of the match to update
+  string match_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Number of games won by player A (0-5 in best-of-5 format) - optional
+  optional int32 score_a = 2;
+  // Number of games won by player B (0-5 in best-of-5 format) - optional
+  optional int32 score_b = 3;
+  // When the match was played - optional
+  optional google.protobuf.Timestamp played_at = 4;
+  
+  // Business rule validations using CEL (only applied if both scores are provided)
+  option (buf.validate.message).cel = {
+    id: "update_match_no_tie"
+    expression: "has(this.score_a) && has(this.score_b) ? this.score_a != this.score_b : true"
+    message: "A match cannot end in a tie"
+  };
+  option (buf.validate.message).cel = {
+    id: "update_match_best_of_five"
+    expression: "has(this.score_a) && has(this.score_b) ? (int(this.score_a) > int(this.score_b) ? this.score_a >= 3 : this.score_b >= 3) : true"
+    message: "Winner must reach at least 3 games (best of five)"
+  };
+}
+
+// Response after successfully updating a match
+message UpdateMatchResponse {
+  // Updated match information
+  MatchView match = 1;
+}
+
+// Request to delete a match
+message DeleteMatchRequest {
+  // ID of the match to delete
+  string match_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response after successfully deleting a match
+message DeleteMatchResponse {
+  // Whether the deletion was successful
+  bool success = 1;
+}
+
+// Request to reorder matches played on the same day
+message ReorderMatchesRequest {
+  // List of match IDs in the desired order (first = earliest in day)
+  repeated string match_ids = 1 [(buf.validate.field).repeated.min_items = 2];
+}
+
+// Response after successfully reordering matches
+message ReorderMatchesResponse {
+  // Whether the reordering was successful
+  bool success = 1;
+}
+
+// Request to list matches in a tournament series with cursor-based pagination
+message ListMatchesRequest { 
+  // ID of the tournament series to get matches for
+  string series_id = 1; 
+  // Maximum number of matches to return (default: 20, max: 100)
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}]; 
+  
+  // Cursor-based pagination (use one of the following):
+  // ID to start listing after (for forward pagination)
+  string cursor_after = 3;
+  // ID to start listing before (for backward pagination)
+  string cursor_before = 4;
+}
+
+// View of a match with player names resolved for display
+message MatchView {
+  // Unique identifier for this match
+  string id = 1; 
+  // ID of the tournament series this match belongs to
+  string series_id = 2; 
+  // Display name of the first player
+  string player_a_name = 3; 
+  // Display name of the second player
+  string player_b_name = 4;
+  // Number of games won by player A
+  int32 score_a = 5; 
+  // Number of games won by player B
+  int32 score_b = 6; 
+  // When the match was played
+  google.protobuf.Timestamp played_at = 7;
+}
+
+// Response containing list of matches and cursor pagination info
+message ListMatchesResponse { 
+  // List of matches in the series (ordered by played_at desc, then by ID)
+  repeated MatchView items = 1; 
+  
+  // Cursor pagination tokens
+  // ID of the first item in this page (for backward pagination)
+  string start_cursor = 2;
+  // ID of the last item in this page (for forward pagination)
+  string end_cursor = 3;
+  // Whether there are more items after end_cursor
+  bool has_next_page = 4;
+  // Whether there are more items before start_cursor
+  bool has_previous_page = 5;
+}
+
+// Service for managing table tennis matches
+service MatchService {
+  // Report the result of a completed match with automatic ELO rating updates
+  //
+  // AUTHORIZATION: No explicit authentication check in service code
+  //
+  // PURPOSE: Records match results in tournament series with strict validation rules
+  //
+  // DATA MODEL CHANGES:
+  // - Creates new Match document in MongoDB
+  // - Validates match is within series time boundaries (TODO: not implemented)
+  // - Validates best-of-5 scoring (winner must reach 3 games minimum)
+  // - Prevents ties and self-play
+  //
+  // TODO: Should require authentication and verify player eligibility for series
+  // TODO: Add CEL validation for series time window (currently only server-side comment)
+  // TODO: Add ELO rating calculation (currently only server-side comment)
+  rpc ReportMatch(ReportMatchRequest) returns (ReportMatchResponse) {
+    option (google.api.http) = { post: "/v1/matches:report" body: "*" };
+  }
+
+  // V2 Report the result of a completed match with multi-sport support
+  //
+  // AUTHORIZATION: No explicit authentication check in service code
+  //
+  // PURPOSE: Records match results with extensible sport-specific validation
+  //
+  // DATA MODEL CHANGES:
+  // - Creates new Match document in MongoDB
+  // - Validates match according to series scoring profile
+  // - Supports future expansion to multiple sports
+  //
+  // TODO: Should require authentication and verify participant eligibility
+  rpc ReportMatchV2(ReportMatchV2Request) returns (ReportMatchV2Response) {
+    option (google.api.http) = { post: "/v2/matches:report" body: "*" };
+  }
+  
+  // List all matches in a tournament series with player names resolved
+  //
+  // AUTHORIZATION: No authentication required (public endpoint)
+  //
+  // PURPOSE: Display match history and results for tournament leaderboards
+  //
+  // DATA MODEL CHANGES: None (read-only operation with player name joins)
+  rpc ListMatches(ListMatchesRequest) returns (ListMatchesResponse) {
+    option (google.api.http) = { get: "/v1/series/{series_id}/matches" };
+  }
+
+  // Update an existing match (date, scores, etc.)
+  //
+  // AUTHORIZATION: Should require authentication and admin/player rights
+  //
+  // PURPOSE: Allow correction of match data (wrong dates, scores)
+  //
+  // DATA MODEL CHANGES: Updates existing Match document in MongoDB
+  rpc UpdateMatch(UpdateMatchRequest) returns (UpdateMatchResponse) {
+    option (google.api.http) = { patch: "/v1/matches/{match_id}" body: "*" };
+  }
+
+  // Delete a match
+  //
+  // AUTHORIZATION: Should require authentication and admin rights
+  //
+  // PURPOSE: Remove incorrectly reported matches
+  //
+  // DATA MODEL CHANGES: Removes Match document from MongoDB
+  rpc DeleteMatch(DeleteMatchRequest) returns (DeleteMatchResponse) {
+    option (google.api.http) = { delete: "/v1/matches/{match_id}" };
+  }
+
+  // Reorder matches played on the same day
+  //
+  // AUTHORIZATION: Should require authentication and admin rights
+  //
+  // PURPOSE: Correct the temporal order of matches for accurate ELO calculations
+  //
+  // DATA MODEL CHANGES: Updates played_at timestamps to preserve order within day
+  rpc ReorderMatches(ReorderMatchesRequest) returns (ReorderMatchesResponse) {
+    option (google.api.http) = { post: "/v1/matches:reorder" body: "*" };
+  }
+}

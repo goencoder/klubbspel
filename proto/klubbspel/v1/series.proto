@@ -1,0 +1,250 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "klubbspel/v1/common.proto";
+
+// Visibility setting for a tournament series
+enum SeriesVisibility {
+  // Default value, should not be used
+  SERIES_VISIBILITY_UNSPECIFIED = 0;
+  // Only players from the specified club can participate
+  SERIES_VISIBILITY_CLUB_ONLY = 1;
+  // Players from any club can participate
+  SERIES_VISIBILITY_OPEN = 2;
+}
+
+// SeriesFormat captures the competition structure.
+enum SeriesFormat {
+  // Default value, should not be used.
+  SERIES_FORMAT_UNSPECIFIED = 0;
+  // Open play where any players can play matches against each other.
+  SERIES_FORMAT_OPEN_PLAY = 1;
+  // Continuous ladder where players challenge each other.
+  SERIES_FORMAT_LADDER = 2;
+  // Knock-out cup or bracket style tournament.
+  SERIES_FORMAT_CUP = 3;
+}
+
+// Series represents a time-bound table tennis tournament
+message Series {
+  // Unique identifier for the series (MongoDB ObjectID as hex string)
+  string id = 1;
+  // ID of the club hosting this series (required for CLUB_ONLY, optional for OPEN)
+  string club_id = 2;
+  // Display title of the series (e.g., "Spring Championship 2024")
+  string title = 3 [(buf.validate.field).string = {
+    min_len: 2
+    max_len: 80
+  }];
+  // When the series starts (matches can only be played during this period)
+  google.protobuf.Timestamp starts_at = 4 [(buf.validate.field).required = true];
+  // When the series ends (matches can only be played during this period)
+  google.protobuf.Timestamp ends_at = 5 [(buf.validate.field).required = true];
+  // Who can participate in this series
+  SeriesVisibility visibility = 6;
+  // Sport that the series is played in.
+  Sport sport = 7;
+  // Competition format for the series.
+  SeriesFormat format = 8;
+  // Scoring profile that determines how matches are validated and scored
+  ScoringProfile scoring_profile = 9;
+  // Number of sets to play (for table tennis: 3 or 5)
+  int32 sets_to_play = 10 [(buf.validate.field).int32 = {gte: 3, lte: 5}];
+
+  option (buf.validate.message).cel = {
+    id: "series_valid_time_range"
+    expression: "this.starts_at < this.ends_at"
+    message: "Series start time must be before end time"
+  };
+}
+
+// Request to create a new tournament series
+message CreateSeriesRequest {
+  // ID of the club hosting this series (required if visibility is CLUB_ONLY)
+  string club_id = 1;
+  // Display title for the series
+  string title = 2 [(buf.validate.field).string = {
+    min_len: 2
+    max_len: 80
+  }];
+  // When the series should start
+  google.protobuf.Timestamp starts_at = 3 [(buf.validate.field).required = true];
+  // When the series should end
+  google.protobuf.Timestamp ends_at = 4 [(buf.validate.field).required = true];
+  // Who can participate in this series
+  SeriesVisibility visibility = 5;
+  // Sport that the series is played in. Defaults to table tennis.
+  Sport sport = 6;
+  // Competition format. Defaults to LADDER.
+  SeriesFormat format = 7;
+  // Scoring profile for match validation. Defaults based on sport.
+  ScoringProfile scoring_profile = 8;
+  // Number of sets to play (for table tennis). Defaults to 5.
+  int32 sets_to_play = 9 [(buf.validate.field).int32 = {gte: 3, lte: 5}];
+
+  option (buf.validate.message).cel = {
+    id: "create_series_valid_time_range"
+    expression: "this.starts_at < this.ends_at"
+    message: "Series start time must be before end time"
+  };
+}
+
+// Response containing the created series
+message CreateSeriesResponse {
+  // The newly created series
+  Series series = 1;
+}
+
+// Request to get a specific series by ID
+message GetSeriesRequest {
+  // ID of the series to retrieve
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response containing the requested series
+message GetSeriesResponse {
+  // The requested series
+  Series series = 1;
+}
+
+// Request to update a series with field mask for partial updates
+message UpdateSeriesRequest {
+  // ID of the series to update
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  // The series data to update (only fields specified in field_mask will be updated)
+  Series series = 2 [(buf.validate.field).required = true];
+  // Field mask specifying which fields to update
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// Response containing the updated series
+message UpdateSeriesResponse {
+  // The updated series
+  Series series = 1;
+}
+
+// Request to delete a series
+message DeleteSeriesRequest {
+  // ID of the series to delete
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Response after deleting a series
+message DeleteSeriesResponse {
+  // Success confirmation
+  bool success = 1;
+}
+
+// Request to list tournament series with cursor-based pagination
+message ListSeriesRequest {
+  // Maximum number of series to return (default: 20, max: 100)
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+
+  // Cursor-based pagination (use one of the following):
+  // ID to start listing after (for forward pagination)
+  string cursor_after = 2;
+  // ID to start listing before (for backward pagination)
+  string cursor_before = 3;
+  // Optional filter by sport.
+  Sport sport_filter = 4;
+  // Optional filter by club IDs. Special value "OPEN" includes all open series.
+  // If empty, returns all series. Example: ["98463678", "OPEN"] returns 
+  // series for club 98463678 plus all open series.
+  repeated string club_filter = 5;
+}
+
+// Response containing list of series and cursor pagination info
+message ListSeriesResponse {
+  // List of tournament series (ordered by ID)
+  repeated Series items = 1;
+
+  // Cursor pagination tokens
+  // ID of the first item in this page (for backward pagination)
+  string start_cursor = 2;
+  // ID of the last item in this page (for forward pagination)
+  string end_cursor = 3;
+  // Whether there are more items after end_cursor
+  bool has_next_page = 4;
+  // Whether there are more items before start_cursor
+  bool has_previous_page = 5;
+}
+
+// Service for managing tournament series
+service SeriesService {
+  // Create a new tournament series with time boundaries and visibility settings
+  //
+  // AUTHORIZATION: No explicit authentication check in service code
+  //
+  // PURPOSE: Creates a time-bound tournament where players can compete and matches are tracked
+  //
+  // DATA MODEL CHANGES:
+  // - Creates new Series document in MongoDB
+  // - Validates time range (starts_at < ends_at)
+  // - Sets visibility rules for participation
+  //
+  // TODO: Should require authentication and club admin rights if club_id is specified
+  rpc CreateSeries(CreateSeriesRequest) returns (CreateSeriesResponse) {
+    option (google.api.http) = {
+      post: "/v1/series"
+      body: "*"
+    };
+  }
+
+  // Get a specific series by ID
+  //
+  // AUTHORIZATION: No authentication required (public endpoint)
+  //
+  // PURPOSE: Retrieve series information for display and participation
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc GetSeries(GetSeriesRequest) returns (GetSeriesResponse) {
+    option (google.api.http) = {get: "/v1/series/{id}"};
+  }
+
+  // Update a series using field mask for partial updates
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Modify series details like title, dates, or visibility
+  //
+  // DATA MODEL CHANGES: Modifies Series document fields
+  // TODO: Should require series creator or club admin rights
+  rpc UpdateSeries(UpdateSeriesRequest) returns (UpdateSeriesResponse) {
+    option (google.api.http) = {
+      patch: "/v1/series/{id}"
+      body: "series"
+    };
+  }
+
+  // Delete a series by ID
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Remove a series and all associated data
+  //
+  // DATA MODEL CHANGES: Deletes Series document and related matches
+  // TODO: Should require series creator or club admin rights
+  // TODO: Should cascade delete or prevent deletion if matches exist
+  rpc DeleteSeries(DeleteSeriesRequest) returns (DeleteSeriesResponse) {
+    option (google.api.http) = {delete: "/v1/series/{id}"};
+  }
+
+  // List all tournament series with pagination
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Browse available tournaments for participation
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc ListSeries(ListSeriesRequest) returns (ListSeriesResponse) {
+    option (google.api.http) = {get: "/v1/series"};
+  }
+}

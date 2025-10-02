@@ -1,0 +1,47 @@
+# Frontend Dockerfile for production deployment
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install all dependencies (including dev dependencies needed for build)
+RUN npm ci
+
+# Copy source code
+COPY frontend/ ./
+
+# Set build-time environment variables for Vite
+ARG VITE_API_BASE_URL=https://klubbspel-backend.fly.dev
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+# Build the application
+RUN npm run build
+
+# Runtime stage - serve with nginx
+FROM nginx:alpine
+
+# Remove default nginx static assets
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy built frontend
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY deploy/nginx.conf /etc/nginx/nginx.conf
+
+# Create non-root user for nginx (use existing nginx user)
+RUN touch /var/run/nginx.pid && \
+  chown -R nginx:nginx /var/run/nginx.pid && \
+  chown -R nginx:nginx /var/cache/nginx && \
+  chown -R nginx:nginx /var/log/nginx && \
+  chown -R nginx:nginx /etc/nginx/conf.d && \
+  chown -R nginx:nginx /usr/share/nginx/html
+
+USER nginx
+
+EXPOSE 3000
+
+CMD ["nginx", "-g", "daemon off;"]

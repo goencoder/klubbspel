@@ -1,0 +1,2803 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "klubbspel/v1/auth.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "AuthService"
+    },
+    {
+      "name": "ClubService"
+    },
+    {
+      "name": "PlayerService"
+    },
+    {
+      "name": "ClubMembershipService"
+    },
+    {
+      "name": "LeaderboardService"
+    },
+    {
+      "name": "MatchService"
+    },
+    {
+      "name": "SeriesService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/auth/magic-link": {
+      "post": {
+        "summary": "Send a magic link to the provided email address",
+        "description": "AUTHORIZATION: None required (public endpoint for initial authentication)\n\nPURPOSE: Initiates passwordless authentication flow by sending magic link via email\n\nDATA MODEL CHANGES:\n- Creates MagicLinkToken document in MongoDB with 15-minute expiration\n- Triggers email service to send magic link to specified address",
+        "operationId": "AuthService_SendMagicLink",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SendMagicLinkResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendMagicLinkRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "summary": "Get current user information (requires authentication)",
+        "description": "AUTHORIZATION: Requires valid API token in Authorization header\n\nPURPOSE: Retrieve authenticated user's profile and club memberships\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "AuthService_GetCurrentUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetCurrentUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/profile": {
+      "patch": {
+        "summary": "Update current user's profile (requires authentication)",
+        "description": "AUTHORIZATION: Requires valid API token in Authorization header\n\nPURPOSE: Update authenticated user's first and last name for profile completion\n\nDATA MODEL CHANGES:\n- Updates Player.first_name and Player.last_name fields\n- Profile completion required for club creation",
+        "operationId": "AuthService_UpdateProfile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProfileRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/revoke": {
+      "post": {
+        "summary": "Revoke current API token (logout)",
+        "description": "AUTHORIZATION: Requires valid API token in Authorization header\n\nPURPOSE: Invalidate current session by revoking API token\n\nDATA MODEL CHANGES:\n- Marks APIToken document as revoked\n- Token becomes invalid for future requests",
+        "operationId": "AuthService_RevokeToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RevokeTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Empty - token is identified by Authorization header",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RevokeTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/validate": {
+      "post": {
+        "summary": "Validate a magic link token and return API token",
+        "description": "AUTHORIZATION: None required (validates magic link token instead)\n\nPURPOSE: Completes authentication flow by validating magic link and issuing API token\n\nDATA MODEL CHANGES:\n- Consumes (marks as used) MagicLinkToken document\n- Creates new APIToken document for subsequent requests\n- Creates Player document if user doesn't exist (auto-registration)\n- First user automatically becomes platform owner\n- Updates Player.last_login_at timestamp",
+        "operationId": "AuthService_ValidateToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ValidateTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ValidateTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/clubs": {
+      "get": {
+        "summary": "List clubs with optional search filtering and pagination",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Lists all clubs with search and pagination support for club discovery\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "ClubService_ListClubs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListClubsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "searchQuery",
+            "description": "Search query to filter clubs by name (case-insensitive partial match)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageSize",
+            "description": "Maximum number of clubs to return (default: 20, max: 100)",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "cursorAfter",
+            "description": "Cursor-based pagination (use one of the following):\nID to start listing after (for forward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "cursorBefore",
+            "description": "ID to start listing before (for backward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClubService"
+        ]
+      },
+      "post": {
+        "summary": "Create a new club",
+        "description": "AUTHORIZATION: Requires valid authentication. User must have completed profile (firstName + lastName).\n\nPURPOSE: Creates a new table tennis club and automatically adds the creator as an admin member.\n\nDATA MODEL CHANGES:\n- Creates new Club document in MongoDB\n- Automatically adds creator to the club with admin role via AddClubMembership()\n- Sets membership as active with current timestamp\n\nTODO: Potential bug in AddClubMembership() - uses SetUpsert(false) which may fail if player document doesn't exist",
+        "operationId": "ClubService_CreateClub",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateClubResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateClubRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ClubService"
+        ]
+      }
+    },
+    "/v1/clubs/{clubId}/invitations": {
+      "post": {
+        "summary": "Invite a player to join a club (admin only)",
+        "description": "AUTHORIZATION: Requires valid authentication and club admin role\n\nPURPOSE: Club admins can invite users by email to join their club\n\nDATA MODEL CHANGES:\n- Creates or finds Player by email\n- Adds ClubMembership with specified role\n- Uses AddClubMembership() with SetUpsert(false) - POTENTIAL BUG if player not found\n- Sends invitation email via email service\n\nTODO: Fix AddClubMembership bug - SetUpsert(false) may fail if player document doesn't exist",
+        "operationId": "ClubMembershipService_InvitePlayer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1InvitePlayerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clubId",
+            "description": "ID of the club",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClubMembershipServiceInvitePlayerBody"
+            }
+          }
+        ],
+        "tags": [
+          "ClubMembershipService"
+        ]
+      }
+    },
+    "/v1/clubs/{clubId}/members": {
+      "get": {
+        "summary": "List members of a club",
+        "description": "AUTHORIZATION: Not implemented (always returns Unimplemented error)\n\nPURPOSE: Browse club membership for management and display\n\nDATA MODEL CHANGES: None (read-only operation with player joins)\n\nTODO: Implement this method - currently returns Unimplemented\nTODO: Consider authorization - public vs members-only access",
+        "operationId": "ClubMembershipService_ListClubMembers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListClubMembersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clubId",
+            "description": "ID of the club",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "pageSize",
+            "description": "Maximum number of members to return",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageToken",
+            "description": "Cursor for pagination",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "activeOnly",
+            "description": "Filter by active status",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "ClubMembershipService"
+        ]
+      },
+      "post": {
+        "summary": "Join a club (self-registration)",
+        "description": "AUTHORIZATION: Requires valid authentication\n\nPURPOSE: Allows authenticated users to join a club as a regular member\n\nDATA MODEL CHANGES:\n- Deactivates any existing membership for the same club\n- Adds new ClubMembership to authenticated user's Player document with \"member\" role\n- Uses AddClubMembership() with SetUpsert(false) - POTENTIAL BUG if player not found\n\nTODO: Fix AddClubMembership bug - SetUpsert(false) may fail if player document doesn't exist",
+        "operationId": "ClubMembershipService_JoinClub",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1JoinClubResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clubId",
+            "description": "ID of the club to join",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClubMembershipServiceJoinClubBody"
+            }
+          }
+        ],
+        "tags": [
+          "ClubMembershipService"
+        ]
+      }
+    },
+    "/v1/clubs/{clubId}/members/{playerId}": {
+      "delete": {
+        "summary": "Leave a club",
+        "description": "AUTHORIZATION: Requires valid authentication. User can leave themselves, or club admin can remove others.\n\nPURPOSE: Remove user from club membership by deactivating their membership\n\nDATA MODEL CHANGES: Deactivates ClubMembership and sets left_at timestamp\n\nSECURITY: User can only remove themselves unless they are club admin",
+        "operationId": "ClubMembershipService_LeaveClub",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LeaveClubResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clubId",
+            "description": "ID of the club to leave",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "playerId",
+            "description": "ID of the player leaving (must match authenticated user or be admin)",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClubMembershipService"
+        ]
+      }
+    },
+    "/v1/clubs/{clubId}/members/{playerId}/role": {
+      "patch": {
+        "summary": "Update a member's role (promote/demote)",
+        "description": "AUTHORIZATION: Not implemented (always returns Unimplemented error)\n\nPURPOSE: Change member role between \"member\" and \"admin\"\n\nDATA MODEL CHANGES: Would update ClubMembership.role field\n\nTODO: Implement this method - currently returns Unimplemented\nTODO: Should require club admin authorization\nTODO: Should prevent self-demotion of last admin",
+        "operationId": "ClubMembershipService_UpdateMemberRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateMemberRoleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clubId",
+            "description": "ID of the club",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "playerId",
+            "description": "ID of the player whose role to update",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClubMembershipServiceUpdateMemberRoleBody"
+            }
+          }
+        ],
+        "tags": [
+          "ClubMembershipService"
+        ]
+      }
+    },
+    "/v1/clubs/{clubId}/players": {
+      "post": {
+        "summary": "Add a player to a club (admin only)",
+        "description": "AUTHORIZATION: Requires valid authentication and club admin role\n\nPURPOSE: Club admins can add players by name and optional email to join their club\n\nDATA MODEL CHANGES:\n- Creates new Player with first_name, last_name, and optional email\n- If email provided and player exists, adds membership to existing player\n- If email provided and player doesn't exist, creates new player with email\n- If no email provided, creates new player without email (local club member)\n- Adds ClubMembership with member role\n- Sends notification email if email provided",
+        "operationId": "ClubMembershipService_AddPlayerToClub",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AddPlayerToClubResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clubId",
+            "description": "ID of the club",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClubMembershipServiceAddPlayerToClubBody"
+            }
+          }
+        ],
+        "tags": [
+          "ClubMembershipService"
+        ]
+      }
+    },
+    "/v1/clubs/{id}": {
+      "get": {
+        "summary": "Get a specific club by ID",
+        "description": "AUTHORIZATION: No authentication required (public endpoint)\n\nPURPOSE: Retrieves club information by ID for display purposes\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "ClubService_GetClub",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetClubResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the club to retrieve",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClubService"
+        ]
+      },
+      "delete": {
+        "summary": "Delete a club by ID",
+        "description": "AUTHORIZATION: Not implemented - no auth check in service code\n\nPURPOSE: Permanently removes a club from the system\n\nDATA MODEL CHANGES: Deletes Club document from MongoDB\n\nTODO: Missing authorization - should require club admin membership or platform owner\nTODO: Should also clean up related data (series, matches, memberships)",
+        "operationId": "ClubService_DeleteClub",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteClubResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the club to delete",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClubService"
+        ]
+      },
+      "patch": {
+        "summary": "Update a club using field mask for partial updates",
+        "description": "AUTHORIZATION: Not implemented - no auth check in service code\n\nPURPOSE: Updates club information (currently only name)\n\nDATA MODEL CHANGES: Modifies existing Club document name field\n\nTODO: Missing authorization - should require club admin membership",
+        "operationId": "ClubService_UpdateClub",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateClubResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the club to update",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "club",
+            "description": "The club data to update (only fields specified in field_mask will be updated)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1Club"
+            }
+          }
+        ],
+        "tags": [
+          "ClubService"
+        ]
+      }
+    },
+    "/v1/matches/{matchId}": {
+      "delete": {
+        "summary": "Delete a match",
+        "description": "AUTHORIZATION: Should require authentication and admin rights\n\nPURPOSE: Remove incorrectly reported matches\n\nDATA MODEL CHANGES: Removes Match document from MongoDB",
+        "operationId": "MatchService_DeleteMatch",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteMatchResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "matchId",
+            "description": "ID of the match to delete",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      },
+      "patch": {
+        "summary": "Update an existing match (date, scores, etc.)",
+        "description": "AUTHORIZATION: Should require authentication and admin/player rights\n\nPURPOSE: Allow correction of match data (wrong dates, scores)\n\nDATA MODEL CHANGES: Updates existing Match document in MongoDB",
+        "operationId": "MatchService_UpdateMatch",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateMatchResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "matchId",
+            "description": "ID of the match to update",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MatchServiceUpdateMatchBody"
+            }
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      }
+    },
+    "/v1/matches:reorder": {
+      "post": {
+        "summary": "Reorder matches played on the same day",
+        "description": "AUTHORIZATION: Should require authentication and admin rights\n\nPURPOSE: Correct the temporal order of matches for accurate ELO calculations\n\nDATA MODEL CHANGES: Updates played_at timestamps to preserve order within day",
+        "operationId": "MatchService_ReorderMatches",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReorderMatchesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReorderMatchesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      }
+    },
+    "/v1/matches:report": {
+      "post": {
+        "summary": "Report the result of a completed match with automatic ELO rating updates",
+        "description": "AUTHORIZATION: No explicit authentication check in service code\n\nPURPOSE: Records match results in tournament series with strict validation rules\n\nDATA MODEL CHANGES:\n- Creates new Match document in MongoDB\n- Validates match is within series time boundaries (TODO: not implemented)\n- Validates best-of-5 scoring (winner must reach 3 games minimum)\n- Prevents ties and self-play\n\nTODO: Should require authentication and verify player eligibility for series\nTODO: Add CEL validation for series time window (currently only server-side comment)\nTODO: Add ELO rating calculation (currently only server-side comment)",
+        "operationId": "MatchService_ReportMatch",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReportMatchResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReportMatchRequest"
+            }
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      }
+    },
+    "/v1/players": {
+      "get": {
+        "summary": "List players with optional filtering by name and club, with pagination",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Browse and search players across clubs with pagination\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "PlayerService_ListPlayers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListPlayersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "searchQuery",
+            "description": "Search query to filter players by display name (case-insensitive partial match)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clubId",
+            "description": "Filter players by club ID (empty means all clubs)\nDEPRECATED: Use club_filter instead for multiple club support",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clubFilter",
+            "description": "Filter players by multiple club IDs (supports special value \"OPEN\" for club-less players)\nIf empty, returns players from all clubs\nIf contains \"OPEN\", includes players not associated with any club",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "pageSize",
+            "description": "Maximum number of players to return (default: 20, max: 100)",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "cursorAfter",
+            "description": "Cursor-based pagination (use one of the following):\nID to start listing after (for forward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "cursorBefore",
+            "description": "ID to start listing before (for backward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PlayerService"
+        ]
+      },
+      "post": {
+        "summary": "Create a new player with automatic duplicate detection",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Creates a new player in specified club with automatic duplicate detection to prevent similar names.\n\nDATA MODEL CHANGES:\n- Creates new Player document in MongoDB\n- Automatically generates normalized_key for duplicate detection\n- Sets player as active by default\n- Does NOT create club membership (legacy design)\n\nTODO: Should create club membership automatically like CreateClub does",
+        "operationId": "PlayerService_CreatePlayer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreatePlayerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreatePlayerRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PlayerService"
+        ]
+      }
+    },
+    "/v1/players/merge-candidates": {
+      "get": {
+        "summary": "Find email-less players that could be merge candidates for the authenticated user",
+        "description": "AUTHORIZATION: Requires valid authentication (authenticated user is the target for merging)\n\nPURPOSE: Find players without real email addresses that have similar names to the authenticated user,\nallowing users to merge their existing club registrations with their authenticated account.\n\nCOMMON USE CASE:\n1. Club admin adds \"John Smith\" as player without email\n2. John Smith later signs up with email john@example.com\n3. John uses this endpoint to find his email-less registration\n4. John merges the email-less player into his authenticated account\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "PlayerService_FindMergeCandidates",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1FindMergeCandidatesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clubId",
+            "description": "Optional club ID to limit search to specific club",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "namePattern",
+            "description": "Optional name pattern to search for (if not provided, uses authenticated user's name)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PlayerService"
+        ]
+      }
+    },
+    "/v1/players/{id}": {
+      "get": {
+        "summary": "Get a specific player by ID",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Retrieve detailed player information\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "PlayerService_GetPlayer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetPlayerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the player to retrieve",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PlayerService"
+        ]
+      },
+      "delete": {
+        "summary": "Soft delete a player (sets active = false)",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Deactivate player without losing historical data\n\nDATA MODEL CHANGES: Sets Player.active = false\nTODO: Should require player ownership or admin membership",
+        "operationId": "PlayerService_DeletePlayer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeletePlayerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the player to delete",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PlayerService"
+        ]
+      },
+      "patch": {
+        "summary": "Update a player using field mask for partial updates",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Update player information with field mask support\n\nDATA MODEL CHANGES: Modifies Player document fields\nTODO: Should require player ownership or admin membership",
+        "operationId": "PlayerService_UpdatePlayer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdatePlayerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the player to update",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "player",
+            "description": "The player data to update (only fields specified in field_mask will be updated)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1Player"
+            }
+          }
+        ],
+        "tags": [
+          "PlayerService"
+        ]
+      }
+    },
+    "/v1/players/{playerId}/memberships": {
+      "get": {
+        "summary": "List a player's club memberships",
+        "description": "AUTHORIZATION: Not implemented (always returns Unimplemented error)\n\nPURPOSE: Show which clubs a player belongs to and their roles\n\nDATA MODEL CHANGES: None (read-only operation with club joins)\n\nTODO: Implement this method - currently returns Unimplemented\nTODO: Should require user to be target player or platform owner",
+        "operationId": "ClubMembershipService_ListPlayerMemberships",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListPlayerMembershipsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "playerId",
+            "description": "ID of the player",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "activeOnly",
+            "description": "Filter by active status",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "ClubMembershipService"
+        ]
+      }
+    },
+    "/v1/players/{targetPlayerId}/merge": {
+      "post": {
+        "summary": "Merge two players (source -\u003e target), updating all references",
+        "description": "AUTHORIZATION: No explicit check in service code\n\nPURPOSE: Combine duplicate players by intelligently merging data from source to target player\n\nMERGE BEHAVIOR (detailed field-by-field rules):\n\nSCALAR FIELDS (string, bool, int, float, etc.):\n- If target field is empty/zero and source field has value -\u003e use source value\n- If both fields have values -\u003e keep target value (target wins)\n- If target has value and source is empty/zero -\u003e keep target value\n\nExamples:\n- target.first_name = \"\", source.first_name = \"John\" -\u003e result.first_name = \"John\"\n- target.first_name = \"Jane\", source.first_name = \"John\" -\u003e result.first_name = \"Jane\"\n- target.is_platform_owner = false, source.is_platform_owner = true -\u003e result.is_platform_owner = false\n- target.email = \"\", source.email = \"john@example.com\" -\u003e result.email = \"john@example.com\"\n\nARRAY FIELDS (repeated fields like club_memberships):\n- Merge arrays by combining unique values: [A,B] + [C] = [A,B,C]\n- Duplicates are avoided by comparing key fields (e.g., club_id for memberships)\n- Target array items are preserved, source items are added if not already present\n\nExamples:\n- target.club_memberships = [Club1(admin), Club2(member)], source.club_memberships = [Club1(member), Club3(admin)]\n  -\u003e result.club_memberships = [Club1(admin), Club2(member), Club3(admin)]\n  (Club1 from target wins, Club3 from source is added)\n\nSYSTEM FIELDS:\n- id: Always uses target.id (source player is deleted)\n- normalized_key: Regenerated based on final display_name\n- created_at: Uses target.created_at (earlier creation date)\n- last_login_at: Uses most recent of target/source last_login_at\n\nDATA MODEL CHANGES:\n- Updates all Match documents referencing source player to target player\n- Updates all Token documents referencing source player to target player\n- Merges club memberships intelligently (no duplicates, target precedence)\n- Deletes source Player document after successful merge\n- Returns counts of updated documents for verification\n\nTODO: Should require authentication and ownership/admin rights for both players",
+        "operationId": "PlayerService_MergePlayer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1MergePlayerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "targetPlayerId",
+            "description": "ID of the target player (keep this one - usually the authenticated player)",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PlayerServiceMergePlayerBody"
+            }
+          }
+        ],
+        "tags": [
+          "PlayerService"
+        ]
+      }
+    },
+    "/v1/series": {
+      "get": {
+        "summary": "List all tournament series with pagination",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Browse available tournaments for participation\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "SeriesService_ListSeries",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListSeriesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageSize",
+            "description": "Maximum number of series to return (default: 20, max: 100)",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "cursorAfter",
+            "description": "Cursor-based pagination (use one of the following):\nID to start listing after (for forward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "cursorBefore",
+            "description": "ID to start listing before (for backward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sportFilter",
+            "description": "Optional filter by sport.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "SPORT_UNSPECIFIED",
+              "SPORT_TABLE_TENNIS",
+              "SPORT_TENNIS",
+              "SPORT_PADEL"
+            ],
+            "default": "SPORT_UNSPECIFIED"
+          },
+          {
+            "name": "clubFilter",
+            "description": "Optional filter by club IDs. Special value \"OPEN\" includes all open series.\nIf empty, returns all series. Example: [\"98463678\", \"OPEN\"] returns \nseries for club 98463678 plus all open series.",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      },
+      "post": {
+        "summary": "Create a new tournament series with time boundaries and visibility settings",
+        "description": "AUTHORIZATION: No explicit authentication check in service code\n\nPURPOSE: Creates a time-bound tournament where players can compete and matches are tracked\n\nDATA MODEL CHANGES:\n- Creates new Series document in MongoDB\n- Validates time range (starts_at \u003c ends_at)\n- Sets visibility rules for participation\n\nTODO: Should require authentication and club admin rights if club_id is specified",
+        "operationId": "SeriesService_CreateSeries",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateSeriesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateSeriesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      }
+    },
+    "/v1/series/{id}": {
+      "get": {
+        "summary": "Get a specific series by ID",
+        "description": "AUTHORIZATION: No authentication required (public endpoint)\n\nPURPOSE: Retrieve series information for display and participation\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "SeriesService_GetSeries",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetSeriesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the series to retrieve",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      },
+      "delete": {
+        "summary": "Delete a series by ID",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Remove a series and all associated data\n\nDATA MODEL CHANGES: Deletes Series document and related matches\nTODO: Should require series creator or club admin rights\nTODO: Should cascade delete or prevent deletion if matches exist",
+        "operationId": "SeriesService_DeleteSeries",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteSeriesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the series to delete",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      },
+      "patch": {
+        "summary": "Update a series using field mask for partial updates",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Modify series details like title, dates, or visibility\n\nDATA MODEL CHANGES: Modifies Series document fields\nTODO: Should require series creator or club admin rights",
+        "operationId": "SeriesService_UpdateSeries",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateSeriesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID of the series to update",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "series",
+            "description": "The series data to update (only fields specified in field_mask will be updated)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1Series"
+            }
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      }
+    },
+    "/v1/series/{seriesId}/leaderboard": {
+      "get": {
+        "summary": "Get the current leaderboard for a tournament series, ranked by ELO rating\nIncludes comprehensive player statistics and ranking changes",
+        "operationId": "LeaderboardService_GetLeaderboard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetLeaderboardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "seriesId",
+            "description": "ID of the tournament series to show leaderboard for",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "pageSize",
+            "description": "Maximum number of entries to return (default: 20, max: 100)",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "cursorAfter",
+            "description": "Cursor-based pagination (use one of the following):\nPlayer ID to start listing after (for forward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "cursorBefore",
+            "description": "Player ID to start listing before (for backward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "LeaderboardService"
+        ]
+      }
+    },
+    "/v1/series/{seriesId}/matches": {
+      "get": {
+        "summary": "List all matches in a tournament series with player names resolved",
+        "description": "AUTHORIZATION: No authentication required (public endpoint)\n\nPURPOSE: Display match history and results for tournament leaderboards\n\nDATA MODEL CHANGES: None (read-only operation with player name joins)",
+        "operationId": "MatchService_ListMatches",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListMatchesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "seriesId",
+            "description": "ID of the tournament series to get matches for",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "pageSize",
+            "description": "Maximum number of matches to return (default: 20, max: 100)",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "cursorAfter",
+            "description": "Cursor-based pagination (use one of the following):\nID to start listing after (for forward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "cursorBefore",
+            "description": "ID to start listing before (for backward pagination)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      }
+    },
+    "/v2/matches:report": {
+      "post": {
+        "summary": "V2 Report the result of a completed match with multi-sport support",
+        "description": "AUTHORIZATION: No explicit authentication check in service code\n\nPURPOSE: Records match results with extensible sport-specific validation\n\nDATA MODEL CHANGES:\n- Creates new Match document in MongoDB\n- Validates match according to series scoring profile\n- Supports future expansion to multiple sports\n\nTODO: Should require authentication and verify participant eligibility",
+        "operationId": "MatchService_ReportMatchV2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReportMatchV2Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReportMatchV2Request"
+            }
+          }
+        ],
+        "tags": [
+          "MatchService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "ClubMembershipServiceAddPlayerToClubBody": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "title": "First name of the player (required)"
+        },
+        "lastName": {
+          "type": "string",
+          "title": "Last name of the player (required)"
+        },
+        "email": {
+          "type": "string",
+          "title": "Email of the player (optional)"
+        }
+      },
+      "title": "Request to add a player to a club"
+    },
+    "ClubMembershipServiceInvitePlayerBody": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "title": "Email of the player to invite"
+        },
+        "role": {
+          "$ref": "#/definitions/v1MembershipRole",
+          "title": "Initial role for the invited player"
+        }
+      },
+      "title": "Request to invite a player to a club"
+    },
+    "ClubMembershipServiceJoinClubBody": {
+      "type": "object",
+      "title": "Request to join a club"
+    },
+    "ClubMembershipServiceUpdateMemberRoleBody": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "$ref": "#/definitions/v1MembershipRole",
+          "title": "New role for the player"
+        }
+      },
+      "title": "Request to update a member's role"
+    },
+    "MatchServiceUpdateMatchBody": {
+      "type": "object",
+      "properties": {
+        "scoreA": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of games won by player A (0-5 in best-of-5 format) - optional"
+        },
+        "scoreB": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of games won by player B (0-5 in best-of-5 format) - optional"
+        },
+        "playedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the match was played - optional"
+        }
+      },
+      "title": "Request to update an existing match"
+    },
+    "PlayerServiceMergePlayerBody": {
+      "type": "object",
+      "properties": {
+        "sourcePlayerId": {
+          "type": "string",
+          "title": "ID of the source player (merge from this one - usually the non-authenticated player)"
+        }
+      },
+      "title": "Request to merge two players (source player into target player)"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1AddPlayerToClubResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        },
+        "player": {
+          "$ref": "#/definitions/v1Player",
+          "title": "The created or updated player"
+        },
+        "notificationSent": {
+          "type": "boolean",
+          "title": "Whether an email notification was sent"
+        },
+        "wasNewPlayer": {
+          "type": "boolean",
+          "title": "Whether this was a new player or existing player"
+        }
+      },
+      "title": "Response after adding a player to a club"
+    },
+    "v1AuthUser": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Unique identifier for the player (MongoDB ObjectID as hex string)"
+        },
+        "email": {
+          "type": "string",
+          "title": "User's email address"
+        },
+        "firstName": {
+          "type": "string",
+          "title": "User's first name (optional)"
+        },
+        "lastName": {
+          "type": "string",
+          "title": "User's last name (optional)"
+        },
+        "clubMemberships": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ClubMembership"
+          },
+          "title": "User's club memberships"
+        },
+        "isPlatformOwner": {
+          "type": "boolean",
+          "title": "Whether the user is a platform owner (can create clubs)"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the user last logged in"
+        }
+      },
+      "title": "User information for authentication responses"
+    },
+    "v1Club": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Unique identifier for the club (MongoDB ObjectID as hex string)"
+        },
+        "name": {
+          "type": "string",
+          "title": "Display name of the club (e.g., \"Stockholm TK\", \"Malmö Bordtennis\")"
+        },
+        "supportedSports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1Sport"
+          },
+          "description": "Sports supported by this club. Defaults to table tennis for now."
+        }
+      },
+      "title": "Club represents a table tennis club that can host series and have players"
+    },
+    "v1ClubMemberInfo": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "title": "Player information"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "membership": {
+          "$ref": "#/definitions/v1ClubMembership",
+          "title": "Membership details"
+        }
+      },
+      "title": "Club member information"
+    },
+    "v1ClubMembership": {
+      "type": "object",
+      "properties": {
+        "clubId": {
+          "type": "string",
+          "title": "ID of the club"
+        },
+        "role": {
+          "$ref": "#/definitions/v1MembershipRole",
+          "title": "User's role in this club"
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the user joined this club"
+        }
+      },
+      "title": "Club membership information for a user"
+    },
+    "v1CreateClubRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Club name (must be unique)"
+        },
+        "supportedSports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1Sport"
+          },
+          "description": "Optional sports to enable for this club. Defaults to table tennis."
+        }
+      },
+      "title": "Request to create a new club"
+    },
+    "v1CreateClubResponse": {
+      "type": "object",
+      "properties": {
+        "club": {
+          "$ref": "#/definitions/v1Club",
+          "title": "The newly created club"
+        }
+      },
+      "title": "Response containing the created club"
+    },
+    "v1CreatePlayerRequest": {
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "title": "Player's display name (will be checked for similar existing names)"
+        },
+        "initialClubId": {
+          "type": "string",
+          "title": "ID of the club this player should initially belong to (optional)"
+        }
+      },
+      "title": "Request to create a new player with duplicate detection"
+    },
+    "v1CreatePlayerResponse": {
+      "type": "object",
+      "properties": {
+        "player": {
+          "$ref": "#/definitions/v1Player",
+          "title": "The newly created player"
+        },
+        "similar": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Player"
+          },
+          "title": "List of existing players with similar names (for duplicate prevention)"
+        }
+      },
+      "title": "Response containing the created player and any similar existing players"
+    },
+    "v1CreateSeriesRequest": {
+      "type": "object",
+      "properties": {
+        "clubId": {
+          "type": "string",
+          "title": "ID of the club hosting this series (required if visibility is CLUB_ONLY)"
+        },
+        "title": {
+          "type": "string",
+          "title": "Display title for the series"
+        },
+        "startsAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the series should start"
+        },
+        "endsAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the series should end"
+        },
+        "visibility": {
+          "$ref": "#/definitions/v1SeriesVisibility",
+          "title": "Who can participate in this series"
+        },
+        "sport": {
+          "$ref": "#/definitions/v1Sport",
+          "description": "Sport that the series is played in. Defaults to table tennis."
+        },
+        "format": {
+          "$ref": "#/definitions/v1SeriesFormat",
+          "description": "Competition format. Defaults to LADDER."
+        },
+        "scoringProfile": {
+          "$ref": "#/definitions/v1ScoringProfile",
+          "description": "Scoring profile for match validation. Defaults based on sport."
+        },
+        "setsToPlay": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Number of sets to play (for table tennis). Defaults to 5."
+        }
+      },
+      "title": "Request to create a new tournament series"
+    },
+    "v1CreateSeriesResponse": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/definitions/v1Series",
+          "title": "The newly created series"
+        }
+      },
+      "title": "Response containing the created series"
+    },
+    "v1DeleteClubResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        }
+      },
+      "title": "Response after deleting a club"
+    },
+    "v1DeleteMatchResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Whether the deletion was successful"
+        }
+      },
+      "title": "Response after successfully deleting a match"
+    },
+    "v1DeletePlayerResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        }
+      },
+      "title": "Response after deleting a player"
+    },
+    "v1DeleteSeriesResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        }
+      },
+      "title": "Response after deleting a series"
+    },
+    "v1FindMergeCandidatesResponse": {
+      "type": "object",
+      "properties": {
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1MergeCandidate"
+          },
+          "title": "List of email-less players that could be merged with the authenticated user"
+        }
+      },
+      "title": "Response containing potential merge candidates"
+    },
+    "v1GetClubResponse": {
+      "type": "object",
+      "properties": {
+        "club": {
+          "$ref": "#/definitions/v1Club",
+          "title": "The requested club"
+        }
+      },
+      "title": "Response containing the requested club"
+    },
+    "v1GetCurrentUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/v1AuthUser",
+          "title": "Current user information"
+        }
+      },
+      "title": "Response with current user information"
+    },
+    "v1GetLeaderboardResponse": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1LeaderboardEntry"
+          },
+          "title": "List of players ordered by their current ELO rating (highest first), then by player_id"
+        },
+        "startCursor": {
+          "type": "string",
+          "title": "Cursor pagination tokens\nPlayer ID of the first entry in this page (for backward pagination)"
+        },
+        "endCursor": {
+          "type": "string",
+          "title": "Player ID of the last entry in this page (for forward pagination)"
+        },
+        "hasNextPage": {
+          "type": "boolean",
+          "title": "Whether there are more entries after end_cursor"
+        },
+        "hasPreviousPage": {
+          "type": "boolean",
+          "title": "Whether there are more entries before start_cursor"
+        },
+        "totalPlayers": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Total number of players in the series (for display purposes)"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "title": "When this leaderboard was last calculated/updated"
+        }
+      },
+      "title": "Response containing the current leaderboard standings with cursor pagination"
+    },
+    "v1GetPlayerResponse": {
+      "type": "object",
+      "properties": {
+        "player": {
+          "$ref": "#/definitions/v1Player",
+          "title": "The requested player"
+        }
+      },
+      "title": "Response containing the requested player"
+    },
+    "v1GetSeriesResponse": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/definitions/v1Series",
+          "title": "The requested series"
+        }
+      },
+      "title": "Response containing the requested series"
+    },
+    "v1InvitePlayerResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        },
+        "invitationSent": {
+          "type": "boolean",
+          "title": "Whether an email invitation was sent"
+        }
+      },
+      "title": "Response after inviting a player"
+    },
+    "v1JoinClubResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        },
+        "membership": {
+          "$ref": "#/definitions/v1ClubMembership",
+          "title": "The created membership"
+        }
+      },
+      "title": "Response after joining a club"
+    },
+    "v1LeaderboardEntry": {
+      "type": "object",
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Current ranking position (1st, 2nd, 3rd, etc.)"
+        },
+        "playerId": {
+          "type": "string",
+          "title": "Unique player identifier"
+        },
+        "playerName": {
+          "type": "string",
+          "title": "Display name of the player"
+        },
+        "eloRating": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Current ELO rating after all matches"
+        },
+        "matchesPlayed": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Total number of matches played in this series"
+        },
+        "matchesWon": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of matches won"
+        },
+        "matchesLost": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of matches lost"
+        },
+        "winRate": {
+          "type": "number",
+          "format": "float",
+          "title": "Win rate as a percentage (0-100)"
+        },
+        "gamesWon": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Total number of individual games won across all matches"
+        },
+        "gamesLost": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Total number of individual games lost across all matches"
+        },
+        "gameWinRate": {
+          "type": "number",
+          "format": "float",
+          "title": "Game win rate as a percentage (0-100)"
+        },
+        "rankChange": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Change in ranking since previous calculation (+5, -2, etc., 0 for new players)"
+        }
+      },
+      "title": "A single entry in the leaderboard with player performance statistics"
+    },
+    "v1LeaveClubResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        }
+      },
+      "title": "Response after leaving a club"
+    },
+    "v1ListClubMembersResponse": {
+      "type": "object",
+      "properties": {
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ClubMemberInfo"
+          },
+          "title": "List of club memberships"
+        },
+        "nextPageToken": {
+          "type": "string",
+          "title": "Token for next page"
+        }
+      },
+      "title": "Response with club members"
+    },
+    "v1ListClubsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Club"
+          },
+          "title": "List of clubs matching the search criteria (ordered by ID)"
+        },
+        "startCursor": {
+          "type": "string",
+          "title": "Cursor pagination tokens\nID of the first item in this page (for backward pagination)"
+        },
+        "endCursor": {
+          "type": "string",
+          "title": "ID of the last item in this page (for forward pagination)"
+        },
+        "hasNextPage": {
+          "type": "boolean",
+          "title": "Whether there are more items after end_cursor"
+        },
+        "hasPreviousPage": {
+          "type": "boolean",
+          "title": "Whether there are more items before start_cursor"
+        }
+      },
+      "title": "Response containing list of clubs and cursor pagination info"
+    },
+    "v1ListMatchesResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1MatchView"
+          },
+          "title": "List of matches in the series (ordered by played_at desc, then by ID)"
+        },
+        "startCursor": {
+          "type": "string",
+          "title": "Cursor pagination tokens\nID of the first item in this page (for backward pagination)"
+        },
+        "endCursor": {
+          "type": "string",
+          "title": "ID of the last item in this page (for forward pagination)"
+        },
+        "hasNextPage": {
+          "type": "boolean",
+          "title": "Whether there are more items after end_cursor"
+        },
+        "hasPreviousPage": {
+          "type": "boolean",
+          "title": "Whether there are more items before start_cursor"
+        }
+      },
+      "title": "Response containing list of matches and cursor pagination info"
+    },
+    "v1ListPlayerMembershipsResponse": {
+      "type": "object",
+      "properties": {
+        "memberships": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PlayerMembershipInfo"
+          },
+          "title": "List of player's club memberships"
+        }
+      },
+      "title": "Response with player memberships"
+    },
+    "v1ListPlayersResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Player"
+          },
+          "title": "List of players matching the search criteria (ordered by ID)"
+        },
+        "startCursor": {
+          "type": "string",
+          "title": "Cursor pagination tokens\nID of the first item in this page (for backward pagination)"
+        },
+        "endCursor": {
+          "type": "string",
+          "title": "ID of the last item in this page (for forward pagination)"
+        },
+        "hasNextPage": {
+          "type": "boolean",
+          "title": "Whether there are more items after end_cursor"
+        },
+        "hasPreviousPage": {
+          "type": "boolean",
+          "title": "Whether there are more items before start_cursor"
+        }
+      },
+      "title": "Response containing list of players and cursor pagination info"
+    },
+    "v1ListSeriesResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Series"
+          },
+          "title": "List of tournament series (ordered by ID)"
+        },
+        "startCursor": {
+          "type": "string",
+          "title": "Cursor pagination tokens\nID of the first item in this page (for backward pagination)"
+        },
+        "endCursor": {
+          "type": "string",
+          "title": "ID of the last item in this page (for forward pagination)"
+        },
+        "hasNextPage": {
+          "type": "boolean",
+          "title": "Whether there are more items after end_cursor"
+        },
+        "hasPreviousPage": {
+          "type": "boolean",
+          "title": "Whether there are more items before start_cursor"
+        }
+      },
+      "title": "Response containing list of series and cursor pagination info"
+    },
+    "v1MatchParticipant": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "title": "Individual player ID"
+        },
+        "teamId": {
+          "type": "string",
+          "title": "Team ID (future expansion for team sports)"
+        }
+      },
+      "description": "MatchParticipant represents a participant in a match (individual or team)\nCurrently only individual players are supported, but this allows future\nexpansion to team-based sports."
+    },
+    "v1MatchResult": {
+      "type": "object",
+      "properties": {
+        "tableTennis": {
+          "$ref": "#/definitions/v1TableTennisResult",
+          "title": "Table tennis set-based result"
+        },
+        "scoreline": {
+          "$ref": "#/definitions/v1ScorelineResult",
+          "title": "Goal/point-based result (future)"
+        },
+        "strokeCard": {
+          "$ref": "#/definitions/v1StrokeCardResult",
+          "title": "Stroke-based result (future)"
+        },
+        "weighIn": {
+          "$ref": "#/definitions/v1WeighInResult",
+          "title": "Weight-based result (future)"
+        }
+      },
+      "title": "MatchResult contains the result of a match in sport-specific format"
+    },
+    "v1MatchView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Unique identifier for this match"
+        },
+        "seriesId": {
+          "type": "string",
+          "title": "ID of the tournament series this match belongs to"
+        },
+        "playerAName": {
+          "type": "string",
+          "title": "Display name of the first player"
+        },
+        "playerBName": {
+          "type": "string",
+          "title": "Display name of the second player"
+        },
+        "scoreA": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of games won by player A"
+        },
+        "scoreB": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of games won by player B"
+        },
+        "playedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the match was played"
+        }
+      },
+      "title": "View of a match with player names resolved for display"
+    },
+    "v1MembershipRole": {
+      "type": "string",
+      "enum": [
+        "MEMBERSHIP_ROLE_UNSPECIFIED",
+        "MEMBERSHIP_ROLE_MEMBER",
+        "MEMBERSHIP_ROLE_ADMIN"
+      ],
+      "default": "MEMBERSHIP_ROLE_UNSPECIFIED",
+      "description": "- MEMBERSHIP_ROLE_MEMBER: Regular club member\n - MEMBERSHIP_ROLE_ADMIN: Club administrator (can manage club and members)",
+      "title": "Roles a user can have within a club"
+    },
+    "v1MergeCandidate": {
+      "type": "object",
+      "properties": {
+        "player": {
+          "$ref": "#/definitions/v1Player",
+          "title": "The email-less player that could be merged"
+        },
+        "similarityScore": {
+          "type": "number",
+          "format": "double",
+          "title": "Similarity score between the candidate and authenticated user (0.0 to 1.0)"
+        }
+      },
+      "title": "A merge candidate with similarity scoring"
+    },
+    "v1MergePlayerResponse": {
+      "type": "object",
+      "properties": {
+        "player": {
+          "$ref": "#/definitions/v1Player",
+          "title": "The resulting merged player"
+        },
+        "matchesUpdated": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of matches that were updated"
+        },
+        "tokensUpdated": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of tokens that were updated"
+        }
+      },
+      "title": "Response after merging players"
+    },
+    "v1Player": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Unique identifier for the player (MongoDB ObjectID as hex string)"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "Player's display name as shown in matches and leaderboards"
+        },
+        "normalizedKey": {
+          "type": "string",
+          "title": "Server-computed normalized version of display_name for duplicate detection"
+        },
+        "active": {
+          "type": "boolean",
+          "title": "Whether the player is active (inactive players don't appear in new matches)"
+        },
+        "email": {
+          "type": "string",
+          "title": "Multi-club support\nPlayer's email address (unique identifier for authentication)\nOptional - only present for authenticated users who can log in\nWhen provided, must be a valid email format"
+        },
+        "firstName": {
+          "type": "string",
+          "title": "Player's first name (optional)"
+        },
+        "lastName": {
+          "type": "string",
+          "title": "Player's last name (optional)"
+        },
+        "clubMemberships": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ClubMembership"
+          },
+          "title": "Player's club memberships (supports multiple clubs)"
+        },
+        "isPlatformOwner": {
+          "type": "boolean",
+          "title": "Whether this player is a platform owner (can create new clubs)"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the player last logged in"
+        }
+      },
+      "title": "Player represents a table tennis player belonging to one or more clubs"
+    },
+    "v1PlayerMembershipInfo": {
+      "type": "object",
+      "properties": {
+        "clubId": {
+          "type": "string",
+          "title": "Club information"
+        },
+        "clubName": {
+          "type": "string"
+        },
+        "membership": {
+          "$ref": "#/definitions/v1ClubMembership",
+          "title": "Membership details"
+        }
+      },
+      "title": "Player membership information"
+    },
+    "v1ReorderMatchesRequest": {
+      "type": "object",
+      "properties": {
+        "matchIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "List of match IDs in the desired order (first = earliest in day)"
+        }
+      },
+      "title": "Request to reorder matches played on the same day"
+    },
+    "v1ReorderMatchesResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Whether the reordering was successful"
+        }
+      },
+      "title": "Response after successfully reordering matches"
+    },
+    "v1ReportMatchRequest": {
+      "type": "object",
+      "properties": {
+        "seriesId": {
+          "type": "string",
+          "title": "ID of the tournament series this match belongs to"
+        },
+        "playerAId": {
+          "type": "string",
+          "title": "ID of the first player"
+        },
+        "playerBId": {
+          "type": "string",
+          "title": "ID of the second player"
+        },
+        "scoreA": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of games won by player A (0-5 in best-of-5 format)"
+        },
+        "scoreB": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of games won by player B (0-5 in best-of-5 format)"
+        },
+        "playedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the match was played (must be within series time boundaries)"
+        }
+      },
+      "title": "Request to report the result of a table tennis match\nDEPRECATED: Use ReportMatchV2Request for new implementations"
+    },
+    "v1ReportMatchResponse": {
+      "type": "object",
+      "properties": {
+        "matchId": {
+          "type": "string",
+          "title": "ID of the created match record"
+        }
+      },
+      "title": "Response after successfully reporting a match"
+    },
+    "v1ReportMatchV2Request": {
+      "type": "object",
+      "properties": {
+        "seriesId": {
+          "type": "string",
+          "title": "ID of the tournament series this match belongs to"
+        },
+        "participantA": {
+          "$ref": "#/definitions/v1MatchParticipant",
+          "title": "First participant in the match"
+        },
+        "participantB": {
+          "$ref": "#/definitions/v1MatchParticipant",
+          "title": "Second participant in the match"
+        },
+        "result": {
+          "$ref": "#/definitions/v1MatchResult",
+          "title": "Match result in sport-specific format"
+        },
+        "playedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the match was played (must be within series time boundaries)"
+        }
+      },
+      "title": "V2 Request to report the result of a match with multi-sport support"
+    },
+    "v1ReportMatchV2Response": {
+      "type": "object",
+      "properties": {
+        "matchId": {
+          "type": "string",
+          "title": "ID of the created match record"
+        }
+      },
+      "title": "V2 Response after successfully reporting a match"
+    },
+    "v1RevokeTokenRequest": {
+      "type": "object",
+      "description": "Empty - token is identified by Authorization header",
+      "title": "Request to revoke the current API token"
+    },
+    "v1RevokeTokenResponse": {
+      "type": "object",
+      "properties": {
+        "revoked": {
+          "type": "boolean",
+          "title": "Confirmation that the token was revoked"
+        }
+      },
+      "title": "Response after revoking a token"
+    },
+    "v1ScorelineResult": {
+      "type": "object",
+      "properties": {
+        "scoreA": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Score for participant A"
+        },
+        "scoreB": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Score for participant B"
+        },
+        "shootout": {
+          "type": "boolean",
+          "title": "Whether the match went to shootout/overtime"
+        }
+      },
+      "title": "ScorelineResult represents goal/point-based scoring (future: football, basketball, etc.)"
+    },
+    "v1ScoringProfile": {
+      "type": "string",
+      "enum": [
+        "SCORING_PROFILE_UNSPECIFIED",
+        "SCORING_PROFILE_TABLE_TENNIS_SETS",
+        "SCORING_PROFILE_SCORELINE",
+        "SCORING_PROFILE_STROKE_CARD",
+        "SCORING_PROFILE_WEIGH_IN"
+      ],
+      "default": "SCORING_PROFILE_UNSPECIFIED",
+      "description": "ScoringProfile defines how match results are scored and validated\nfor different sports, enabling extensible multi-sport support.\n\n - SCORING_PROFILE_UNSPECIFIED: Default value, should not be used explicitly.\n - SCORING_PROFILE_TABLE_TENNIS_SETS: Table tennis set-based scoring (best-of-3 or best-of-5)\n - SCORING_PROFILE_SCORELINE: Goal/point-based scoring (e.g., football, basketball, hockey)\n - SCORING_PROFILE_STROKE_CARD: Stroke-based scoring (e.g., golf, disc golf)\n - SCORING_PROFILE_WEIGH_IN: Weight-based scoring (e.g., fishing competitions)"
+    },
+    "v1SendMagicLinkRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "title": "Email address to send the magic link to"
+        },
+        "returnUrl": {
+          "type": "string",
+          "title": "Optional return URL to redirect to after successful authentication"
+        }
+      },
+      "title": "Request to send a magic link to an email address"
+    },
+    "v1SendMagicLinkResponse": {
+      "type": "object",
+      "properties": {
+        "sent": {
+          "type": "boolean",
+          "title": "Confirmation that the email was sent"
+        },
+        "expiresInSeconds": {
+          "type": "integer",
+          "format": "int32",
+          "title": "How long the magic link will be valid (in seconds)"
+        }
+      },
+      "title": "Response after sending a magic link"
+    },
+    "v1Series": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Unique identifier for the series (MongoDB ObjectID as hex string)"
+        },
+        "clubId": {
+          "type": "string",
+          "title": "ID of the club hosting this series (required for CLUB_ONLY, optional for OPEN)"
+        },
+        "title": {
+          "type": "string",
+          "title": "Display title of the series (e.g., \"Spring Championship 2024\")"
+        },
+        "startsAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the series starts (matches can only be played during this period)"
+        },
+        "endsAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When the series ends (matches can only be played during this period)"
+        },
+        "visibility": {
+          "$ref": "#/definitions/v1SeriesVisibility",
+          "title": "Who can participate in this series"
+        },
+        "sport": {
+          "$ref": "#/definitions/v1Sport",
+          "description": "Sport that the series is played in."
+        },
+        "format": {
+          "$ref": "#/definitions/v1SeriesFormat",
+          "description": "Competition format for the series."
+        },
+        "scoringProfile": {
+          "$ref": "#/definitions/v1ScoringProfile",
+          "title": "Scoring profile that determines how matches are validated and scored"
+        },
+        "setsToPlay": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of sets to play (for table tennis: 3 or 5)"
+        }
+      },
+      "title": "Series represents a time-bound table tennis tournament"
+    },
+    "v1SeriesFormat": {
+      "type": "string",
+      "enum": [
+        "SERIES_FORMAT_UNSPECIFIED",
+        "SERIES_FORMAT_OPEN_PLAY",
+        "SERIES_FORMAT_LADDER",
+        "SERIES_FORMAT_CUP"
+      ],
+      "default": "SERIES_FORMAT_UNSPECIFIED",
+      "description": "SeriesFormat captures the competition structure.\n\n - SERIES_FORMAT_UNSPECIFIED: Default value, should not be used.\n - SERIES_FORMAT_OPEN_PLAY: Open play where any players can play matches against each other.\n - SERIES_FORMAT_LADDER: Continuous ladder where players challenge each other.\n - SERIES_FORMAT_CUP: Knock-out cup or bracket style tournament."
+    },
+    "v1SeriesVisibility": {
+      "type": "string",
+      "enum": [
+        "SERIES_VISIBILITY_UNSPECIFIED",
+        "SERIES_VISIBILITY_CLUB_ONLY",
+        "SERIES_VISIBILITY_OPEN"
+      ],
+      "default": "SERIES_VISIBILITY_UNSPECIFIED",
+      "description": "- SERIES_VISIBILITY_UNSPECIFIED: Default value, should not be used\n - SERIES_VISIBILITY_CLUB_ONLY: Only players from the specified club can participate\n - SERIES_VISIBILITY_OPEN: Players from any club can participate",
+      "title": "Visibility setting for a tournament series"
+    },
+    "v1Sport": {
+      "type": "string",
+      "enum": [
+        "SPORT_UNSPECIFIED",
+        "SPORT_TABLE_TENNIS",
+        "SPORT_TENNIS",
+        "SPORT_PADEL"
+      ],
+      "default": "SPORT_UNSPECIFIED",
+      "description": "Sport enumerates racket/paddle sports supported by the platform.\nTable tennis is currently the only fully supported sport but we define\nadditional values so that the API is future proof.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis."
+    },
+    "v1StrokeCardResult": {
+      "type": "object",
+      "properties": {
+        "totalStrokes": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Total strokes taken (can be expanded to per-hole later)"
+        }
+      },
+      "title": "StrokeCardResult represents stroke-based scoring (future: golf, disc golf)"
+    },
+    "v1TableTennisResult": {
+      "type": "object",
+      "properties": {
+        "setsA": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of sets won by participant A (0-5 for best-of-5)"
+        },
+        "setsB": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of sets won by participant B (0-5 for best-of-5)"
+        }
+      },
+      "title": "TableTennisResult represents set-based scoring for table tennis"
+    },
+    "v1UpdateClubResponse": {
+      "type": "object",
+      "properties": {
+        "club": {
+          "$ref": "#/definitions/v1Club",
+          "title": "The updated club"
+        }
+      },
+      "title": "Response containing the updated club"
+    },
+    "v1UpdateMatchResponse": {
+      "type": "object",
+      "properties": {
+        "match": {
+          "$ref": "#/definitions/v1MatchView",
+          "title": "Updated match information"
+        }
+      },
+      "title": "Response after successfully updating a match"
+    },
+    "v1UpdateMemberRoleResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Success confirmation"
+        },
+        "membership": {
+          "$ref": "#/definitions/v1ClubMembership",
+          "title": "Updated membership"
+        }
+      },
+      "title": "Response after updating a member's role"
+    },
+    "v1UpdatePlayerResponse": {
+      "type": "object",
+      "properties": {
+        "player": {
+          "$ref": "#/definitions/v1Player",
+          "title": "The updated player"
+        }
+      },
+      "title": "Response containing the updated player"
+    },
+    "v1UpdateProfileRequest": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "title": "User's first name"
+        },
+        "lastName": {
+          "type": "string",
+          "title": "User's last name"
+        }
+      },
+      "title": "Request to update current user's profile"
+    },
+    "v1UpdateProfileResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/v1AuthUser",
+          "title": "Updated user information"
+        }
+      },
+      "title": "Response after updating profile"
+    },
+    "v1UpdateSeriesResponse": {
+      "type": "object",
+      "properties": {
+        "series": {
+          "$ref": "#/definitions/v1Series",
+          "title": "The updated series"
+        }
+      },
+      "title": "Response containing the updated series"
+    },
+    "v1ValidateTokenRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "title": "The token from the magic link (UUID format)"
+        }
+      },
+      "title": "Request to validate a magic link token"
+    },
+    "v1ValidateTokenResponse": {
+      "type": "object",
+      "properties": {
+        "apiToken": {
+          "type": "string",
+          "title": "Long-lived API token for subsequent requests"
+        },
+        "user": {
+          "$ref": "#/definitions/v1AuthUser",
+          "title": "User information"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Token expiration time"
+        }
+      },
+      "title": "Response containing the API token for authenticated requests"
+    },
+    "v1WeighInResult": {
+      "type": "object",
+      "properties": {
+        "totalWeightKg": {
+          "type": "number",
+          "format": "double",
+          "title": "Total weight in kilograms"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Number of fish/items weighed"
+        }
+      },
+      "title": "WeighInResult represents weight-based scoring (future: fishing competitions)"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+# Frontend deployment configuration for Fly.io
+app = "klubbspel-frontend"
+primary_region = "arn"  # Stockholm region
+
+[build]
+  dockerfile = "Dockerfile.frontend"
+
+[env]
+  NODE_ENV = "production"
+  VITE_API_BASE_URL = "https://klubbspel-backend.fly.dev"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[checks]
+  [checks.health]
+    type = "http"
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/"
+    port = 3000
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"

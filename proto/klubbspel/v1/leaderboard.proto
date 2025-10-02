@@ -1,0 +1,77 @@
+syntax = "proto3";
+package klubbspel.v1;
+option go_package = "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1";
+
+import "google/api/annotations.proto";
+import "buf/validate/validate.proto";
+
+// Request to view the current leaderboard for a tournament series with cursor-based pagination
+message GetLeaderboardRequest {
+  // ID of the tournament series to show leaderboard for
+  string series_id = 1;
+  // Maximum number of entries to return (default: 20, max: 100)
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
+  
+  // Cursor-based pagination (use one of the following):
+  // Player ID to start listing after (for forward pagination)
+  string cursor_after = 3;
+  // Player ID to start listing before (for backward pagination)
+  string cursor_before = 4;
+}
+
+// A single entry in the leaderboard with player performance statistics
+message LeaderboardEntry {
+  // Current ranking position (1st, 2nd, 3rd, etc.)
+  int32 rank = 1;
+  // Unique player identifier
+  string player_id = 2;
+  // Display name of the player
+  string player_name = 3;
+  // Current ELO rating after all matches
+  int32 elo_rating = 4;
+  // Total number of matches played in this series
+  int32 matches_played = 5;
+  // Number of matches won
+  int32 matches_won = 6;
+  // Number of matches lost
+  int32 matches_lost = 7;
+  // Win rate as a percentage (0-100)
+  float win_rate = 8;
+  // Total number of individual games won across all matches
+  int32 games_won = 9;
+  // Total number of individual games lost across all matches
+  int32 games_lost = 10;
+  // Game win rate as a percentage (0-100)
+  float game_win_rate = 11;
+  // Change in ranking since previous calculation (+5, -2, etc., 0 for new players)
+  int32 rank_change = 12;
+}
+
+// Response containing the current leaderboard standings with cursor pagination
+message GetLeaderboardResponse {
+  // List of players ordered by their current ELO rating (highest first), then by player_id
+  repeated LeaderboardEntry entries = 1;
+  
+  // Cursor pagination tokens
+  // Player ID of the first entry in this page (for backward pagination)
+  string start_cursor = 2;
+  // Player ID of the last entry in this page (for forward pagination)
+  string end_cursor = 3;
+  // Whether there are more entries after end_cursor
+  bool has_next_page = 4;
+  // Whether there are more entries before start_cursor
+  bool has_previous_page = 5;
+  // Total number of players in the series (for display purposes)
+  int32 total_players = 6;
+  // When this leaderboard was last calculated/updated
+  string last_updated = 7;
+}
+
+// Service for viewing tournament leaderboards and rankings
+service LeaderboardService {
+  // Get the current leaderboard for a tournament series, ranked by ELO rating
+  // Includes comprehensive player statistics and ranking changes
+  rpc GetLeaderboard(GetLeaderboardRequest) returns (GetLeaderboardResponse) {
+    option (google.api.http) = { get: "/v1/series/{series_id}/leaderboard" };
+  }
+}
