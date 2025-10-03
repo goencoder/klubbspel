@@ -423,3 +423,119 @@ func pbSeriesFormat(value int32) pb.SeriesFormat {
 	}
 	return format
 }
+
+func (s *SeriesService) GetSeriesRules(ctx context.Context, in *pb.GetSeriesRulesRequest) (*pb.GetSeriesRulesResponse, error) {
+	format := in.GetFormat()
+	if format == pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED {
+		format = pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY
+	}
+
+	var rules *pb.RulesDescription
+
+	switch format {
+	case pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY:
+		rules = &pb.RulesDescription{
+			Title:   "Free Play Rules",
+			Summary: "Play matches freely with any player. Rankings are determined by ELO rating.",
+			Rules: []string{
+				"Play matches against any player in the series",
+				"No position tracking - rankings based on ELO rating only",
+				"Winner gains ELO points, loser loses ELO points",
+				"ELO changes depend on rating difference between players",
+				"All matches count equally toward your rating",
+			},
+			Examples: []*pb.RuleExample{
+				{
+					Scenario: "Higher-rated player (ELO 1500) beats lower-rated player (ELO 1200)",
+					Outcome:  "Winner gains ~8 points, loser loses ~8 points (small change due to expected outcome)",
+				},
+				{
+					Scenario: "Lower-rated player (ELO 1200) beats higher-rated player (ELO 1500)",
+					Outcome:  "Winner gains ~24 points, loser loses ~24 points (large change due to upset)",
+				},
+			},
+		}
+
+	case pb.SeriesFormat_SERIES_FORMAT_LADDER:
+		ladderRules := in.GetLadderRules()
+		if ladderRules == pb.LadderRules_LADDER_RULES_UNSPECIFIED {
+			ladderRules = pb.LadderRules_LADDER_RULES_CLASSIC
+		}
+
+		if ladderRules == pb.LadderRules_LADDER_RULES_AGGRESSIVE {
+			rules = &pb.RulesDescription{
+				Title:   "Aggressive Ladder Rules",
+				Summary: "Challenge any player to climb the ladder. Winner improves position, loser drops one position (penalty).",
+				Rules: []string{
+					"Players are ranked by position (1, 2, 3, etc.)",
+					"Play matches against any player regardless of position",
+					"Position determines ranking, not ELO",
+					"Winner with worse position takes the better player's position",
+					"All players between swap positions (shift down one)",
+					"Loser with worse position drops one additional position (penalty)",
+					"Player below loser moves up to fill the gap",
+					"ELO is still calculated but doesn't affect ladder position",
+				},
+				Examples: []*pb.RuleExample{
+					{
+						Scenario: "Player at position #3 beats player at position #1",
+						Outcome:  "Winner → position #1, positions #1 and #2 → shift down (#2 and #3)",
+					},
+					{
+						Scenario: "Player at position #3 loses to player at position #1",
+						Outcome:  "Loser drops to position #4 (penalty), player at #4 → moves up to #3",
+					},
+					{
+						Scenario: "Player at position #2 beats player at position #1",
+						Outcome:  "Winner → position #1, previous #1 → position #2",
+					},
+					{
+						Scenario: "Player at position #1 loses to player at position #3",
+						Outcome:  "Winner → position #1, loser (#1) → drops to position #2, previous #2 → position #3",
+					},
+				},
+			}
+		} else {
+			// LADDER_RULES_CLASSIC
+			rules = &pb.RulesDescription{
+				Title:   "Classic Ladder Rules",
+				Summary: "Challenge any player to climb the ladder. Winner improves position, loser keeps their position (no penalty).",
+				Rules: []string{
+					"Players are ranked by position (1, 2, 3, etc.)",
+					"Play matches against any player regardless of position",
+					"Position determines ranking, not ELO",
+					"Winner with worse position takes the better player's position",
+					"All players between swap positions (shift down one)",
+					"Loser with worse position keeps their position (no penalty)",
+					"Loser with better position drops to where winner was",
+					"ELO is still calculated but doesn't affect ladder position",
+				},
+				Examples: []*pb.RuleExample{
+					{
+						Scenario: "Player at position #3 beats player at position #1",
+						Outcome:  "Winner → position #1, positions #1 and #2 → shift down (#2 and #3)",
+					},
+					{
+						Scenario: "Player at position #3 loses to player at position #1",
+						Outcome:  "Loser keeps position #3 (no penalty), winner keeps position #1",
+					},
+					{
+						Scenario: "Player at position #2 beats player at position #1",
+						Outcome:  "Winner → position #1, previous #1 → position #2",
+					},
+					{
+						Scenario: "Player at position #1 loses to player at position #3",
+						Outcome:  "Winner → position #1, loser (#1) → drops to position #3, previous #2 → position #2",
+					},
+				},
+			}
+		}
+
+	default:
+		return nil, status.Error(codes.Unimplemented, "SERIES_FORMAT_NOT_SUPPORTED")
+	}
+
+	return &pb.GetSeriesRulesResponse{
+		Rules: rules,
+	}, nil
+}

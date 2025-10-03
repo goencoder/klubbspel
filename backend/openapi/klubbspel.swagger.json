@@ -1196,6 +1196,59 @@
         ]
       }
     },
+    "/v1/series/rules": {
+      "get": {
+        "summary": "Get human-readable rules for a series format and configuration",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Display rules to users when creating series or reporting matches\n\nDATA MODEL CHANGES: None (read-only helper)",
+        "operationId": "SeriesService_GetSeriesRules",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetSeriesRulesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "format",
+            "description": "Series format to get rules for\n\n - SERIES_FORMAT_UNSPECIFIED: Default value, should not be used.\n - SERIES_FORMAT_OPEN_PLAY: Open play where any players can play matches against each other.\n - SERIES_FORMAT_LADDER: Continuous ladder where players challenge each other.\n - SERIES_FORMAT_CUP: Knock-out cup or bracket style tournament.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "SERIES_FORMAT_UNSPECIFIED",
+              "SERIES_FORMAT_OPEN_PLAY",
+              "SERIES_FORMAT_LADDER",
+              "SERIES_FORMAT_CUP"
+            ],
+            "default": "SERIES_FORMAT_UNSPECIFIED"
+          },
+          {
+            "name": "ladderRules",
+            "description": "Ladder rules variant (only used if format is SERIES_FORMAT_LADDER)\n\n - LADDER_RULES_UNSPECIFIED: Default value, should not be used.\n - LADDER_RULES_CLASSIC: Classic ladder: Loser keeps position (no penalty).\n - LADDER_RULES_AGGRESSIVE: Aggressive ladder: Loser drops one position (penalty).",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "LADDER_RULES_UNSPECIFIED",
+              "LADDER_RULES_CLASSIC",
+              "LADDER_RULES_AGGRESSIVE"
+            ],
+            "default": "LADDER_RULES_UNSPECIFIED"
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      }
+    },
     "/v1/series/{id}": {
       "get": {
         "summary": "Get a specific series by ID",
@@ -1973,6 +2026,16 @@
       },
       "title": "Response containing the requested series"
     },
+    "v1GetSeriesRulesResponse": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "$ref": "#/definitions/v1RulesDescription",
+          "title": "Localized rules description"
+        }
+      },
+      "title": "Response containing human-readable rules"
+    },
     "v1InvitePlayerResponse": {
       "type": "object",
       "properties": {
@@ -2545,6 +2608,49 @@
         }
       },
       "title": "Response after revoking a token"
+    },
+    "v1RuleExample": {
+      "type": "object",
+      "properties": {
+        "scenario": {
+          "type": "string",
+          "title": "Scenario description (e.g., \"Player #3 challenges Player #1\")"
+        },
+        "outcome": {
+          "type": "string",
+          "title": "Outcome description (e.g., \"If challenger wins, they take position #1\")"
+        }
+      },
+      "title": "Example scenario demonstrating a rule"
+    },
+    "v1RulesDescription": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "title": "Short title (e.g., \"Classic Ladder Rules\")"
+        },
+        "summary": {
+          "type": "string",
+          "title": "Brief summary (1-2 sentences)"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "Detailed rules as list of bullet points"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1RuleExample"
+          },
+          "title": "Examples of match outcomes"
+        }
+      },
+      "title": "Human-readable rules for a series format"
     },
     "v1ScorelineResult": {
       "type": "object",

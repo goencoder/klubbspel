@@ -209,6 +209,40 @@ message GetLadderStandingsResponse {
   repeated LadderEntry entries = 1;
 }
 
+// Request to get human-readable rules for a series configuration
+message GetSeriesRulesRequest {
+  // Series format to get rules for
+  SeriesFormat format = 1;
+  // Ladder rules variant (only used if format is SERIES_FORMAT_LADDER)
+  LadderRules ladder_rules = 2;
+}
+
+// Response containing human-readable rules
+message GetSeriesRulesResponse {
+  // Localized rules description
+  RulesDescription rules = 1;
+}
+
+// Human-readable rules for a series format
+message RulesDescription {
+  // Short title (e.g., "Classic Ladder Rules")
+  string title = 1;
+  // Brief summary (1-2 sentences)
+  string summary = 2;
+  // Detailed rules as list of bullet points
+  repeated string rules = 3;
+  // Examples of match outcomes
+  repeated RuleExample examples = 4;
+}
+
+// Example scenario demonstrating a rule
+message RuleExample {
+  // Scenario description (e.g., "Player #3 challenges Player #1")
+  string scenario = 1;
+  // Outcome description (e.g., "If challenger wins, they take position #1")
+  string outcome = 2;
+}
+
 // Service for managing tournament series
 service SeriesService {
   // Create a new tournament series with time boundaries and visibility settings
@@ -290,6 +324,19 @@ service SeriesService {
   rpc GetLadderStandings(GetLadderStandingsRequest) returns (GetLadderStandingsResponse) {
     option (google.api.http) = {
       get: "/v1/series/{series_id}/ladder"
+    };
+  }
+
+  // Get human-readable rules for a series format and configuration
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Display rules to users when creating series or reporting matches
+  //
+  // DATA MODEL CHANGES: None (read-only helper)
+  rpc GetSeriesRules(GetSeriesRulesRequest) returns (GetSeriesRulesResponse) {
+    option (google.api.http) = {
+      get: "/v1/series/rules"
     };
   }
 }

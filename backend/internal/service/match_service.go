@@ -83,10 +83,8 @@ func (s *MatchService) updateLadderPositions(ctx context.Context, seriesID, play
 	}
 
 	winnerID := playerAID
-	loserID := playerBID
 	if scoreB > scoreA {
 		winnerID = playerBID
-		loserID = playerAID
 	}
 
 	now := time.Now().UTC()
@@ -111,58 +109,52 @@ func (s *MatchService) updateLadderPositions(ctx context.Context, seriesID, play
 			return nil
 		}
 
-		var challenger, challenged *repo.SeriesPlayer
-		if playerA.Position > playerB.Position {
-			challenger = playerA
-			challenged = playerB
+		// Determine who has better (lower number) position
+		var betterPositionPlayer, worsePositionPlayer *repo.SeriesPlayer
+		if playerA.Position < playerB.Position {
+			betterPositionPlayer = playerA
+			worsePositionPlayer = playerB
 		} else {
-			challenger = playerB
-			challenged = playerA
+			betterPositionPlayer = playerB
+			worsePositionPlayer = playerA
 		}
 
-		if challenger.PlayerID == winnerID {
-			// Challenger won the match and moves to challenged position.
-			if err := s.SeriesPlayers.ShiftRange(sessCtx, seriesID, challenged.Position, challenger.Position-1, 1, now); err != nil {
+		// Case 1: Worse position player wins (climbs the ladder)
+		if worsePositionPlayer.PlayerID == winnerID {
+			// Winner takes better player's position, everyone in between shifts down
+			if err := s.SeriesPlayers.ShiftRange(sessCtx, seriesID, betterPositionPlayer.Position, worsePositionPlayer.Position-1, 1, now); err != nil {
 				return err
 			}
-			if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, challenger.PlayerID, challenged.Position, now); err != nil {
+			if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, worsePositionPlayer.PlayerID, betterPositionPlayer.Position, now); err != nil {
 				return err
 			}
 			return nil
 		}
 
-		if challenger.PlayerID != loserID {
-			// Defensive guard: if winner/loser mapping is unexpected, just touch entries.
-			if err := s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, challenger.PlayerID, now); err != nil {
-				return err
-			}
-			if err := s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, challenged.PlayerID, now); err != nil {
-				return err
-			}
-			return nil
-		}
-
-		// Challenger lost: apply ladder rules
+		// Case 2: Better position player wins (defends position)
+		// Apply ladder rules to determine if loser gets penalty
 		ladderRules := pb.LadderRules(series.LadderRules)
 		if ladderRules == pb.LadderRules_LADDER_RULES_UNSPECIFIED || ladderRules == pb.LadderRules_LADDER_RULES_CLASSIC {
 			// Classic rules: loser keeps position (no penalty), just update timestamp
-			return s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, challenger.PlayerID, now)
+			return s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, worsePositionPlayer.PlayerID, now)
 		}
 
 		// Aggressive rules: loser drops one position (penalty)
-		newPosition := challenger.Position + 1
+		newPosition := worsePositionPlayer.Position + 1
 		opponent, err := s.SeriesPlayers.FindBySeriesAndPosition(sessCtx, seriesID, newPosition)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
-				return s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, challenger.PlayerID, now)
+				// Already at bottom, can't drop further
+				return s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, worsePositionPlayer.PlayerID, now)
 			}
 			return err
 		}
 
-		if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, opponent.PlayerID, challenger.Position, now); err != nil {
+		// Swap loser with player below
+		if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, opponent.PlayerID, worsePositionPlayer.Position, now); err != nil {
 			return err
 		}
-		if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, challenger.PlayerID, newPosition, now); err != nil {
+		if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, worsePositionPlayer.PlayerID, newPosition, now); err != nil {
 			return err
 		}
 		return nil
