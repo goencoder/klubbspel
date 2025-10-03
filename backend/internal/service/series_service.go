@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/goencoder/klubbspel/backend/internal/repo"
 	pb "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1"
@@ -12,7 +13,10 @@ import (
 
 type SeriesService struct {
 	pb.UnimplementedSeriesServiceServer
-	Series *repo.SeriesRepo
+	Series        *repo.SeriesRepo
+	Matches       *repo.MatchRepo
+	Players       *repo.PlayerRepo
+	SeriesPlayers *repo.SeriesPlayerRepo
 }
 
 var supportedSeriesSports = map[pb.Sport]struct{}{
@@ -254,6 +258,121 @@ func (s *SeriesService) DeleteSeries(ctx context.Context, in *pb.DeleteSeriesReq
 	return &pb.DeleteSeriesResponse{Success: true}, nil
 }
 
+func (s *SeriesService) GetLadderStandings(ctx context.Context, in *pb.GetLadderStandingsRequest) (*pb.GetLadderStandingsResponse, error) {
+	if in.GetSeriesId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "SERIES_ID_REQUIRED")
+	}
+
+	series, err := s.Series.FindByID(ctx, in.GetSeriesId())
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "SERIES_NOT_FOUND")
+	}
+
+	if pb.SeriesFormat(series.Format) != pb.SeriesFormat_SERIES_FORMAT_LADDER {
+		return nil, status.Error(codes.FailedPrecondition, "SERIES_NOT_LADDER")
+	}
+
+	if s.SeriesPlayers == nil {
+		return nil, status.Error(codes.Internal, "LADDER_REPOSITORY_UNAVAILABLE")
+	}
+	if s.Players == nil {
+		return nil, status.Error(codes.Internal, "PLAYER_REPOSITORY_UNAVAILABLE")
+	}
+	if s.Matches == nil {
+		return nil, status.Error(codes.Internal, "MATCH_REPOSITORY_UNAVAILABLE")
+	}
+
+	ladderEntries, err := s.SeriesPlayers.FindBySeriesOrdered(ctx, in.GetSeriesId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "LADDER_FETCH_FAILED")
+	}
+
+	// Collect player IDs for name lookup.
+	playerIDs := make([]string, 0, len(ladderEntries))
+	for _, entry := range ladderEntries {
+		playerIDs = append(playerIDs, entry.PlayerID)
+	}
+
+	playersMap := map[string]*repo.Player{}
+	if len(playerIDs) > 0 {
+		playersMap, err = s.Players.FindByIDs(ctx, playerIDs)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "LADDER_PLAYER_LOOKUP_FAILED")
+		}
+	}
+
+	// Prepare statistics from matches.
+	matches, err := s.Matches.FindBySeriesID(ctx, in.GetSeriesId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "LADDER_MATCH_FETCH_FAILED")
+	}
+
+	type ladderStats struct {
+		matchesPlayed int32
+		matchesWon    int32
+		lastMatch     time.Time
+	}
+
+	stats := make(map[string]*ladderStats)
+
+	for _, match := range matches {
+		// Ensure stats entries exist for both players participating in the match.
+		if _, ok := stats[match.PlayerAID]; !ok {
+			stats[match.PlayerAID] = &ladderStats{}
+		}
+		if _, ok := stats[match.PlayerBID]; !ok {
+			stats[match.PlayerBID] = &ladderStats{}
+		}
+
+		stats[match.PlayerAID].matchesPlayed++
+		stats[match.PlayerBID].matchesPlayed++
+
+		if match.ScoreA > match.ScoreB {
+			stats[match.PlayerAID].matchesWon++
+		} else {
+			stats[match.PlayerBID].matchesWon++
+		}
+
+		if match.PlayedAt.After(stats[match.PlayerAID].lastMatch) {
+			stats[match.PlayerAID].lastMatch = match.PlayedAt
+		}
+		if match.PlayedAt.After(stats[match.PlayerBID].lastMatch) {
+			stats[match.PlayerBID].lastMatch = match.PlayedAt
+		}
+	}
+
+	response := &pb.GetLadderStandingsResponse{}
+
+	for _, entry := range ladderEntries {
+		name := "Unknown Player"
+		if player, ok := playersMap[entry.PlayerID]; ok {
+			name = player.DisplayName
+		}
+
+		stat := stats[entry.PlayerID]
+
+		ladderEntry := &pb.LadderEntry{
+			PlayerId:      entry.PlayerID,
+			PlayerName:    name,
+			Position:      entry.Position,
+			MatchesPlayed: 0,
+			MatchesWon:    0,
+		}
+
+		if stat != nil {
+			ladderEntry.MatchesPlayed = stat.matchesPlayed
+			ladderEntry.MatchesWon = stat.matchesWon
+			if !stat.lastMatch.IsZero() {
+				ladderEntry.LastMatchAt = timestamppb.New(stat.lastMatch)
+			}
+		}
+
+		response.Entries = append(response.Entries, ladderEntry)
+	}
+
+	return response, nil
+}
+
 func normalizeSeriesSport(sport pb.Sport) (pb.Sport, error) {
 	if sport == pb.Sport_SPORT_UNSPECIFIED {
 		return pb.Sport_SPORT_TABLE_TENNIS, nil
@@ -279,11 +398,12 @@ func normalizeSeriesFormat(format pb.SeriesFormat) (pb.SeriesFormat, error) {
 		return pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY, nil
 	}
 
-	if format != pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY {
+	switch format {
+	case pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY, pb.SeriesFormat_SERIES_FORMAT_LADDER:
+		return format, nil
+	default:
 		return pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED, status.Error(codes.Unimplemented, "SERIES_FORMAT_NOT_SUPPORTED")
 	}
-
-	return format, nil
 }
 
 func pbSeriesFormat(value int32) pb.SeriesFormat {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/goencoder/klubbspel/backend/internal/repo"
 	pb "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1"
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -13,9 +14,10 @@ import (
 
 type MatchService struct {
 	pb.UnimplementedMatchServiceServer
-	Matches *repo.MatchRepo
-	Players *repo.PlayerRepo
-	Series  *repo.SeriesRepo
+	Matches       *repo.MatchRepo
+	Players       *repo.PlayerRepo
+	Series        *repo.SeriesRepo
+	SeriesPlayers *repo.SeriesPlayerRepo
 }
 
 func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchRequest) (*pb.ReportMatchResponse, error) {
@@ -53,9 +55,103 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 		return nil, status.Error(codes.Internal, "MATCH_CREATE_FAILED")
 	}
 
+	if pb.SeriesFormat(series.Format) == pb.SeriesFormat_SERIES_FORMAT_LADDER {
+		if err := s.updateLadderPositions(ctx, in.GetSeriesId(), in.GetPlayerAId(), in.GetPlayerBId(), in.GetScoreA(), in.GetScoreB()); err != nil {
+			return nil, status.Errorf(codes.Internal, "LADDER_UPDATE_FAILED: %v", err)
+		}
+	}
+
 	return &pb.ReportMatchResponse{
 		MatchId: match.ID.Hex(),
 	}, nil
+}
+
+func (s *MatchService) updateLadderPositions(ctx context.Context, seriesID, playerAID, playerBID string, scoreA, scoreB int32) error {
+	if s.SeriesPlayers == nil {
+		return nil
+	}
+
+	if playerAID == "" || playerBID == "" || scoreA == scoreB {
+		return nil
+	}
+
+	winnerID := playerAID
+	loserID := playerBID
+	if scoreB > scoreA {
+		winnerID = playerBID
+		loserID = playerAID
+	}
+
+	now := time.Now().UTC()
+
+	return s.SeriesPlayers.WithTransaction(ctx, func(sessCtx mongo.SessionContext) error {
+		playerA, err := s.SeriesPlayers.EnsurePlayer(sessCtx, seriesID, playerAID)
+		if err != nil {
+			return err
+		}
+		playerB, err := s.SeriesPlayers.EnsurePlayer(sessCtx, seriesID, playerBID)
+		if err != nil {
+			return err
+		}
+
+		if playerA.Position == playerB.Position {
+			if err := s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, playerA.PlayerID, now); err != nil {
+				return err
+			}
+			if err := s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, playerB.PlayerID, now); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		var challenger, challenged *repo.SeriesPlayer
+		if playerA.Position > playerB.Position {
+			challenger = playerA
+			challenged = playerB
+		} else {
+			challenger = playerB
+			challenged = playerA
+		}
+
+		if challenger.PlayerID == winnerID {
+			// Challenger won the match and moves to challenged position.
+			if err := s.SeriesPlayers.ShiftRange(sessCtx, seriesID, challenged.Position, challenger.Position-1, 1, now); err != nil {
+				return err
+			}
+			if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, challenger.PlayerID, challenged.Position, now); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		if challenger.PlayerID != loserID {
+			// Defensive guard: if winner/loser mapping is unexpected, just touch entries.
+			if err := s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, challenger.PlayerID, now); err != nil {
+				return err
+			}
+			if err := s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, challenged.PlayerID, now); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		newPosition := challenger.Position + 1
+		opponent, err := s.SeriesPlayers.FindBySeriesAndPosition(sessCtx, seriesID, newPosition)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				return s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, challenger.PlayerID, now)
+			}
+			return err
+		}
+
+		if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, opponent.PlayerID, challenger.Position, now); err != nil {
+			return err
+		}
+		if err := s.SeriesPlayers.UpdatePosition(sessCtx, seriesID, challenger.PlayerID, newPosition, now); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // validateTableTennisScore validates table tennis scoring rules
@@ -195,6 +291,12 @@ func (s *MatchService) ReportMatchV2(ctx context.Context, in *pb.ReportMatchV2Re
 	match, err := s.Matches.Create(ctx, in.GetSeriesId(), playerAId, playerBId, scoreA, scoreB, playedAt)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "MATCH_CREATE_FAILED")
+	}
+
+	if pb.SeriesFormat(series.Format) == pb.SeriesFormat_SERIES_FORMAT_LADDER {
+		if err := s.updateLadderPositions(ctx, in.GetSeriesId(), playerAId, playerBId, scoreA, scoreB); err != nil {
+			return nil, status.Errorf(codes.Internal, "LADDER_UPDATE_FAILED: %v", err)
+		}
 	}
 
 	return &pb.ReportMatchV2Response{

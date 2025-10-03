@@ -1300,6 +1300,38 @@
         ]
       }
     },
+    "/v1/series/{seriesId}/ladder": {
+      "get": {
+        "summary": "Get ladder standings for a ladder-format series",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Retrieve ordered ladder positions with basic stats\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "SeriesService_GetLadderStandings",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetLadderStandingsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "seriesId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      }
+    },
     "/v1/series/{seriesId}/leaderboard": {
       "get": {
         "summary": "Get the current leaderboard for a tournament series, ranked by ELO rating\nIncludes comprehensive player statistics and ranking changes",
@@ -1866,6 +1898,18 @@
       },
       "title": "Response with current user information"
     },
+    "v1GetLadderStandingsResponse": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1LadderEntry"
+          }
+        }
+      }
+    },
     "v1GetLeaderboardResponse": {
       "type": "object",
       "properties": {
@@ -1952,6 +1996,33 @@
         }
       },
       "title": "Response after joining a club"
+    },
+    "v1LadderEntry": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string"
+        },
+        "playerName": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "matchesPlayed": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "matchesWon": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "lastMatchAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
     },
     "v1LeaderboardEntry": {
       "type": "object",

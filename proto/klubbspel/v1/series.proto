@@ -177,6 +177,23 @@ message ListSeriesResponse {
   bool has_previous_page = 5;
 }
 
+message LadderEntry {
+  string player_id = 1;
+  string player_name = 2;
+  int32 position = 3;
+  int32 matches_played = 4;
+  int32 matches_won = 5;
+  google.protobuf.Timestamp last_match_at = 6;
+}
+
+message GetLadderStandingsRequest {
+  string series_id = 1;
+}
+
+message GetLadderStandingsResponse {
+  repeated LadderEntry entries = 1;
+}
+
 // Service for managing tournament series
 service SeriesService {
   // Create a new tournament series with time boundaries and visibility settings
@@ -246,5 +263,18 @@ service SeriesService {
   // DATA MODEL CHANGES: None (read-only operation)
   rpc ListSeries(ListSeriesRequest) returns (ListSeriesResponse) {
     option (google.api.http) = {get: "/v1/series"};
+  }
+
+  // Get ladder standings for a ladder-format series
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Retrieve ordered ladder positions with basic stats
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc GetLadderStandings(GetLadderStandingsRequest) returns (GetLadderStandingsResponse) {
+    option (google.api.http) = {
+      get: "/v1/series/{series_id}/ladder"
+    };
   }
 }
