@@ -33,8 +33,6 @@ import type {
   MergePlayerRequest,
   MergePlayerResponse,
   Player,
-  ReorderMatchesRequest,
-  ReorderMatchesResponse,
   ReportMatchRequest,
   ReportMatchResponse,
   ReportMatchV2Request,
@@ -359,10 +357,6 @@ class ApiClient {
 
   async deleteMatch(data: DeleteMatchRequest): Promise<DeleteMatchResponse> {
     return this.delete<DeleteMatchResponse>(`/v1/matches/${data.matchId}`)
-  }
-
-  async reorderMatches(data: ReorderMatchesRequest): Promise<ReorderMatchesResponse> {
-    return this.post<ReorderMatchesResponse>('/v1/matches:reorder', data)
   }
 
   // Leaderboard API methods

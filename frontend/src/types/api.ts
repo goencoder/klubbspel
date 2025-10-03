@@ -317,15 +317,6 @@ export interface DeleteMatchResponse {
   // Empty response
 }
 
-export interface ReorderMatchesRequest {
-  seriesId: string
-  matchIds: string[]
-}
-
-export interface ReorderMatchesResponse {
-  matches: MatchView[]
-}
-
 // Leaderboard types
 export interface LeaderboardEntry {
   rank: number

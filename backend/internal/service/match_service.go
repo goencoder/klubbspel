@@ -67,7 +67,7 @@ func validateTableTennisScore(setsA, setsB, setsToPlay int32) error {
 
 	// Calculate required wins to win the match
 	requiredSets := (setsToPlay + 1) / 2
-	
+
 	// Check if either player has reached the required sets to win
 	if setsA < requiredSets && setsB < requiredSets {
 		if setsToPlay == 3 {
@@ -114,11 +114,11 @@ func (s *MatchService) ReportMatchV2(ctx context.Context, in *pb.ReportMatchV2Re
 	if in.GetSeriesId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "VALIDATION_SERIES_ID_REQUIRED")
 	}
-	
+
 	if in.GetParticipantA() == nil || in.GetParticipantB() == nil {
 		return nil, status.Error(codes.InvalidArgument, "VALIDATION_PARTICIPANTS_REQUIRED")
 	}
-	
+
 	if in.GetResult() == nil {
 		return nil, status.Error(codes.InvalidArgument, "VALIDATION_RESULT_REQUIRED")
 	}
@@ -131,13 +131,13 @@ func (s *MatchService) ReportMatchV2(ctx context.Context, in *pb.ReportMatchV2Re
 
 	// Extract participant IDs (only support individual players for now)
 	var playerAId, playerBId string
-	
+
 	if pA := in.GetParticipantA().GetPlayerId(); pA != "" {
 		playerAId = pA
 	} else {
 		return nil, status.Error(codes.InvalidArgument, "VALIDATION_ONLY_INDIVIDUAL_PLAYERS_SUPPORTED")
 	}
-	
+
 	if pB := in.GetParticipantB().GetPlayerId(); pB != "" {
 		playerBId = pB
 	} else {
@@ -151,7 +151,7 @@ func (s *MatchService) ReportMatchV2(ctx context.Context, in *pb.ReportMatchV2Re
 
 	// Validate result according to series scoring profile
 	var scoreA, scoreB int32
-	
+
 	switch series.Sport {
 	case int32(pb.Sport_SPORT_TABLE_TENNIS):
 		// For table tennis, use TABLE_TENNIS_SETS scoring
@@ -159,21 +159,21 @@ func (s *MatchService) ReportMatchV2(ctx context.Context, in *pb.ReportMatchV2Re
 		if ttResult == nil {
 			return nil, status.Error(codes.InvalidArgument, "VALIDATION_TABLE_TENNIS_RESULT_REQUIRED")
 		}
-		
+
 		scoreA = ttResult.GetSetsA()
 		scoreB = ttResult.GetSetsB()
-		
+
 		// Determine sets to play (default to 5 if not set)
 		setsToPlay := series.SetsToPlay
 		if setsToPlay == 0 {
 			setsToPlay = 5
 		}
-		
+
 		// Validate table tennis scores
 		if err := validateTableTennisScore(scoreA, scoreB, setsToPlay); err != nil {
 			return nil, err
 		}
-		
+
 	default:
 		return nil, status.Error(codes.Unimplemented, "SPORT_NOT_SUPPORTED")
 	}
@@ -343,23 +343,6 @@ func (s *MatchService) DeleteMatch(ctx context.Context, in *pb.DeleteMatchReques
 	}
 
 	return &pb.DeleteMatchResponse{
-		Success: true,
-	}, nil
-}
-
-func (s *MatchService) ReorderMatches(ctx context.Context, in *pb.ReorderMatchesRequest) (*pb.ReorderMatchesResponse, error) {
-	// Basic validation
-	if len(in.GetMatchIds()) < 2 {
-		return nil, status.Error(codes.InvalidArgument, "AT_LEAST_TWO_MATCHES_REQUIRED")
-	}
-
-	// Reorder the matches
-	err := s.Matches.ReorderMatches(ctx, in.GetMatchIds())
-	if err != nil {
-		return nil, status.Error(codes.Internal, "MATCH_REORDER_FAILED")
-	}
-
-	return &pb.ReorderMatchesResponse{
 		Success: true,
 	}, nil
 }
