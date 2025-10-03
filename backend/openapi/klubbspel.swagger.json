@@ -1623,6 +1623,13 @@
             "$ref": "#/definitions/v1Sport"
           },
           "description": "Sports supported by this club. Defaults to table tennis for now."
+        },
+        "seriesSports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1Sport"
+          },
+          "description": "Sports represented by the series that belong to this club."
         }
       },
       "title": "Club represents a table tennis club that can host series and have players"

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -65,6 +66,47 @@ func (r *SeriesRepo) List(ctx context.Context, pageSize int32, pageToken string)
 	}
 
 	return series, "", nil
+}
+
+func (r *SeriesRepo) DistinctSportsByClubIDs(ctx context.Context, clubIDs []string) (map[string][]int32, error) {
+	if len(clubIDs) == 0 {
+		return map[string][]int32{}, nil
+	}
+
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{"club_id": bson.M{"$in": clubIDs}}}},
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$club_id"},
+			{Key: "sports", Value: bson.D{{Key: "$addToSet", Value: "$sport"}}},
+		}}},
+	}
+
+	cursor, err := r.c.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
+
+	results := make(map[string][]int32, len(clubIDs))
+	for cursor.Next(ctx) {
+		var doc struct {
+			ID     string  `bson:"_id"`
+			Sports []int32 `bson:"sports"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			continue
+		}
+		if doc.ID == "" {
+			continue
+		}
+
+		sort.Slice(doc.Sports, func(i, j int) bool { return doc.Sports[i] < doc.Sports[j] })
+		results[doc.ID] = doc.Sports
+	}
+
+	return results, nil
 }
 
 type SeriesListFilters struct {

@@ -212,6 +212,7 @@
     "deleted": "Club deleted successfully",
     "playersInClub": "Players in this club",
     "supportedSports": "Supported sports",
+    "seriesSports": "Series sports",
     "joinFailed": "Failed to join club",
     "leaveFailed": "Failed to leave club",
     "leaving": "Leaving...",

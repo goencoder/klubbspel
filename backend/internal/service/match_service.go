@@ -153,8 +153,9 @@ func (s *MatchService) ReportMatchV2(ctx context.Context, in *pb.ReportMatchV2Re
 	var scoreA, scoreB int32
 
 	switch series.Sport {
-	case int32(pb.Sport_SPORT_TABLE_TENNIS):
-		// For table tennis, use TABLE_TENNIS_SETS scoring
+	case int32(pb.Sport_SPORT_TABLE_TENNIS), int32(pb.Sport_SPORT_TENNIS):
+		// For table tennis and tennis, use TABLE_TENNIS_SETS scoring
+		// Both sports use the same best-of-N sets format
 		ttResult := in.GetResult().GetTableTennis()
 		if ttResult == nil {
 			return nil, status.Error(codes.InvalidArgument, "VALIDATION_TABLE_TENNIS_RESULT_REQUIRED")
