@@ -22,6 +22,10 @@ type ClubService struct {
 var supportedClubSports = map[pb.Sport]struct{}{
 	pb.Sport_SPORT_TABLE_TENNIS: {},
 	pb.Sport_SPORT_TENNIS:       {},
+	pb.Sport_SPORT_PADEL:        {},
+	pb.Sport_SPORT_BADMINTON:    {},
+	pb.Sport_SPORT_SQUASH:       {},
+	pb.Sport_SPORT_PICKLEBALL:   {},
 }
 
 func (s *ClubService) CreateClub(ctx context.Context, in *pb.CreateClubRequest) (*pb.CreateClubResponse, error) {

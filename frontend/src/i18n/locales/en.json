@@ -372,6 +372,11 @@
     "table_tennis": "Table tennis",
     "tennis": "Tennis",
     "padel": "Padel",
+    "badminton": "Badminton",
+    "squash": "Squash",
+    "pickleball": "Pickleball",
+    "racquetball": "Racquetball",
+    "beach_tennis": "Beach tennis",
     "unknown": "Unknown sport"
   }
 }

@@ -21,6 +21,16 @@ enum Sport {
   SPORT_TENNIS = 2;
   // Padel tennis.
   SPORT_PADEL = 3;
+  // Badminton.
+  SPORT_BADMINTON = 4;
+  // Squash.
+  SPORT_SQUASH = 5;
+  // Pickleball.
+  SPORT_PICKLEBALL = 6;
+  // Racquetball.
+  SPORT_RACQUETBALL = 7;
+  // Beach tennis.
+  SPORT_BEACH_TENNIS = 8;
 }
 
 // ScoringProfile defines how match results are scored and validated

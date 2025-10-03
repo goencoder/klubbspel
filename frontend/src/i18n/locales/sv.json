@@ -372,6 +372,11 @@
     "table_tennis": "Bordtennis",
     "tennis": "Tennis",
     "padel": "Padel",
+    "badminton": "Badminton",
+    "squash": "Squash",
+    "pickleball": "Pickleball",
+    "racquetball": "Racquetball",
+    "beach_tennis": "Beachtennis",
     "unknown": "Okänd sport"
   }
 }
