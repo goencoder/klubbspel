@@ -1,6 +1,7 @@
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { MatchesList } from '@/components/MatchesList'
 import { ReportMatchDialog } from '@/components/ReportMatchDialog'
+import { SeriesRulesDialog } from '@/components/SeriesRulesDialog'
 import { LeaderboardTable, normalizeLeaderboard, type UILBRow } from '@/components/LeaderboardTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { apiClient, handleApiError } from '@/services/api'
 import type { Series, SeriesVisibility } from '@/types/api'
-import { Add, ArrowLeft2, Calendar, ClipboardTick, Cup } from 'iconsax-reactjs'
+import { Add, ArrowLeft2, Calendar, ClipboardTick, Cup, InfoCircle } from 'iconsax-reactjs'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
@@ -24,6 +25,7 @@ export function SeriesDetailPage() {
   const [clubName, setClubName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showReportDialog, setShowReportDialog] = useState(false)
+  const [showRulesDialog, setShowRulesDialog] = useState(false)
   const [matchesRefreshKey, setMatchesRefreshKey] = useState(0)
   
   // Leaderboard state
@@ -190,6 +192,15 @@ export function SeriesDetailPage() {
                 <Add size={16} className="text-current" />
                 <span className="ml-2">{t('series.report.match')}</span>
               </Button>
+              <Button 
+                onClick={() => setShowRulesDialog(true)}
+                variant="outline"
+                className="w-full sm:w-auto whitespace-nowrap"
+                size="sm"
+              >
+                <InfoCircle size={16} className="text-blue-600" />
+                <span className="ml-2">{t('series.rules.viewRules')}</span>
+              </Button>
               <Link to={`/series/${series.id}/leaderboard`}>
                 <Button 
                   variant="outline"
@@ -273,6 +284,13 @@ export function SeriesDetailPage() {
         seriesEndDate={series.endsAt}
         series={series}
         onMatchReported={handleMatchReported}
+      />
+
+      <SeriesRulesDialog
+        open={showRulesDialog}
+        onOpenChange={setShowRulesDialog}
+        format={series.format}
+        ladderRules={series.ladderRules}
       />
     </div>
   )

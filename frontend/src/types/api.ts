@@ -206,6 +206,7 @@ export interface Series {
   visibility: SeriesVisibility
   sport: Sport
   format: SeriesFormat
+  ladderRules?: LadderRules
   scoringProfile: ScoringProfile
   setsToPlay: number  // For table tennis: 3 or 5
 }
@@ -218,6 +219,7 @@ export interface CreateSeriesRequest {
   visibility: SeriesVisibility
   sport?: Sport
   format?: SeriesFormat
+  ladderRules?: LadderRules
   scoringProfile?: ScoringProfile
   setsToPlay?: number
 }

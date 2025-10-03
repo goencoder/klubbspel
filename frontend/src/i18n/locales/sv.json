@@ -85,6 +85,16 @@
     "validation": {
       "start_before_end": "Startdatum måste vara före slutdatum",
       "club_required": "Klubb krävs för klubbexklusiva serier"
+    },
+    "rules": {
+      "viewRules": "Visa regler",
+      "title": "Regler",
+      "summary": "Sammanfattning",
+      "examples": "Exempel",
+      "scenario": "Scenario",
+      "result": "Resultat",
+      "loading": "Laddar regler...",
+      "error": "Kunde inte ladda regler"
     }
   },
   "players": {

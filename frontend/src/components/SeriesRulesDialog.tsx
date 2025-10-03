@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -20,6 +21,7 @@ export function SeriesRulesDialog({
   format,
   ladderRules
 }: SeriesRulesDialogProps) {
+  const { t } = useTranslation()
   const [rules, setRules] = useState<RulesDescription | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +36,7 @@ export function SeriesRulesDialog({
       })
       setRules(response.rules)
     } catch (err) {
-      setError('Failed to load rules')
+      setError(t('series.rules.error'))
       // eslint-disable-next-line no-console
       console.error('Error fetching rules:', err)
     } finally {
@@ -55,10 +57,10 @@ export function SeriesRulesDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Info className="h-5 w-5" />
-            {loading ? 'Loading Rules...' : rules?.title || 'Series Rules'}
+            {loading ? t('series.rules.loading') : rules?.title || t('series.rules.title')}
           </DialogTitle>
           <DialogDescription>
-            {rules?.summary || 'Learn how this series format works'}
+            {rules?.summary || ''}
           </DialogDescription>
         </DialogHeader>
 
@@ -82,7 +84,7 @@ export function SeriesRulesDialog({
               <div>
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  Rules
+                  {t('series.rules.title')}
                 </h3>
                 <ul className="space-y-2">
                   {rules.rules.map((rule, index) => (
@@ -101,7 +103,7 @@ export function SeriesRulesDialog({
                 <div>
                   <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                     <Info className="h-5 w-5 text-blue-600" />
-                    Examples
+                    {t('series.rules.examples')}
                   </h3>
                   <div className="space-y-4">
                     {rules.examples.map((example, index) => (

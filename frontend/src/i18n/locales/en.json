@@ -85,6 +85,16 @@
     "validation": {
       "start_before_end": "Start date must be before end date",
       "club_required": "Club is required for club-only series"
+    },
+    "rules": {
+      "viewRules": "View Rules",
+      "title": "Rules",
+      "summary": "Summary",
+      "examples": "Examples",
+      "scenario": "Scenario",
+      "result": "Result",
+      "loading": "Loading rules...",
+      "error": "Failed to load rules"
     }
   },
   "players": {
