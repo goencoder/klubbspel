@@ -50,6 +50,148 @@ make host-dev
 make dev-start
 ```
 
+## 🔀 Pull Request Workflow (CRITICAL - ALWAYS FOLLOW)
+
+**NEVER push directly to main. Always use PRs and proper merge workflow.**
+
+### Step 1: Review PR Branch
+```bash
+# Fetch and checkout the PR branch
+git fetch origin
+git checkout <branch-name>
+
+# Show what changed
+git log --oneline main..HEAD
+git diff main...HEAD --name-status
+```
+
+### Step 2: Run Sanity Checks (MANDATORY)
+```bash
+# Backend validation
+make lint           # Must pass (0 issues)
+make be.build       # Must compile
+make test           # All tests must pass
+
+# Frontend validation  
+cd frontend && npm run lint   # Must pass
+cd frontend && npm run build  # Must compile
+
+# Check for errors in modified files
+# Use get_errors tool on changed files
+```
+
+### Step 3: Rebase on Latest Main (if needed)
+```bash
+# If branch is behind main or has conflicts
+git fetch origin
+git rebase main
+
+# Re-run sanity checks after rebase
+make lint && make be.build && make test
+```
+
+### Step 4: Merge PR Properly (Use GitHub CLI)
+```bash
+# Install GitHub CLI if needed
+brew install gh
+gh auth login
+
+# Merge the PR (this closes it properly in GitHub)
+gh pr merge <PR_NUMBER> --merge --delete-branch
+
+# Example:
+gh pr merge 19 --merge --delete-branch
+```
+
+### Step 5: Tag Release (Semantic Versioning)
+```bash
+# Pull the merged changes
+git checkout main
+git pull origin main
+
+# Create tag based on change type:
+# - PATCH (v1.0.X): Bug fixes, code cleanup, small improvements
+# - MINOR (v1.X.0): New features, non-breaking changes
+# - MAJOR (vX.0.0): Breaking changes
+
+# For bug fixes and cleanup (PATCH):
+git tag -a v1.0.3 -m "v1.0.3 - Bug fix
+
+Fix player search filter combination"
+
+# For new features (MINOR):
+git tag -a v1.1.0 -m "v1.1.0 - New feature
+
+Add export functionality for tournament results"
+
+# For breaking changes (MAJOR):
+git tag -a v2.0.0 -m "v2.0.0 - Breaking change
+
+Restructure API authentication system"
+
+# Push the tag
+git push origin <tag-name>
+```
+
+### Semantic Versioning Guidelines
+
+**PATCH version (1.0.X)** - Increment for:
+- Bug fixes
+- Code cleanup (removing unused code)
+- Performance improvements
+- Documentation updates
+- Refactoring without behavior change
+- Security patches
+
+**MINOR version (1.X.0)** - Increment for:
+- New features (backward compatible)
+- New API endpoints
+- New UI components
+- Database schema additions (non-breaking)
+- New configuration options
+
+**MAJOR version (X.0.0)** - Increment for:
+- Breaking API changes
+- Database schema changes requiring migration
+- Removal of deprecated features
+- Architecture changes affecting clients
+- Changes requiring user action
+
+### Common Mistakes to Avoid
+
+❌ **DON'T**: Push directly to main
+```bash
+git push origin main  # This bypasses PR review
+```
+
+✅ **DO**: Merge through GitHub
+```bash
+gh pr merge 19 --merge --delete-branch
+```
+
+❌ **DON'T**: Force push to main after initial release
+```bash
+git push -f origin main  # Breaks history for collaborators
+```
+
+✅ **DO**: Use proper git workflow
+```bash
+git rebase main  # Rebase feature branch before merge
+```
+
+❌ **DON'T**: Forget to tag releases
+- Tags create stable reference points
+- Enable easy rollback
+- Required for changelog generation
+
+✅ **DO**: Tag immediately after merge
+```bash
+gh pr merge 19 --merge --delete-branch
+git pull origin main
+git tag -a v1.0.3 -m "Brief description"
+git push origin v1.0.3
+```
+
 ## ⚡ Development Workflow (Fast Iteration)
 
 ### Host Development (Recommended - Fastest)
