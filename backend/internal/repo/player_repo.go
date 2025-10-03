@@ -223,6 +223,7 @@ func (r *PlayerRepo) ListWithCursorAndFilters(ctx context.Context, pageSize int3
 	}
 
 	filter := bson.M{}
+	var andConditions []bson.M
 
 	// Handle search query with fuzzy matching using search keys
 	if filters.SearchQuery != "" {
@@ -258,7 +259,7 @@ func (r *PlayerRepo) ListWithCursorAndFilters(ctx context.Context, pageSize int3
 		})
 
 		// Use OR to match any of the search conditions
-		filter["$or"] = searchConditions
+		andConditions = append(andConditions, bson.M{"$or": searchConditions})
 	}
 
 	// Handle club filtering
@@ -297,36 +298,36 @@ func (r *PlayerRepo) ListWithCursorAndFilters(ctx context.Context, pageSize int3
 		}
 
 		if len(clubConditions) == 1 {
-			// If only one condition, use it directly
-			for k, v := range clubConditions[0] {
-				filter[k] = v
-			}
+			andConditions = append(andConditions, clubConditions[0])
 		} else if len(clubConditions) > 1 {
-			// Multiple conditions, use $or
-			filter["$or"] = clubConditions
+			andConditions = append(andConditions, bson.M{"$or": clubConditions})
 		}
 	}
 
 	// Add cursor filtering logic
+	idConditions := bson.M{}
 	if cursorAfter != "" {
 		afterID, err := primitive.ObjectIDFromHex(cursorAfter)
 		if err == nil {
-			filter["_id"] = bson.M{"$gt": afterID}
+			idConditions["$gt"] = afterID
 		}
 	}
 
 	if cursorBefore != "" {
 		beforeID, err := primitive.ObjectIDFromHex(cursorBefore)
 		if err == nil {
-			if existing, exists := filter["_id"]; exists {
-				// Combine with existing cursor condition
-				if existingMap, ok := existing.(bson.M); ok {
-					existingMap["$lt"] = beforeID
-				}
-			} else {
-				filter["_id"] = bson.M{"$lt": beforeID}
-			}
+			idConditions["$lt"] = beforeID
 		}
+	}
+
+	if len(idConditions) > 0 {
+		andConditions = append(andConditions, bson.M{"_id": idConditions})
+	}
+
+	if len(andConditions) == 1 {
+		filter = andConditions[0]
+	} else if len(andConditions) > 1 {
+		filter = bson.M{"$and": andConditions}
 	}
 
 	// Create find options with limit and sorting
