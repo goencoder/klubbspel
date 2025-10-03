@@ -1130,7 +1130,7 @@
           },
           {
             "name": "sportFilter",
-            "description": "Optional filter by sport.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis.",
+            "description": "Optional filter by sport.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis.\n - SPORT_BADMINTON: Badminton.\n - SPORT_SQUASH: Squash.\n - SPORT_PICKLEBALL: Pickleball.\n - SPORT_RACQUETBALL: Racquetball.\n - SPORT_BEACH_TENNIS: Beach tennis.",
             "in": "query",
             "required": false,
             "type": "string",
@@ -1138,7 +1138,12 @@
               "SPORT_UNSPECIFIED",
               "SPORT_TABLE_TENNIS",
               "SPORT_TENNIS",
-              "SPORT_PADEL"
+              "SPORT_PADEL",
+              "SPORT_BADMINTON",
+              "SPORT_SQUASH",
+              "SPORT_PICKLEBALL",
+              "SPORT_RACQUETBALL",
+              "SPORT_BEACH_TENNIS"
             ],
             "default": "SPORT_UNSPECIFIED"
           },
@@ -1772,7 +1777,7 @@
         "setsToPlay": {
           "type": "integer",
           "format": "int32",
-          "description": "Number of sets to play (for table tennis). Defaults to 5."
+          "description": "Number of sets to play (for racket/paddle sports). Defaults to 5."
         }
       },
       "title": "Request to create a new tournament series"
@@ -2561,7 +2566,7 @@
         "setsToPlay": {
           "type": "integer",
           "format": "int32",
-          "title": "Number of sets to play (for table tennis: 3 or 5)"
+          "title": "Number of sets to play (for racket/paddle sports: 3, 5, or 7)"
         }
       },
       "title": "Series represents a time-bound table tennis tournament"
@@ -2594,10 +2599,15 @@
         "SPORT_UNSPECIFIED",
         "SPORT_TABLE_TENNIS",
         "SPORT_TENNIS",
-        "SPORT_PADEL"
+        "SPORT_PADEL",
+        "SPORT_BADMINTON",
+        "SPORT_SQUASH",
+        "SPORT_PICKLEBALL",
+        "SPORT_RACQUETBALL",
+        "SPORT_BEACH_TENNIS"
       ],
       "default": "SPORT_UNSPECIFIED",
-      "description": "Sport enumerates racket/paddle sports supported by the platform.\nTable tennis is currently the only fully supported sport but we define\nadditional values so that the API is future proof.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis."
+      "description": "Sport enumerates racket/paddle sports supported by the platform.\nTable tennis is currently the only fully supported sport but we define\nadditional values so that the API is future proof.\n\n - SPORT_UNSPECIFIED: Default value, should not be used explicitly.\n - SPORT_TABLE_TENNIS: Classic ping pong / table tennis.\n - SPORT_TENNIS: Lawn/indoor tennis.\n - SPORT_PADEL: Padel tennis.\n - SPORT_BADMINTON: Badminton.\n - SPORT_SQUASH: Squash.\n - SPORT_PICKLEBALL: Pickleball.\n - SPORT_RACQUETBALL: Racquetball.\n - SPORT_BEACH_TENNIS: Beach tennis."
     },
     "v1StrokeCardResult": {
       "type": "object",

@@ -1,9 +1,16 @@
 import type { Sport, SeriesFormat } from '@/types/api'
 import type { LucideIcon } from 'lucide-react'
-import { Circle, CircleDot } from 'lucide-react'
+import { Circle, CircleDot, Swords, Wind, Zap } from 'lucide-react'
 
 export const DEFAULT_SPORT: Sport = 'SPORT_TABLE_TENNIS'
-export const SUPPORTED_SPORTS: Sport[] = [DEFAULT_SPORT, 'SPORT_TENNIS']
+export const SUPPORTED_SPORTS: Sport[] = [
+  DEFAULT_SPORT,
+  'SPORT_TENNIS',
+  'SPORT_PADEL',
+  'SPORT_BADMINTON',
+  'SPORT_SQUASH',
+  'SPORT_PICKLEBALL'
+]
 
 export const DEFAULT_SERIES_FORMAT: SeriesFormat = 'SERIES_FORMAT_OPEN_PLAY'
 export const SUPPORTED_SERIES_FORMATS: SeriesFormat[] = [DEFAULT_SERIES_FORMAT]
@@ -18,6 +25,14 @@ export function sportTranslationKey(sport: Sport): string {
       return 'sports.table_tennis'
     case 'SPORT_TENNIS':
       return 'sports.tennis'
+    case 'SPORT_PADEL':
+      return 'sports.padel'
+    case 'SPORT_BADMINTON':
+      return 'sports.badminton'
+    case 'SPORT_SQUASH':
+      return 'sports.squash'
+    case 'SPORT_PICKLEBALL':
+      return 'sports.pickleball'
     default:
       return 'sports.unknown'
   }
@@ -29,6 +44,14 @@ export function sportIconComponent(sport: Sport): LucideIcon {
       return CircleDot  // Represents ping pong ball
     case 'SPORT_TENNIS':
       return Circle     // Represents tennis ball
+    case 'SPORT_PADEL':
+      return Swords     // Crossed paddles/rackets
+    case 'SPORT_BADMINTON':
+      return Wind       // Shuttlecock/speed
+    case 'SPORT_SQUASH':
+      return Zap        // Fast-paced
+    case 'SPORT_PICKLEBALL':
+      return CircleDot  // Similar to table tennis
     default:
       return Circle
   }

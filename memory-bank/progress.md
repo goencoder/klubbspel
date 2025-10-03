@@ -106,6 +106,69 @@ Klubbspel v1.0.0 is designed with extensibility in mind. The following areas pre
 
 ## Version History
 
+### v1.2.0 (Planned) - Multi-Sport Expansion
+**Status**: In Development (PR #21 + scoring improvements)
+
+**New Sports Added**:
+- Badminton support with Wind icon
+- Squash support with Zap icon
+- Padel support with Swords icon
+- Pickleball support with CircleDot icon
+
+**Scoring Improvements**:
+- Extended sets_to_play validation from 3-5 to 3-7 (supports best-of-7 matches)
+- Made "Sets to Play" field visible for ALL racket/paddle sports (not just table tennis)
+- Added "Best of 7" option in UI dropdown
+- Dynamic validation hints based on actual series.setsToPlay configuration
+- TypeScript types updated for all new sports
+- Translations added for bestOf7 in Swedish and English
+
+**Technical Debt Identified**:
+- ⚠️ **CRITICAL**: All sports currently share same validation logic (`validateTableTennisScore()`)
+- No sport-specific validation rules implemented
+- Squash cannot support draws (some leagues allow this)
+- No framework for sport-specific configuration (sets vs games, point limits, etc.)
+
+**Future Requirement**: Sport-specific validation framework needed before adding:
+- Dart (checkout rules, 301/501 scoring)
+- Chess (time controls, draw rules, checkmate vs stalemate)
+- Fishing (weight-based scoring, catch-and-release)
+- Golf (stroke/match play, handicaps)
+
+### v1.1.0 (October 2025)
+**Minor Release**: Tennis Support
+
+**Features Added**:
+- Tennis as second supported sport
+- Sport-specific icons (CircleDot for table tennis, Circle for tennis)
+- Multi-sport club configuration
+
+**Bug Fixes**:
+- Fixed 501 error for tennis matches (missing switch case in match_service.go)
+- Fixed non-existent Lucide icons (TableTennis, TennisBall)
+- Fixed translation namespace (sport.* → sports.*)
+- Created CODEX_ADD_SPORTS.md guide to prevent future issues
+
+### v1.0.3 (October 2025)
+**Patch Release**: Bug Fixes
+
+**Fixes**:
+- Player search filter improvements
+- Configuration cleanup
+
+### v1.0.2 (October 2025)
+**Patch Release**: Configuration Updates
+
+**Improvements**:
+- Configuration management enhancements
+
+### v1.0.1 (October 2025)
+**Patch Release**: Code Cleanup
+
+**Improvements**:
+- Removed unused code
+- Code quality improvements
+
 ### v1.0.0 (October 2025)
 **Major Release**: Production-ready table tennis tournament management system
 

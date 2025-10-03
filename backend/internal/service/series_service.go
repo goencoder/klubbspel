@@ -18,6 +18,10 @@ type SeriesService struct {
 var supportedSeriesSports = map[pb.Sport]struct{}{
 	pb.Sport_SPORT_TABLE_TENNIS: {},
 	pb.Sport_SPORT_TENNIS:       {},
+	pb.Sport_SPORT_PADEL:        {},
+	pb.Sport_SPORT_BADMINTON:    {},
+	pb.Sport_SPORT_SQUASH:       {},
+	pb.Sport_SPORT_PICKLEBALL:   {},
 }
 
 func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesRequest) (*pb.CreateSeriesResponse, error) {
@@ -38,7 +42,7 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 	scoringProfile := in.GetScoringProfile()
 	if scoringProfile == pb.ScoringProfile_SCORING_PROFILE_UNSPECIFIED {
 		switch sport {
-		case pb.Sport_SPORT_TABLE_TENNIS:
+		case pb.Sport_SPORT_TABLE_TENNIS, pb.Sport_SPORT_BADMINTON, pb.Sport_SPORT_SQUASH, pb.Sport_SPORT_PADEL, pb.Sport_SPORT_PICKLEBALL:
 			scoringProfile = pb.ScoringProfile_SCORING_PROFILE_TABLE_TENNIS_SETS
 		case pb.Sport_SPORT_TENNIS:
 			scoringProfile = pb.ScoringProfile_SCORING_PROFILE_SCORELINE
@@ -47,10 +51,13 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 		}
 	}
 
-	// Set sets_to_play default for table tennis
+	// Set sets_to_play default for racket/paddle sports
 	setsToPlay := in.GetSetsToPlay()
-	if setsToPlay == 0 && sport == pb.Sport_SPORT_TABLE_TENNIS {
-		setsToPlay = 5 // Default to best-of-5
+	if setsToPlay == 0 {
+		switch sport {
+		case pb.Sport_SPORT_TABLE_TENNIS, pb.Sport_SPORT_BADMINTON, pb.Sport_SPORT_SQUASH, pb.Sport_SPORT_PADEL, pb.Sport_SPORT_PICKLEBALL:
+			setsToPlay = 5 // Default to best-of-5
+		}
 	}
 
 	series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format), int32(scoringProfile), setsToPlay)

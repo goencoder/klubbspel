@@ -1,9 +1,65 @@
-# Active Context: Klubbspel v1.0.0
+# Active Context: Klubbspel v1.2.0 (In Development)
 
 ## Project Status
-**Production Release**: Klubbspel v1.0.0 is a stable, production-ready table tennis tournament management system serving Swedish clubs with comprehensive features for player management, match reporting, and real-time ELO rankings.
+**Current Version**: v1.1.0 (Tennis support released)
+**Next Release**: v1.2.0 - Multi-sport expansion with 4 additional racket/paddle sports
+**Active Branch**: `fix/sport-scoring-improvements` (scoring flexibility improvements)
 
-**Open Source**: Released under open source license, welcoming community contributions and feedback.
+**Production Status**: Stable system serving Swedish clubs with comprehensive tournament management for table tennis and tennis.
+
+**Open Source**: Released under open source license, welcoming community contributions.
+
+## Recent Developments (October 2025)
+
+### v1.1.0 - Tennis Support
+- Added tennis as second supported sport
+- Fixed 3 critical bugs (501 error, icon imports, translation namespace)
+- Created CODEX_ADD_SPORTS.md comprehensive guide
+- Sport-specific icons: CircleDot (table tennis), Circle (tennis)
+
+### Current Work - Scoring Improvements (fix/sport-scoring-improvements branch)
+**Problem Identified**: User feedback revealed scoring limitations:
+- Only table tennis showed "Sets to Play" field (hidden for other sports)
+- Validation hints always showed "Best of 5" regardless of actual configuration
+- No "Best of 7" option (tennis/squash sometimes need this)
+- All sports forced to use identical validation rules
+
+**Fixes Implemented**:
+✅ Extended protobuf validation: `sets_to_play` now allows 3-7 (was 3-5)
+✅ "Sets to Play" field now visible for ALL racket/paddle sports
+✅ Added "Best of 7" option to dropdown menu
+✅ Validation hints now dynamic: "Best of {setsToPlay}" instead of hardcoded
+✅ TypeScript types updated with all new sports
+✅ Translations added for bestOf7 (Swedish + English)
+
+### PR #21 - Four New Sports (Pending)
+**Sports Added**: Badminton, Squash, Padel, Pickleball
+**Status**: Code complete, testing in progress
+**Icons**: Wind (badminton), Zap (squash), Swords (padel), CircleDot (pickleball)
+
+## Critical Technical Debt Identified
+
+### ⚠️ Sport-Specific Validation Framework Needed (High Priority)
+**Current Problem**: All sports share `validateTableTennisScore()` function
+- No sport-specific rules implemented
+- All sports use identical validation: best-of-N sets, no draws allowed
+- Squash cannot support draws (some leagues require this)
+- No configuration for sport-specific scoring systems
+
+**Impact on Future Sports**:
+Cannot properly support these sports without refactoring:
+- **Dart**: 301/501 checkout rules, double-in/double-out, leg scoring
+- **Chess**: Draw by agreement, stalemate, threefold repetition, time controls
+- **Fishing**: Weight-based scoring, catch-and-release rules
+- **Golf**: Stroke play vs match play, handicaps, par validation
+- **Tennis (advanced)**: Tiebreaker rules, advantage sets, no-ad scoring
+- **Squash (proper)**: Draw support, different point systems
+
+**Recommended Solution**: 
+1. Create `SportValidator` interface in Go
+2. Implement sport-specific validators (TableTennisValidator, ChessValidator, etc.)
+3. Add `SportConfig` message to protobuf with allows_draws, scoring_system, etc.
+4. Update series creation to allow sport-specific configuration
 
 ## Core Capabilities Delivered
 - **Complete Tournament Management**: End-to-end series creation, player registration, match reporting, and live leaderboards

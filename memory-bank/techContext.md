@@ -307,10 +307,57 @@ export function Component() {
 
 ## Extension Points for Community Contributions
 
-### Multi-Sport Framework
-- **Interface**: `SportValidator` interface ready for implementation
-- **Currently**: Table tennis fully implemented
-- **Opportunities**: Tennis, padel, badminton, squash validators
+### Multi-Sport Framework (CRITICAL: Needs Refactoring)
+- **Current State**: All racket/paddle sports share `validateTableTennisScore()` function
+- **Problem**: No sport-specific validation logic - all sports use identical rules:
+  - Best-of-N sets format (3, 5, or 7 sets)
+  - No ties allowed (enforced for all sports)
+  - Same winner determination logic
+- **Sports Currently Supported**: Table tennis, tennis, padel, badminton, squash, pickleball
+- **Known Issues**:
+  - ⚠️ Squash CAN allow draws in some leagues (not supported)
+  - ⚠️ All sports forced to use same scoring rules
+  - ⚠️ No sport-specific configuration (e.g., sets vs games, point limits)
+
+### Future Sport-Specific Validation Requirements
+When adding new sports/games, each will need unique validation:
+- **Dart**: Score counting (301, 501), checkout rules, double-in/double-out
+- **Chess**: Time controls, draw by agreement, stalemate, threefold repetition
+- **Fishing**: Weight-based scoring, catch-and-release rules, species validation
+- **Golf**: Stroke play vs match play, handicaps, par validation
+- **Tennis**: Tiebreaker rules, advantage sets, no-ad scoring
+- **Squash**: Draw rules, point-a-rally vs hand-in-hand-out scoring
+
+### Recommended Refactoring (High Priority)
+1. **Create Sport Validator Interface**:
+   ```go
+   type SportValidator interface {
+     ValidateScore(scoreA, scoreB, setsToPlay int32) error
+     AllowsDraws() bool
+     GetScoringDescription() string
+   }
+   ```
+
+2. **Implement Sport-Specific Validators**:
+   - `TableTennisValidator`: Best-of-N sets, no draws
+   - `TennisValidator`: Best-of-N sets with tiebreakers, no draws
+   - `SquashValidator`: Best-of-N games, optional draw support
+   - `ChessValidator`: Win/draw/loss only, time-based variants
+   - `DartValidator`: Checkout rules, leg-based scoring
+   - `FishingValidator`: Weight-based, largest fish wins
+
+3. **Add Sport Configuration in Protobuf**:
+   ```protobuf
+   message SportConfig {
+     bool allows_draws = 1;
+     ScoringSystem scoring_system = 2;  // SETS, GAMES, POINTS, WEIGHT, etc.
+     int32 min_score = 3;
+     int32 max_score = 4;
+     string description = 5;
+   }
+   ```
+
+4. **Update Series Creation**: Allow sport-specific settings per tournament
 
 ### Authentication Providers
 - **Interface**: Pluggable authentication adapter pattern

@@ -65,6 +65,7 @@
     "setsToPlay": "Sets to Play",
     "bestOf3": "Best of 3",
     "bestOf5": "Best of 5",
+    "bestOf7": "Best of 7",
     "sections": {
       "openSeries": "Open Series",
       "unknownClub": "Unknown Club"
@@ -372,6 +373,11 @@
     "table_tennis": "Table tennis",
     "tennis": "Tennis",
     "padel": "Padel",
+    "badminton": "Badminton",
+    "squash": "Squash",
+    "pickleball": "Pickleball",
+    "racquetball": "Racquetball",
+    "beach_tennis": "Beach tennis",
     "unknown": "Unknown sport"
   }
 }
