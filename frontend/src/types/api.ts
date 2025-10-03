@@ -27,6 +27,11 @@ export type Sport =
   | 'SPORT_TABLE_TENNIS'
   | 'SPORT_TENNIS'
   | 'SPORT_PADEL'
+  | 'SPORT_BADMINTON'
+  | 'SPORT_SQUASH'
+  | 'SPORT_PICKLEBALL'
+  | 'SPORT_RACQUETBALL'
+  | 'SPORT_BEACH_TENNIS'
 
 export type ScoringProfile =
   | 'SCORING_PROFILE_UNSPECIFIED'

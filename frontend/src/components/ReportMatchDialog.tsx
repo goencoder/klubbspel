@@ -382,8 +382,8 @@ export function ReportMatchDialog({
             {/* Validation hints */}
             <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
               <ul className="space-y-1">
-                <li>• Best of 5 games format (winner must reach 3 games)</li>
-                <li>• Scores must be between 0 and 5</li>
+                <li>• Best of {series?.setsToPlay || 5} format (winner must reach {Math.ceil((series?.setsToPlay || 5) / 2)} sets)</li>
+                <li>• Scores must be between 0 and {Math.ceil((series?.setsToPlay || 5) / 2)}</li>
                 <li>• No ties allowed</li>
                 <li>• Players must be different</li>
               </ul>

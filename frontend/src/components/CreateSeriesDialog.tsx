@@ -400,8 +400,13 @@ export function CreateSeriesDialog({
             )}
           </div>
 
-          {/* Sets to Play (for Table Tennis) */}
-          {formData.sport === 'SPORT_TABLE_TENNIS' && (
+          {/* Sets to Play (for all racket/paddle sports) */}
+          {(formData.sport === 'SPORT_TABLE_TENNIS' || 
+            formData.sport === 'SPORT_TENNIS' ||
+            formData.sport === 'SPORT_PADEL' ||
+            formData.sport === 'SPORT_BADMINTON' ||
+            formData.sport === 'SPORT_SQUASH' ||
+            formData.sport === 'SPORT_PICKLEBALL') && (
             <div className="space-y-2">
               <Label htmlFor="setsToPlay">{t('series.setsToPlay', 'Sets to Play')} *</Label>
               <Select
@@ -419,6 +424,7 @@ export function CreateSeriesDialog({
                 <SelectContent>
                   <SelectItem value="3">{t('series.bestOf3', 'Best of 3')}</SelectItem>
                   <SelectItem value="5">{t('series.bestOf5', 'Best of 5')}</SelectItem>
+                  <SelectItem value="7">{t('series.bestOf7', 'Best of 7')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -65,6 +65,7 @@
     "setsToPlay": "Sets to Play",
     "bestOf3": "Best of 3",
     "bestOf5": "Best of 5",
+    "bestOf7": "Best of 7",
     "sections": {
       "openSeries": "Open Series",
       "unknownClub": "Unknown Club"
