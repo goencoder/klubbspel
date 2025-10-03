@@ -15,6 +15,11 @@ type SeriesService struct {
 	Series *repo.SeriesRepo
 }
 
+var supportedSeriesSports = map[pb.Sport]struct{}{
+	pb.Sport_SPORT_TABLE_TENNIS: {},
+	pb.Sport_SPORT_TENNIS:       {},
+}
+
 func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesRequest) (*pb.CreateSeriesResponse, error) {
 	startsAt := in.GetStartsAt().AsTime()
 	endsAt := in.GetEndsAt().AsTime()
@@ -35,6 +40,8 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 		switch sport {
 		case pb.Sport_SPORT_TABLE_TENNIS:
 			scoringProfile = pb.ScoringProfile_SCORING_PROFILE_TABLE_TENNIS_SETS
+		case pb.Sport_SPORT_TENNIS:
+			scoringProfile = pb.ScoringProfile_SCORING_PROFILE_SCORELINE
 		default:
 			return nil, status.Error(codes.InvalidArgument, "SCORING_PROFILE_REQUIRED_FOR_SPORT")
 		}
@@ -245,7 +252,7 @@ func normalizeSeriesSport(sport pb.Sport) (pb.Sport, error) {
 		return pb.Sport_SPORT_TABLE_TENNIS, nil
 	}
 
-	if sport != pb.Sport_SPORT_TABLE_TENNIS {
+	if _, ok := supportedSeriesSports[sport]; !ok {
 		return pb.Sport_SPORT_UNSPECIFIED, status.Error(codes.Unimplemented, "SPORT_NOT_SUPPORTED")
 	}
 

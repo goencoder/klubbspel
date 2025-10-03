@@ -15,6 +15,8 @@ message Club {
   string name = 2 [(buf.validate.field).string = {min_len: 2, max_len: 80}];
   // Sports supported by this club. Defaults to table tennis for now.
   repeated Sport supported_sports = 3;
+  // Sports represented by the series that belong to this club.
+  repeated Sport series_sports = 4;
 }
 
 // Request to create a new club

@@ -46,6 +46,7 @@ export interface Club {
   id: string
   name: string
   supportedSports: Sport[]
+  seriesSports?: Sport[]
 }
 
 export interface CreateClubRequest {

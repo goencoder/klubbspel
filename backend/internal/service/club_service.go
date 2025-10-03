@@ -19,6 +19,11 @@ type ClubService struct {
 	Series  *repo.SeriesRepo
 }
 
+var supportedClubSports = map[pb.Sport]struct{}{
+	pb.Sport_SPORT_TABLE_TENNIS: {},
+	pb.Sport_SPORT_TENNIS:       {},
+}
+
 func (s *ClubService) CreateClub(ctx context.Context, in *pb.CreateClubRequest) (*pb.CreateClubResponse, error) {
 	// Check authentication
 	subject := GetSubjectFromContext(ctx)
@@ -67,6 +72,7 @@ func (s *ClubService) CreateClub(ctx context.Context, in *pb.CreateClubRequest) 
 			Id:              club.ID.Hex(),
 			Name:            club.Name,
 			SupportedSports: pbSupportedSports(club.SupportedSports),
+			SeriesSports:    pbSeriesSports(nil),
 		},
 	}, nil
 }
@@ -77,11 +83,17 @@ func (s *ClubService) GetClub(ctx context.Context, in *pb.GetClubRequest) (*pb.G
 		return nil, status.Error(codes.NotFound, "CLUB_NOT_FOUND")
 	}
 
+	seriesSports, err := s.Series.DistinctSportsByClubIDs(ctx, []string{club.ID.Hex()})
+	if err != nil {
+		return nil, status.Error(codes.Internal, "CLUB_SERIES_SPORTS_FAILED")
+	}
+
 	return &pb.GetClubResponse{
 		Club: &pb.Club{
 			Id:              club.ID.Hex(),
 			Name:            club.Name,
 			SupportedSports: pbSupportedSports(club.SupportedSports),
+			SeriesSports:    pbSeriesSports(seriesSports[club.ID.Hex()]),
 		},
 	}, nil
 }
@@ -131,11 +143,17 @@ func (s *ClubService) UpdateClub(ctx context.Context, in *pb.UpdateClubRequest) 
 		return nil, status.Error(codes.Internal, "CLUB_UPDATE_FAILED")
 	}
 
+	seriesSports, err := s.Series.DistinctSportsByClubIDs(ctx, []string{club.ID.Hex()})
+	if err != nil {
+		return nil, status.Error(codes.Internal, "CLUB_SERIES_SPORTS_FAILED")
+	}
+
 	return &pb.UpdateClubResponse{
 		Club: &pb.Club{
 			Id:              club.ID.Hex(),
 			Name:            club.Name,
 			SupportedSports: pbSupportedSports(club.SupportedSports),
+			SeriesSports:    pbSeriesSports(seriesSports[club.ID.Hex()]),
 		},
 	}, nil
 }
@@ -215,12 +233,25 @@ func (s *ClubService) ListClubs(ctx context.Context, in *pb.ListClubsRequest) (*
 		return nil, status.Error(codes.Internal, "CLUB_LIST_FAILED")
 	}
 
-	var pbClubs []*pb.Club
+	var (
+		pbClubs []*pb.Club
+		clubIDs []string
+	)
+	for _, club := range clubs {
+		clubIDs = append(clubIDs, club.ID.Hex())
+	}
+
+	seriesSports, err := s.Series.DistinctSportsByClubIDs(ctx, clubIDs)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "CLUB_SERIES_SPORTS_FAILED")
+	}
+
 	for _, club := range clubs {
 		pbClubs = append(pbClubs, &pb.Club{
 			Id:              club.ID.Hex(),
 			Name:            club.Name,
 			SupportedSports: pbSupportedSports(club.SupportedSports),
+			SeriesSports:    pbSeriesSports(seriesSports[club.ID.Hex()]),
 		})
 	}
 
@@ -242,7 +273,7 @@ func normalizeClubSports(input []pb.Sport) ([]int32, error) {
 			continue
 		}
 
-		if sport != pb.Sport_SPORT_TABLE_TENNIS {
+		if _, ok := supportedClubSports[sport]; !ok {
 			return nil, status.Error(codes.Unimplemented, "SPORT_NOT_SUPPORTED")
 		}
 
@@ -274,6 +305,31 @@ func pbSupportedSports(values []int32) []pb.Sport {
 		sport := pb.Sport(value)
 		if sport == pb.Sport_SPORT_UNSPECIFIED {
 			sport = pb.Sport_SPORT_TABLE_TENNIS
+		}
+
+		if _, ok := seen[sport]; ok {
+			continue
+		}
+		seen[sport] = struct{}{}
+		sports = append(sports, sport)
+	}
+
+	sort.Slice(sports, func(i, j int) bool { return sports[i] < sports[j] })
+	return sports
+}
+
+func pbSeriesSports(values []int32) []pb.Sport {
+	if len(values) == 0 {
+		return nil
+	}
+
+	seen := map[pb.Sport]struct{}{}
+	var sports []pb.Sport
+
+	for _, value := range values {
+		sport := pb.Sport(value)
+		if sport == pb.Sport_SPORT_UNSPECIFIED {
+			continue
 		}
 
 		if _, ok := seen[sport]; ok {

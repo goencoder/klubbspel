@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageWrapper, PageHeaderSection, HeaderContent, SearchSection, LoadingGrid, SharedEmptyState, ActionGroup } from './Styles'
-import { DEFAULT_SPORT, sportTranslationKey } from '@/lib/sports'
+import { DEFAULT_SPORT, sportIconComponent, sportTranslationKey } from '@/lib/sports'
 
 export function ClubsPage() {
   const { t } = useTranslation()
@@ -257,6 +257,7 @@ export function ClubsPage() {
     const playerData = clubPlayers[club.id]
     const isLoadingPlayers = loadingClubPlayers[club.id]
     const sports = club.supportedSports?.length ? club.supportedSports : [DEFAULT_SPORT]
+    const seriesSports = club.seriesSports?.filter((sport) => sport !== 'SPORT_UNSPECIFIED') ?? []
 
     // Check if user can delete this club (club admin or platform owner)
     const canDeleteClub = isPlatformOwner() || isClubAdmin(club.id)
@@ -298,6 +299,26 @@ export function ClubsPage() {
                         </Button>
                     )}
                   </div>
+                  {seriesSports.length > 0 && (
+                    <div className="flex items-center space-x-2 mt-2 text-xs text-muted-foreground">
+                      <span>{t('clubs.seriesSports')}:</span>
+                      <div className="flex items-center space-x-1">
+                        {seriesSports.map((sport) => {
+                          const Icon = sportIconComponent(sport)
+                          return (
+                            <span
+                              key={sport}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary"
+                              title={t(sportTranslationKey(sport))}
+                            >
+                              <Icon className="h-4 w-4" aria-hidden />
+                              <span className="sr-only">{t(sportTranslationKey(sport))}</span>
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
                     <span>{t('clubs.supportedSports')}:</span>
                     {sports.map((sport) => (
