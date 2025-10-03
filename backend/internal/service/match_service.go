@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/goencoder/klubbspel/backend/internal/repo"
@@ -75,6 +76,12 @@ func (s *MatchService) updateLadderPositions(ctx context.Context, seriesID, play
 		return nil
 	}
 
+	// Fetch series to check ladder rules
+	series, err := s.Series.FindByID(ctx, seriesID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch series: %w", err)
+	}
+
 	winnerID := playerAID
 	loserID := playerBID
 	if scoreB > scoreA {
@@ -135,6 +142,14 @@ func (s *MatchService) updateLadderPositions(ctx context.Context, seriesID, play
 			return nil
 		}
 
+		// Challenger lost: apply ladder rules
+		ladderRules := pb.LadderRules(series.LadderRules)
+		if ladderRules == pb.LadderRules_LADDER_RULES_UNSPECIFIED || ladderRules == pb.LadderRules_LADDER_RULES_CLASSIC {
+			// Classic rules: loser keeps position (no penalty), just update timestamp
+			return s.SeriesPlayers.TouchPlayer(sessCtx, seriesID, challenger.PlayerID, now)
+		}
+
+		// Aggressive rules: loser drops one position (penalty)
 		newPosition := challenger.Position + 1
 		opponent, err := s.SeriesPlayers.FindBySeriesAndPosition(sessCtx, seriesID, newPosition)
 		if err != nil {

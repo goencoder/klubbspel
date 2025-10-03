@@ -30,6 +30,16 @@ enum SeriesFormat {
   SERIES_FORMAT_CUP = 3;
 }
 
+// LadderRules defines how positions change after matches in ladder format.
+enum LadderRules {
+  // Default value, should not be used.
+  LADDER_RULES_UNSPECIFIED = 0;
+  // Classic ladder: Loser keeps position (no penalty).
+  LADDER_RULES_CLASSIC = 1;
+  // Aggressive ladder: Loser drops one position (penalty).
+  LADDER_RULES_AGGRESSIVE = 2;
+}
+
 // Series represents a time-bound table tennis tournament
 message Series {
   // Unique identifier for the series (MongoDB ObjectID as hex string)
@@ -51,6 +61,9 @@ message Series {
   Sport sport = 7;
   // Competition format for the series.
   SeriesFormat format = 8;
+  // Ladder rules (only applicable when format is SERIES_FORMAT_LADDER).
+  // Defaults to LADDER_RULES_CLASSIC if not specified.
+  LadderRules ladder_rules = 11;
   // Scoring profile that determines how matches are validated and scored
   ScoringProfile scoring_profile = 9;
   // Number of sets to play (for racket/paddle sports: 3, 5, or 7)
@@ -82,6 +95,8 @@ message CreateSeriesRequest {
   Sport sport = 6;
   // Competition format. Defaults to LADDER.
   SeriesFormat format = 7;
+  // Ladder rules (only applicable when format is SERIES_FORMAT_LADDER). Defaults to LADDER_RULES_CLASSIC.
+  LadderRules ladder_rules = 10;
   // Scoring profile for match validation. Defaults based on sport.
   ScoringProfile scoring_profile = 8;
   // Number of sets to play (for racket/paddle sports). Defaults to 5.

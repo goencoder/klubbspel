@@ -42,6 +42,12 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 		return nil, err
 	}
 
+	// Set ladder rules default for LADDER format
+	ladderRules := in.GetLadderRules()
+	if format == pb.SeriesFormat_SERIES_FORMAT_LADDER && ladderRules == pb.LadderRules_LADDER_RULES_UNSPECIFIED {
+		ladderRules = pb.LadderRules_LADDER_RULES_CLASSIC // Default to classic (no penalty)
+	}
+
 	// Set scoring profile based on sport if not specified
 	scoringProfile := in.GetScoringProfile()
 	if scoringProfile == pb.ScoringProfile_SCORING_PROFILE_UNSPECIFIED {
@@ -64,7 +70,7 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 		}
 	}
 
-	series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format), int32(scoringProfile), setsToPlay)
+	series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format), int32(ladderRules), int32(scoringProfile), setsToPlay)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "SERIES_CREATE_FAILED")
 	}
@@ -79,6 +85,7 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 			Visibility:     pb.SeriesVisibility(series.Visibility),
 			Sport:          pbSeriesSport(series.Sport),
 			Format:         pbSeriesFormat(series.Format),
+			LadderRules:    pb.LadderRules(series.LadderRules),
 			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
 			SetsToPlay:     series.SetsToPlay,
 		},
@@ -129,6 +136,7 @@ func (s *SeriesService) ListSeries(ctx context.Context, in *pb.ListSeriesRequest
 			Visibility:     pb.SeriesVisibility(series.Visibility),
 			Sport:          pbSeriesSport(series.Sport),
 			Format:         pbSeriesFormat(series.Format),
+			LadderRules:    pb.LadderRules(series.LadderRules),
 			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
 			SetsToPlay:     series.SetsToPlay,
 		})
@@ -166,6 +174,7 @@ func (s *SeriesService) GetSeries(ctx context.Context, in *pb.GetSeriesRequest) 
 			Visibility:     pb.SeriesVisibility(series.Visibility),
 			Sport:          pbSeriesSport(series.Sport),
 			Format:         pbSeriesFormat(series.Format),
+			LadderRules:    pb.LadderRules(series.LadderRules),
 			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
 			SetsToPlay:     series.SetsToPlay,
 		},
@@ -244,6 +253,7 @@ func (s *SeriesService) UpdateSeries(ctx context.Context, in *pb.UpdateSeriesReq
 			Visibility:     pb.SeriesVisibility(series.Visibility),
 			Sport:          pbSeriesSport(series.Sport),
 			Format:         pbSeriesFormat(series.Format),
+			LadderRules:    pb.LadderRules(series.LadderRules),
 			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
 			SetsToPlay:     series.SetsToPlay,
 		},

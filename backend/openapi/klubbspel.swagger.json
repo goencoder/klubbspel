@@ -1802,6 +1802,10 @@
           "$ref": "#/definitions/v1SeriesFormat",
           "description": "Competition format. Defaults to LADDER."
         },
+        "ladderRules": {
+          "$ref": "#/definitions/v1LadderRules",
+          "description": "Ladder rules (only applicable when format is SERIES_FORMAT_LADDER). Defaults to LADDER_RULES_CLASSIC."
+        },
         "scoringProfile": {
           "$ref": "#/definitions/v1ScoringProfile",
           "description": "Scoring profile for match validation. Defaults based on sport."
@@ -2023,6 +2027,16 @@
           "format": "date-time"
         }
       }
+    },
+    "v1LadderRules": {
+      "type": "string",
+      "enum": [
+        "LADDER_RULES_UNSPECIFIED",
+        "LADDER_RULES_CLASSIC",
+        "LADDER_RULES_AGGRESSIVE"
+      ],
+      "default": "LADDER_RULES_UNSPECIFIED",
+      "description": "LadderRules defines how positions change after matches in ladder format.\n\n - LADDER_RULES_UNSPECIFIED: Default value, should not be used.\n - LADDER_RULES_CLASSIC: Classic ladder: Loser keeps position (no penalty).\n - LADDER_RULES_AGGRESSIVE: Aggressive ladder: Loser drops one position (penalty)."
     },
     "v1LeaderboardEntry": {
       "type": "object",
@@ -2629,6 +2643,10 @@
         "format": {
           "$ref": "#/definitions/v1SeriesFormat",
           "description": "Competition format for the series."
+        },
+        "ladderRules": {
+          "$ref": "#/definitions/v1LadderRules",
+          "description": "Ladder rules (only applicable when format is SERIES_FORMAT_LADDER).\nDefaults to LADDER_RULES_CLASSIC if not specified."
         },
         "scoringProfile": {
           "$ref": "#/definitions/v1ScoringProfile",
