@@ -722,40 +722,6 @@
         ]
       }
     },
-    "/v1/matches:reorder": {
-      "post": {
-        "summary": "Reorder matches played on the same day",
-        "description": "AUTHORIZATION: Should require authentication and admin rights\n\nPURPOSE: Correct the temporal order of matches for accurate ELO calculations\n\nDATA MODEL CHANGES: Updates played_at timestamps to preserve order within day",
-        "operationId": "MatchService_ReorderMatches",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1ReorderMatchesResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1ReorderMatchesRequest"
-            }
-          }
-        ],
-        "tags": [
-          "MatchService"
-        ]
-      }
-    },
     "/v1/matches:report": {
       "post": {
         "summary": "Report the result of a completed match with automatic ELO rating updates",
@@ -2387,29 +2353,6 @@
         }
       },
       "title": "Player membership information"
-    },
-    "v1ReorderMatchesRequest": {
-      "type": "object",
-      "properties": {
-        "matchIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "title": "List of match IDs in the desired order (first = earliest in day)"
-        }
-      },
-      "title": "Request to reorder matches played on the same day"
-    },
-    "v1ReorderMatchesResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean",
-          "title": "Whether the reordering was successful"
-        }
-      },
-      "title": "Response after successfully reordering matches"
     },
     "v1ReportMatchRequest": {
       "type": "object",

@@ -19,6 +19,7 @@ message MatchParticipant {
   }
 }
 
+
 // TableTennisResult represents set-based scoring for table tennis
 message TableTennisResult {
   // Number of sets won by participant A (0-5 for best-of-5)
@@ -171,20 +172,8 @@ message DeleteMatchResponse {
   bool success = 1;
 }
 
-// Request to reorder matches played on the same day
-message ReorderMatchesRequest {
-  // List of match IDs in the desired order (first = earliest in day)
-  repeated string match_ids = 1 [(buf.validate.field).repeated.min_items = 2];
-}
-
-// Response after successfully reordering matches
-message ReorderMatchesResponse {
-  // Whether the reordering was successful
-  bool success = 1;
-}
-
 // Request to list matches in a tournament series with cursor-based pagination
-message ListMatchesRequest { 
+message ListMatchesRequest {
   // ID of the tournament series to get matches for
   string series_id = 1; 
   // Maximum number of matches to return (default: 20, max: 100)
@@ -301,14 +290,4 @@ service MatchService {
     option (google.api.http) = { delete: "/v1/matches/{match_id}" };
   }
 
-  // Reorder matches played on the same day
-  //
-  // AUTHORIZATION: Should require authentication and admin rights
-  //
-  // PURPOSE: Correct the temporal order of matches for accurate ELO calculations
-  //
-  // DATA MODEL CHANGES: Updates played_at timestamps to preserve order within day
-  rpc ReorderMatches(ReorderMatchesRequest) returns (ReorderMatchesResponse) {
-    option (google.api.http) = { post: "/v1/matches:reorder" body: "*" };
-  }
 }
