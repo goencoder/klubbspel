@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -64,7 +65,12 @@ func main() {
 
 	// Wait a moment for gRPC server to be ready, then register gateway handlers
 	time.Sleep(100 * time.Millisecond)
-	grpcEndpoint := "localhost:9090" // Should match cfg.GRPCAddr without ":"
+	grpcEndpoint, err := deriveGatewayDialTarget(cfg.GRPCAddr)
+	if err != nil {
+		log.Fatal().Err(err).Str("grpc_addr", cfg.GRPCAddr).Msg("invalid gRPC listen address")
+	}
+
+	log.Info().Str("grpc_addr", cfg.GRPCAddr).Str("dial_target", grpcEndpoint).Msg("registering gRPC gateway handlers")
 	if err := gw.RegisterHandlers(ctx, grpcEndpoint); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register gateway handlers")
 	}
@@ -140,4 +146,18 @@ func runDatabaseMigrations(ctx context.Context, db *mongodriver.Database) error 
 
 	log.Info().Msg("✅ All database migrations completed successfully")
 	return nil
+}
+
+func deriveGatewayDialTarget(listenAddr string) (string, error) {
+	host, port, err := net.SplitHostPort(listenAddr)
+	if err != nil {
+		return "", fmt.Errorf("split host/port: %w", err)
+	}
+
+	switch host {
+	case "", "0.0.0.0", "[::]", "::":
+		host = "127.0.0.1"
+	}
+
+	return net.JoinHostPort(host, port), nil
 }
