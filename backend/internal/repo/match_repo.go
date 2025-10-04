@@ -218,7 +218,6 @@ func (r *MatchRepo) Update(ctx context.Context, matchID string, scoreA, scoreB *
 		update["played_at"] = *playedAt
 	}
 
-
 	if len(update) == 0 {
 		// No updates provided, just return the existing match
 		return r.FindByID(ctx, matchID)
