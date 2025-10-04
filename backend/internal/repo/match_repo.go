@@ -240,3 +240,32 @@ func (r *MatchRepo) Delete(ctx context.Context, matchID string) error {
 	_, err = r.c.DeleteOne(ctx, bson.M{"_id": objID})
 	return err
 }
+
+// FindAllBySeriesChronological returns all matches for a series in chronological order (oldest first).
+// Used for recalculating standings from scratch.
+func (r *MatchRepo) FindAllBySeriesChronological(ctx context.Context, seriesID string) ([]*Match, error) {
+	filter := bson.M{"series_id": seriesID}
+	opts := options.Find().SetSort(bson.D{{Key: "played_at", Value: 1}, {Key: "_id", Value: 1}})
+
+	cursor, err := r.c.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := cursor.Close(ctx); err != nil {
+			// Log error but don't fail the operation
+			_ = err
+		}
+	}()
+
+	var matches []*Match
+	for cursor.Next(ctx) {
+		var m Match
+		if err := cursor.Decode(&m); err != nil {
+			return nil, err
+		}
+		matches = append(matches, &m)
+	}
+
+	return matches, cursor.Err()
+}

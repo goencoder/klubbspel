@@ -46,6 +46,11 @@ export type SeriesFormat =
   | 'SERIES_FORMAT_LADDER'
   | 'SERIES_FORMAT_CUP'
 
+export type LadderRules =
+  | 'LADDER_RULES_UNSPECIFIED'
+  | 'LADDER_RULES_CLASSIC'
+  | 'LADDER_RULES_AGGRESSIVE'
+
 // Club types
 export interface Club {
   id: string
@@ -170,6 +175,28 @@ export interface FindMergeCandidatesResponse {
 // Series types
 export type SeriesVisibility = 'SERIES_VISIBILITY_OPEN' | 'SERIES_VISIBILITY_CLUB_ONLY' | 'SERIES_VISIBILITY_UNSPECIFIED'
 
+// Rules types
+export interface RuleExample {
+  scenario: string
+  outcome: string
+}
+
+export interface RulesDescription {
+  title: string
+  summary: string
+  rules: string[]
+  examples: RuleExample[]
+}
+
+export interface GetSeriesRulesRequest {
+  format: SeriesFormat
+  ladderRules?: LadderRules
+}
+
+export interface GetSeriesRulesResponse {
+  rules: RulesDescription
+}
+
 export interface Series {
   id: string
   clubId?: string
@@ -179,6 +206,7 @@ export interface Series {
   visibility: SeriesVisibility
   sport: Sport
   format: SeriesFormat
+  ladderRules?: LadderRules
   scoringProfile: ScoringProfile
   setsToPlay: number  // For table tennis: 3 or 5
 }
@@ -191,6 +219,7 @@ export interface CreateSeriesRequest {
   visibility: SeriesVisibility
   sport?: Sport
   format?: SeriesFormat
+  ladderRules?: LadderRules
   scoringProfile?: ScoringProfile
   setsToPlay?: number
 }

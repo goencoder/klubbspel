@@ -1,4 +1,5 @@
 import { useAppStore } from '@/store'
+import { handleSessionExpired } from '@/lib/sessionManager'
 
 // Custom error class to identify cancelled requests
 export class RequestCancelledError extends Error {
@@ -22,6 +23,8 @@ import type {
   FindMergeCandidatesResponse,
   GetLeaderboardRequest,
   GetLeaderboardResponse,
+  GetSeriesRulesRequest,
+  GetSeriesRulesResponse,
   ListClubsRequest,
   ListClubsResponse,
   ListMatchesRequest,
@@ -137,6 +140,12 @@ class ApiClient {
           message: errorData.message || response.statusText,
           details: errorData.details
         }
+        
+        // Handle token expiration - trigger global session expiry
+        if (apiError.code === 'INVALID_OR_EXPIRED_TOKEN') {
+          handleSessionExpired()
+        }
+        
         throw Object.assign(new Error(apiError.message), apiError)
       }
 
@@ -327,6 +336,20 @@ class ApiClient {
 
   async deleteSeries(id: string): Promise<void> {
     await this.delete<{ success: boolean }>(`/v1/series/${id}`)
+  }
+
+  async getSeriesRules(params: GetSeriesRulesRequest): Promise<GetSeriesRulesResponse> {
+    const searchParams = new URLSearchParams()
+    searchParams.append('format', params.format)
+    if (params.ladderRules) {
+      searchParams.append('ladder_rules', params.ladderRules)
+    }
+    // Pass current language from app store to get localized rules
+    const currentLang = useAppStore.getState().language || 'sv'
+    searchParams.append('locale', currentLang)
+    
+    const query = searchParams.toString()
+    return this.get<GetSeriesRulesResponse>(`/v1/series/rules${query ? `?${query}` : ''}`)
   }
 
   // Match API methods

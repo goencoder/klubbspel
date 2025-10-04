@@ -62,6 +62,11 @@
       "cup": "Cup",
       "unknown": "Coming soon"
     },
+    "ladderRulesLabel": "Ladder Rules",
+    "ladderClassic": "Classic Ladder (no penalty)",
+    "ladderAggressive": "Aggressive Ladder (penalty on loss)",
+    "ladderClassicHelp": "Classic: Only winner climbs up",
+    "ladderAggressiveHelp": "Aggressive: Loser falls down",
     "setsToPlay": "Sets to Play",
     "bestOf3": "Best of 3",
     "bestOf5": "Best of 5",
@@ -85,6 +90,16 @@
     "validation": {
       "start_before_end": "Start date must be before end date",
       "club_required": "Club is required for club-only series"
+    },
+    "rules": {
+      "viewRules": "View Rules",
+      "title": "Rules",
+      "summary": "Summary",
+      "examples": "Examples",
+      "scenario": "Scenario",
+      "result": "Result",
+      "loading": "Loading rules...",
+      "error": "Failed to load rules"
     }
   },
   "players": {
@@ -134,6 +149,8 @@
     "reportNew": "Report Matches",
     "player_a": "Player A",
     "player_b": "Player B",
+    "challenger": "Challenger",
+    "defender": "Defender",
     "playerA": "Player A",
     "playerB": "Player B",
     "scoreA": "Player A Score",
@@ -358,7 +375,12 @@
     "loginRequired": "You must be logged in to create clubs",
     "signIn": "Sign In",
     "signInToJoin": "Sign In to Join",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "sessionExpired": {
+      "title": "Your session has expired",
+      "message": "Your login has expired. Please sign in again to continue.",
+      "button": "Go to Login"
+    }
   },
   "profile": {
     "completion": {

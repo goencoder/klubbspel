@@ -1,0 +1,87 @@
+{
+  "free_play": {
+    "title": "Fritt spel regler",
+    "summary": "Spela matcher fritt med vilken spelare som helst. Rankingen bestäms av ELO-betyg.",
+    "rules": [
+      "Spela matcher mot vilken spelare som helst i serien",
+      "Ingen positionsspårning - rankning baserad endast på ELO-betyg",
+      "Vinnaren får ELO-poäng, förloraren förlorar ELO-poäng",
+      "ELO-förändringar beror på betygsskillnaden mellan spelarna",
+      "Alla matcher räknas lika mycket för ditt betyg"
+    ],
+    "examples": [
+      {
+        "scenario": "Högre rankad spelare (ELO 1500) slår lägre rankad spelare (ELO 1200)",
+        "outcome": "Resultat: Vinnaren får ~8 poäng, förloraren förlorar ~8 poäng (liten förändring på grund av förväntat resultat)"
+      },
+      {
+        "scenario": "Lägre rankad spelare (ELO 1200) slår högre rankad spelare (ELO 1500)",
+        "outcome": "Resultat: Vinnaren får ~24 poäng, förloraren förlorar ~24 poäng (stor förändring på grund av överraskning)"
+      }
+    ]
+  },
+  "ladder_classic": {
+    "title": "Klassisk stege regler",
+    "summary": "Utmana vilken spelare som helst för att klättra på stegen. Vinnaren förbättrar position, förloraren behåller sin position (ingen straff).",
+    "rules": [
+      "Spelarna rankas efter position (1, 2, 3, osv.)",
+      "Spela matcher mot vilken spelare som helst oavsett position",
+      "Position bestämmer rankning, inte ELO",
+      "Vinnaren med sämre position tar den bättre spelarens position",
+      "Alla spelare däremellan byter position (skiftar ner en)",
+      "Förloraren med sämre position behåller sin position (ingen straff)",
+      "Förloraren med bättre position faller till där vinnaren var",
+      "ELO beräknas fortfarande men påverkar inte stegens position"
+    ],
+    "examples": [
+      {
+        "scenario": "Spelare på position #3 slår spelare på position #1",
+        "outcome": "Vinnare → position #1, positioner #1 och #2 → skiftar ner (#2 och #3)"
+      },
+      {
+        "scenario": "Spelare på position #3 förlorar mot spelare på position #1",
+        "outcome": "Förloraren behåller position #3 (ingen straff), vinnaren behåller position #1"
+      },
+      {
+        "scenario": "Spelare på position #2 slår spelare på position #1",
+        "outcome": "Vinnare → position #1, tidigare #1 → position #2"
+      },
+      {
+        "scenario": "Spelare på position #1 förlorar mot spelare på position #3",
+        "outcome": "Vinnare → position #1, förlorare (#1) → faller till position #3, tidigare #2 → position #2"
+      }
+    ]
+  },
+  "ladder_aggressive": {
+    "title": "Aggressiv stege regler",
+    "summary": "Utmana vilken spelare som helst för att klättra på stegen. Vinnaren förbättrar position, förloraren faller en position (straff).",
+    "rules": [
+      "Spelarna rankas efter position (1, 2, 3, osv.)",
+      "Spela matcher mot vilken spelare som helst oavsett position",
+      "Position bestämmer rankning, inte ELO",
+      "Vinnaren med sämre position tar den bättre spelarens position",
+      "Alla spelare däremellan byter position (skiftar ner en)",
+      "Förloraren med sämre position faller en extra position (straff)",
+      "Spelaren under förloraren flyttas upp för att fylla luckan",
+      "ELO beräknas fortfarande men påverkar inte stegens position"
+    ],
+    "examples": [
+      {
+        "scenario": "Spelare på position #3 slår spelare på position #1",
+        "outcome": "Vinnare → position #1, positioner #1 och #2 → skiftar ner (#2 och #3)"
+      },
+      {
+        "scenario": "Spelare på position #3 förlorar mot spelare på position #1",
+        "outcome": "Förloraren faller till position #4 (straff), spelare på #4 → flyttas upp till #3"
+      },
+      {
+        "scenario": "Spelare på position #2 slår spelare på position #1",
+        "outcome": "Vinnare → position #1, tidigare #1 → position #2"
+      },
+      {
+        "scenario": "Spelare på position #1 förlorar mot spelare på position #3",
+        "outcome": "Vinnare → position #1, förlorare (#1) → faller till position #2, tidigare #2 → position #3"
+      }
+    ]
+  }
+}

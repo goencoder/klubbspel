@@ -1196,6 +1196,66 @@
         ]
       }
     },
+    "/v1/series/rules": {
+      "get": {
+        "summary": "Get human-readable rules for a series format and configuration",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Display rules to users when creating series or reporting matches\n\nDATA MODEL CHANGES: None (read-only helper)",
+        "operationId": "SeriesService_GetSeriesRules",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetSeriesRulesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "format",
+            "description": "Series format to get rules for\n\n - SERIES_FORMAT_UNSPECIFIED: Default value, should not be used.\n - SERIES_FORMAT_OPEN_PLAY: Open play where any players can play matches against each other.\n - SERIES_FORMAT_LADDER: Continuous ladder where players challenge each other.\n - SERIES_FORMAT_CUP: Knock-out cup or bracket style tournament.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "SERIES_FORMAT_UNSPECIFIED",
+              "SERIES_FORMAT_OPEN_PLAY",
+              "SERIES_FORMAT_LADDER",
+              "SERIES_FORMAT_CUP"
+            ],
+            "default": "SERIES_FORMAT_UNSPECIFIED"
+          },
+          {
+            "name": "ladderRules",
+            "description": "Ladder rules variant (only used if format is SERIES_FORMAT_LADDER)\n\n - LADDER_RULES_UNSPECIFIED: Default value, should not be used.\n - LADDER_RULES_CLASSIC: Classic ladder: Loser keeps position (no penalty).\n - LADDER_RULES_AGGRESSIVE: Aggressive ladder: Loser drops one position (penalty).",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "LADDER_RULES_UNSPECIFIED",
+              "LADDER_RULES_CLASSIC",
+              "LADDER_RULES_AGGRESSIVE"
+            ],
+            "default": "LADDER_RULES_UNSPECIFIED"
+          },
+          {
+            "name": "locale",
+            "description": "Locale for translated rules (e.g., \"sv\", \"en\"). Defaults to server's DEFAULT_LOCALE if not specified.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      }
+    },
     "/v1/series/{id}": {
       "get": {
         "summary": "Get a specific series by ID",
@@ -1293,6 +1353,38 @@
             "schema": {
               "$ref": "#/definitions/v1Series"
             }
+          }
+        ],
+        "tags": [
+          "SeriesService"
+        ]
+      }
+    },
+    "/v1/series/{seriesId}/ladder": {
+      "get": {
+        "summary": "Get ladder standings for a ladder-format series",
+        "description": "AUTHORIZATION: Requires valid authentication (enforced by interceptor)\n\nPURPOSE: Retrieve ordered ladder positions with basic stats\n\nDATA MODEL CHANGES: None (read-only operation)",
+        "operationId": "SeriesService_GetLadderStandings",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetLadderStandingsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "seriesId",
+            "in": "path",
+            "required": true,
+            "type": "string"
           }
         ],
         "tags": [
@@ -1770,6 +1862,10 @@
           "$ref": "#/definitions/v1SeriesFormat",
           "description": "Competition format. Defaults to LADDER."
         },
+        "ladderRules": {
+          "$ref": "#/definitions/v1LadderRules",
+          "description": "Ladder rules (only applicable when format is SERIES_FORMAT_LADDER). Defaults to LADDER_RULES_CLASSIC."
+        },
         "scoringProfile": {
           "$ref": "#/definitions/v1ScoringProfile",
           "description": "Scoring profile for match validation. Defaults based on sport."
@@ -1866,6 +1962,18 @@
       },
       "title": "Response with current user information"
     },
+    "v1GetLadderStandingsResponse": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1LadderEntry"
+          }
+        }
+      }
+    },
     "v1GetLeaderboardResponse": {
       "type": "object",
       "properties": {
@@ -1925,6 +2033,16 @@
       },
       "title": "Response containing the requested series"
     },
+    "v1GetSeriesRulesResponse": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "$ref": "#/definitions/v1RulesDescription",
+          "title": "Localized rules description"
+        }
+      },
+      "title": "Response containing human-readable rules"
+    },
     "v1InvitePlayerResponse": {
       "type": "object",
       "properties": {
@@ -1952,6 +2070,43 @@
         }
       },
       "title": "Response after joining a club"
+    },
+    "v1LadderEntry": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string"
+        },
+        "playerName": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "matchesPlayed": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "matchesWon": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "lastMatchAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "v1LadderRules": {
+      "type": "string",
+      "enum": [
+        "LADDER_RULES_UNSPECIFIED",
+        "LADDER_RULES_CLASSIC",
+        "LADDER_RULES_AGGRESSIVE"
+      ],
+      "default": "LADDER_RULES_UNSPECIFIED",
+      "description": "LadderRules defines how positions change after matches in ladder format.\n\n - LADDER_RULES_UNSPECIFIED: Default value, should not be used.\n - LADDER_RULES_CLASSIC: Classic ladder: Loser keeps position (no penalty).\n - LADDER_RULES_AGGRESSIVE: Aggressive ladder: Loser drops one position (penalty)."
     },
     "v1LeaderboardEntry": {
       "type": "object",
@@ -2405,6 +2560,13 @@
         "matchId": {
           "type": "string",
           "title": "ID of the created match record"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "Optional warnings (e.g., \"Leaderboard recalculation failed; standings may be out of date.\")"
         }
       },
       "title": "Response after successfully reporting a match"
@@ -2460,6 +2622,49 @@
         }
       },
       "title": "Response after revoking a token"
+    },
+    "v1RuleExample": {
+      "type": "object",
+      "properties": {
+        "scenario": {
+          "type": "string",
+          "title": "Scenario description (e.g., \"Player #3 challenges Player #1\")"
+        },
+        "outcome": {
+          "type": "string",
+          "title": "Outcome description (e.g., \"If challenger wins, they take position #1\")"
+        }
+      },
+      "title": "Example scenario demonstrating a rule"
+    },
+    "v1RulesDescription": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "title": "Short title (e.g., \"Classic Ladder Rules\")"
+        },
+        "summary": {
+          "type": "string",
+          "title": "Brief summary (1-2 sentences)"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "Detailed rules as list of bullet points"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1RuleExample"
+          },
+          "title": "Examples of match outcomes"
+        }
+      },
+      "title": "Human-readable rules for a series format"
     },
     "v1ScorelineResult": {
       "type": "object",
@@ -2558,6 +2763,10 @@
         "format": {
           "$ref": "#/definitions/v1SeriesFormat",
           "description": "Competition format for the series."
+        },
+        "ladderRules": {
+          "$ref": "#/definitions/v1LadderRules",
+          "description": "Ladder rules (only applicable when format is SERIES_FORMAT_LADDER).\nDefaults to LADDER_RULES_CLASSIC if not specified."
         },
         "scoringProfile": {
           "$ref": "#/definitions/v1ScoringProfile",

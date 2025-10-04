@@ -22,7 +22,7 @@ import { ClubSelector } from '@/components/ClubSelector'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { apiClient } from '@/services/api'
 import { deriveAutomaticClubId } from '@/lib/clubSelection'
-import type { Series, SeriesVisibility, Club, Sport, SeriesFormat } from '@/types/api'
+import type { Series, SeriesVisibility, Club, Sport, SeriesFormat, LadderRules } from '@/types/api'
 import { toast } from 'sonner'
 import { SUPPORTED_SPORTS, DEFAULT_SPORT, SUPPORTED_SERIES_FORMATS, DEFAULT_SERIES_FORMAT, sportTranslationKey, seriesFormatTranslationKey } from '@/lib/sports'
 import { useAuthStore } from '@/store/auth'
@@ -74,6 +74,7 @@ export function CreateSeriesDialog({
     endsAt: string
     sport: Sport
     format: SeriesFormat
+    ladderRules: LadderRules
     setsToPlay: number
   }>({
     title: '',
@@ -83,6 +84,7 @@ export function CreateSeriesDialog({
     endsAt: '',
     sport: DEFAULT_SPORT,
     format: DEFAULT_SERIES_FORMAT,
+    ladderRules: 'LADDER_RULES_CLASSIC',
     setsToPlay: 5,
   })
   const [hasManualClubSelection, setHasManualClubSelection] = useState(false)
@@ -132,6 +134,7 @@ export function CreateSeriesDialog({
         endsAt: '',
         sport: DEFAULT_SPORT,
         format: DEFAULT_SERIES_FORMAT,
+        ladderRules: 'LADDER_RULES_CLASSIC',
         setsToPlay: 5,
       })
       setAvailableSports(SUPPORTED_SPORTS)
@@ -198,6 +201,7 @@ export function CreateSeriesDialog({
         clubId?: string
         sport: Sport
         format: SeriesFormat
+        ladderRules?: LadderRules
         setsToPlay: number
       } = {
         title: formData.title,
@@ -208,6 +212,7 @@ export function CreateSeriesDialog({
         format: formData.format,
         setsToPlay: formData.setsToPlay,
         ...(formData.clubId && { clubId: formData.clubId }),
+        ...(formData.format === 'SERIES_FORMAT_LADDER' && { ladderRules: formData.ladderRules }),
         ...clubIdPayload,
       }
 
@@ -399,6 +404,39 @@ export function CreateSeriesDialog({
               </div>
             )}
           </div>
+
+          {/* Ladder Rules (only show when format is LADDER) */}
+          {formData.format === 'SERIES_FORMAT_LADDER' && (
+            <div className="space-y-2">
+              <Label htmlFor="ladderRules">{t('series.ladderRulesLabel', 'Ladder Rules')}</Label>
+              <Select
+                value={formData.ladderRules}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    ladderRules: value as LadderRules,
+                  }))
+                }
+              >
+                <SelectTrigger id="ladderRules">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LADDER_RULES_CLASSIC">
+                    {t('series.ladderClassic', 'Klassisk stege (ingen straff)')}
+                  </SelectItem>
+                  <SelectItem value="LADDER_RULES_AGGRESSIVE">
+                    {t('series.ladderAggressive', 'Aggressiv stege (straff vid förlust)')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {formData.ladderRules === 'LADDER_RULES_CLASSIC' 
+                  ? t('series.ladderClassicHelp', 'Klassisk: Bara vinnaren klättrar uppåt')
+                  : t('series.ladderAggressiveHelp', 'Aggressiv: Förloraren faller nedåt')}
+              </p>
+            </div>
+          )}
 
           {/* Sets to Play (for all racket/paddle sports) */}
           {(formData.sport === 'SPORT_TABLE_TENNIS' || 

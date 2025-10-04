@@ -29,6 +29,7 @@ interface LeaderboardTableProps {
   showExport?: boolean
   title?: string
   description?: string
+  hideRank?: boolean // For ladder series where position order = rank
 }
 
 export function LeaderboardTable({
@@ -37,7 +38,8 @@ export function LeaderboardTable({
   seriesTitle,
   showExport = true,
   title,
-  description
+  description,
+  hideRank = false
 }: LeaderboardTableProps) {
   const { t } = useTranslation()
 
@@ -117,7 +119,7 @@ export function LeaderboardTable({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-20">{t('leaderboard.rank')}</TableHead>
+                  {!hideRank && <TableHead className="w-20">{t('leaderboard.rank')}</TableHead>}
                   <TableHead>{t('leaderboard.player')}</TableHead>
                   <TableHead className="text-center">{t('leaderboard.rating')}</TableHead>
                   <TableHead className="text-center">{t('leaderboard.games')}</TableHead>
@@ -129,12 +131,14 @@ export function LeaderboardTable({
               <TableBody>
                 {leaderboard.map((row) => (
                   <TableRow key={row.playerId}>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {getRankIcon(row.rank)}
-                        <Badge variant={getRankBadge(row.rank)}>#{row.rank}</Badge>
-                      </div>
-                    </TableCell>
+                    {!hideRank && (
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          {getRankIcon(row.rank)}
+                          <Badge variant={getRankBadge(row.rank)}>#{row.rank}</Badge>
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <span className="font-medium">{row.displayName}</span>
                     </TableCell>

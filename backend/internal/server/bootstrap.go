@@ -73,6 +73,7 @@ func Bootstrap(ctx context.Context, cfg config.Config, mc *mongo.Client) (*GRPCS
 	playerRepo := repo.NewPlayerRepo(mc.DB)
 	seriesRepo := repo.NewSeriesRepo(mc.DB)
 	matchRepo := repo.NewMatchRepo(mc.DB, playerRepo)
+	leaderboardRepo := repo.NewLeaderboardRepo(mc.DB)
 	tokenRepo := repo.NewTokenRepo(mc.DB)
 
 	// Email service - use configuration from environment
@@ -134,9 +135,11 @@ func Bootstrap(ctx context.Context, cfg config.Config, mc *mongo.Client) (*GRPCS
 	// Services with security enhancements
 	clubSvc := &service.ClubService{Clubs: clubRepo, Players: playerRepo, Series: seriesRepo}
 	playerSvc := &service.PlayerService{Players: playerRepo}
-	seriesSvc := &service.SeriesService{Series: seriesRepo}
-	matchSvc := &service.MatchService{Matches: matchRepo, Players: playerRepo, Series: seriesRepo}
-	leaderboardSvc := &service.LeaderboardService{Matches: matchRepo, Players: playerRepo}
+	seriesSvc := &service.SeriesService{Series: seriesRepo, Matches: matchRepo, Players: playerRepo}
+	matchSvc := &service.MatchService{Matches: matchRepo, Players: playerRepo, Series: seriesRepo, Leaderboard: leaderboardRepo}
+	leaderboardSvc := &service.LeaderboardService{Leaderboard: leaderboardRepo, Players: playerRepo}
+	// Wire MatchService for fallback recalculation
+	leaderboardSvc.Matches = matchSvc
 	authSvc := &service.AuthService{TokenRepo: tokenRepo, PlayerRepo: playerRepo, EmailSvc: emailSvc}
 	clubMembershipSvc := &service.ClubMembershipService{PlayerRepo: playerRepo, ClubRepo: clubRepo, TokenRepo: tokenRepo, EmailSvc: emailSvc}
 

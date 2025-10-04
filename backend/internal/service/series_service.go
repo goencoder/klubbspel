@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/goencoder/klubbspel/backend/internal/i18n"
 	"github.com/goencoder/klubbspel/backend/internal/repo"
 	pb "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1"
 	"google.golang.org/grpc/codes"
@@ -12,7 +13,9 @@ import (
 
 type SeriesService struct {
 	pb.UnimplementedSeriesServiceServer
-	Series *repo.SeriesRepo
+	Series  *repo.SeriesRepo
+	Matches *repo.MatchRepo
+	Players *repo.PlayerRepo
 }
 
 var supportedSeriesSports = map[pb.Sport]struct{}{
@@ -38,6 +41,12 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 		return nil, err
 	}
 
+	// Set ladder rules default for LADDER format
+	ladderRules := in.GetLadderRules()
+	if format == pb.SeriesFormat_SERIES_FORMAT_LADDER && ladderRules == pb.LadderRules_LADDER_RULES_UNSPECIFIED {
+		ladderRules = pb.LadderRules_LADDER_RULES_CLASSIC // Default to classic (no penalty)
+	}
+
 	// Set scoring profile based on sport if not specified
 	scoringProfile := in.GetScoringProfile()
 	if scoringProfile == pb.ScoringProfile_SCORING_PROFILE_UNSPECIFIED {
@@ -60,7 +69,7 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 		}
 	}
 
-	series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format), int32(scoringProfile), setsToPlay)
+	series, err := s.Series.Create(ctx, in.GetClubId(), in.GetTitle(), startsAt, endsAt, int32(in.GetVisibility()), int32(sport), int32(format), int32(ladderRules), int32(scoringProfile), setsToPlay)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "SERIES_CREATE_FAILED")
 	}
@@ -75,6 +84,7 @@ func (s *SeriesService) CreateSeries(ctx context.Context, in *pb.CreateSeriesReq
 			Visibility:     pb.SeriesVisibility(series.Visibility),
 			Sport:          pbSeriesSport(series.Sport),
 			Format:         pbSeriesFormat(series.Format),
+			LadderRules:    pb.LadderRules(series.LadderRules),
 			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
 			SetsToPlay:     series.SetsToPlay,
 		},
@@ -125,6 +135,7 @@ func (s *SeriesService) ListSeries(ctx context.Context, in *pb.ListSeriesRequest
 			Visibility:     pb.SeriesVisibility(series.Visibility),
 			Sport:          pbSeriesSport(series.Sport),
 			Format:         pbSeriesFormat(series.Format),
+			LadderRules:    pb.LadderRules(series.LadderRules),
 			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
 			SetsToPlay:     series.SetsToPlay,
 		})
@@ -162,6 +173,7 @@ func (s *SeriesService) GetSeries(ctx context.Context, in *pb.GetSeriesRequest) 
 			Visibility:     pb.SeriesVisibility(series.Visibility),
 			Sport:          pbSeriesSport(series.Sport),
 			Format:         pbSeriesFormat(series.Format),
+			LadderRules:    pb.LadderRules(series.LadderRules),
 			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
 			SetsToPlay:     series.SetsToPlay,
 		},
@@ -240,6 +252,7 @@ func (s *SeriesService) UpdateSeries(ctx context.Context, in *pb.UpdateSeriesReq
 			Visibility:     pb.SeriesVisibility(series.Visibility),
 			Sport:          pbSeriesSport(series.Sport),
 			Format:         pbSeriesFormat(series.Format),
+			LadderRules:    pb.LadderRules(series.LadderRules),
 			ScoringProfile: pb.ScoringProfile(series.ScoringProfile),
 			SetsToPlay:     series.SetsToPlay,
 		},
@@ -252,6 +265,16 @@ func (s *SeriesService) DeleteSeries(ctx context.Context, in *pb.DeleteSeriesReq
 	}
 
 	return &pb.DeleteSeriesResponse{Success: true}, nil
+}
+
+func (s *SeriesService) GetLadderStandings(ctx context.Context, in *pb.GetLadderStandingsRequest) (*pb.GetLadderStandingsResponse, error) {
+	if in.GetSeriesId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "SERIES_ID_REQUIRED")
+	}
+
+	// Ladder standings are no longer stored separately
+	// Use the leaderboard service instead for all series types
+	return nil, status.Error(codes.Unimplemented, "LADDER_STANDINGS_DEPRECATED")
 }
 
 func normalizeSeriesSport(sport pb.Sport) (pb.Sport, error) {
@@ -279,11 +302,12 @@ func normalizeSeriesFormat(format pb.SeriesFormat) (pb.SeriesFormat, error) {
 		return pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY, nil
 	}
 
-	if format != pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY {
+	switch format {
+	case pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY, pb.SeriesFormat_SERIES_FORMAT_LADDER:
+		return format, nil
+	default:
 		return pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED, status.Error(codes.Unimplemented, "SERIES_FORMAT_NOT_SUPPORTED")
 	}
-
-	return format, nil
 }
 
 func pbSeriesFormat(value int32) pb.SeriesFormat {
@@ -292,4 +316,73 @@ func pbSeriesFormat(value int32) pb.SeriesFormat {
 		format = pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY
 	}
 	return format
+}
+
+func (s *SeriesService) GetSeriesRules(ctx context.Context, in *pb.GetSeriesRulesRequest) (*pb.GetSeriesRulesResponse, error) {
+	format := in.GetFormat()
+	if format == pb.SeriesFormat_SERIES_FORMAT_UNSPECIFIED {
+		format = pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY
+	}
+
+	// Get locale from request, default to Swedish
+	locale := in.GetLocale()
+	if locale == "" {
+		locale = "sv"
+	}
+	// Normalize locale to supported values
+	if locale != "sv" && locale != "en" {
+		locale = "sv" // Default to Swedish
+	}
+
+	var rules *pb.RulesDescription
+
+	switch format {
+	case pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY:
+		rulesContent, err := i18n.GetFreePlayRules(locale)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "FAILED_TO_LOAD_RULES")
+		}
+		rules = &pb.RulesDescription{
+			Title:   rulesContent.Title,
+			Summary: rulesContent.Summary,
+			Rules:   rulesContent.Rules,
+		}
+		for _, ex := range rulesContent.Examples {
+			rules.Examples = append(rules.Examples, &pb.RuleExample{
+				Scenario: ex.Scenario,
+				Outcome:  ex.Outcome,
+			})
+		}
+
+	case pb.SeriesFormat_SERIES_FORMAT_LADDER:
+		ladderRules := in.GetLadderRules()
+		if ladderRules == pb.LadderRules_LADDER_RULES_UNSPECIFIED {
+			ladderRules = pb.LadderRules_LADDER_RULES_CLASSIC
+		}
+
+		isAggressive := ladderRules == pb.LadderRules_LADDER_RULES_AGGRESSIVE
+		rulesContent, err := i18n.GetLadderRules(locale, isAggressive)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "FAILED_TO_LOAD_RULES")
+		}
+
+		rules = &pb.RulesDescription{
+			Title:   rulesContent.Title,
+			Summary: rulesContent.Summary,
+			Rules:   rulesContent.Rules,
+		}
+		for _, ex := range rulesContent.Examples {
+			rules.Examples = append(rules.Examples, &pb.RuleExample{
+				Scenario: ex.Scenario,
+				Outcome:  ex.Outcome,
+			})
+		}
+
+	default:
+		return nil, status.Error(codes.Unimplemented, "SERIES_FORMAT_NOT_SUPPORTED")
+	}
+
+	return &pb.GetSeriesRulesResponse{
+		Rules: rules,
+	}, nil
 }

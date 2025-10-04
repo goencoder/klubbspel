@@ -30,6 +30,16 @@ enum SeriesFormat {
   SERIES_FORMAT_CUP = 3;
 }
 
+// LadderRules defines how positions change after matches in ladder format.
+enum LadderRules {
+  // Default value, should not be used.
+  LADDER_RULES_UNSPECIFIED = 0;
+  // Classic ladder: Loser keeps position (no penalty).
+  LADDER_RULES_CLASSIC = 1;
+  // Aggressive ladder: Loser drops one position (penalty).
+  LADDER_RULES_AGGRESSIVE = 2;
+}
+
 // Series represents a time-bound table tennis tournament
 message Series {
   // Unique identifier for the series (MongoDB ObjectID as hex string)
@@ -51,6 +61,9 @@ message Series {
   Sport sport = 7;
   // Competition format for the series.
   SeriesFormat format = 8;
+  // Ladder rules (only applicable when format is SERIES_FORMAT_LADDER).
+  // Defaults to LADDER_RULES_CLASSIC if not specified.
+  LadderRules ladder_rules = 11;
   // Scoring profile that determines how matches are validated and scored
   ScoringProfile scoring_profile = 9;
   // Number of sets to play (for racket/paddle sports: 3, 5, or 7)
@@ -82,6 +95,8 @@ message CreateSeriesRequest {
   Sport sport = 6;
   // Competition format. Defaults to LADDER.
   SeriesFormat format = 7;
+  // Ladder rules (only applicable when format is SERIES_FORMAT_LADDER). Defaults to LADDER_RULES_CLASSIC.
+  LadderRules ladder_rules = 10;
   // Scoring profile for match validation. Defaults based on sport.
   ScoringProfile scoring_profile = 8;
   // Number of sets to play (for racket/paddle sports). Defaults to 5.
@@ -177,6 +192,59 @@ message ListSeriesResponse {
   bool has_previous_page = 5;
 }
 
+message LadderEntry {
+  string player_id = 1;
+  string player_name = 2;
+  int32 position = 3;
+  int32 matches_played = 4;
+  int32 matches_won = 5;
+  google.protobuf.Timestamp last_match_at = 6;
+}
+
+message GetLadderStandingsRequest {
+  string series_id = 1;
+}
+
+message GetLadderStandingsResponse {
+  repeated LadderEntry entries = 1;
+}
+
+// Request to get human-readable rules for a series configuration
+message GetSeriesRulesRequest {
+  // Series format to get rules for
+  SeriesFormat format = 1;
+  // Ladder rules variant (only used if format is SERIES_FORMAT_LADDER)
+  LadderRules ladder_rules = 2;
+  // Locale for translated rules (e.g., "sv", "en"). Defaults to server's DEFAULT_LOCALE if not specified.
+  string locale = 3;
+}
+
+// Response containing human-readable rules
+message GetSeriesRulesResponse {
+  // Localized rules description
+  RulesDescription rules = 1;
+}
+
+// Human-readable rules for a series format
+message RulesDescription {
+  // Short title (e.g., "Classic Ladder Rules")
+  string title = 1;
+  // Brief summary (1-2 sentences)
+  string summary = 2;
+  // Detailed rules as list of bullet points
+  repeated string rules = 3;
+  // Examples of match outcomes
+  repeated RuleExample examples = 4;
+}
+
+// Example scenario demonstrating a rule
+message RuleExample {
+  // Scenario description (e.g., "Player #3 challenges Player #1")
+  string scenario = 1;
+  // Outcome description (e.g., "If challenger wins, they take position #1")
+  string outcome = 2;
+}
+
 // Service for managing tournament series
 service SeriesService {
   // Create a new tournament series with time boundaries and visibility settings
@@ -246,5 +314,31 @@ service SeriesService {
   // DATA MODEL CHANGES: None (read-only operation)
   rpc ListSeries(ListSeriesRequest) returns (ListSeriesResponse) {
     option (google.api.http) = {get: "/v1/series"};
+  }
+
+  // Get ladder standings for a ladder-format series
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Retrieve ordered ladder positions with basic stats
+  //
+  // DATA MODEL CHANGES: None (read-only operation)
+  rpc GetLadderStandings(GetLadderStandingsRequest) returns (GetLadderStandingsResponse) {
+    option (google.api.http) = {
+      get: "/v1/series/{series_id}/ladder"
+    };
+  }
+
+  // Get human-readable rules for a series format and configuration
+  //
+  // AUTHORIZATION: Requires valid authentication (enforced by interceptor)
+  //
+  // PURPOSE: Display rules to users when creating series or reporting matches
+  //
+  // DATA MODEL CHANGES: None (read-only helper)
+  rpc GetSeriesRules(GetSeriesRulesRequest) returns (GetSeriesRulesResponse) {
+    option (google.api.http) = {
+      get: "/v1/series/rules"
+    };
   }
 }

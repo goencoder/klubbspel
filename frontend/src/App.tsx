@@ -1,11 +1,13 @@
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { Layout } from '@/components/Layout'
+import { SessionExpiredModal } from '@/components/SessionExpiredModal'
 import { Toaster } from '@/components/ui/sonner'
 import { ClubDetailPage } from '@/pages/ClubDetailPage'
 import { ClubsPage } from '@/pages/ClubsPage'
 import { LeaderboardPage } from '@/pages/LeaderboardPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { PlayersPage } from '@/pages/PlayersPage'
+import { RulesTestPage } from '@/pages/RulesTestPage'
 import { SeriesDetailPage } from '@/pages/SeriesDetailPage'
 import { SeriesListPage } from '@/pages/SeriesListPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -41,8 +43,10 @@ function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/rules-test" element={<RulesTestPage />} />
           </Routes>
         </Layout>
+        <SessionExpiredModal />
         <Toaster position="top-right" />
       </Router>
     </LanguageProvider>

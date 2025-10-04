@@ -286,7 +286,9 @@ export function ReportMatchDialog({
             {/* Player Selection */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t('matches.player_a')} *</Label>
+                <Label>
+                  {series?.format === 'SERIES_FORMAT_LADDER' ? t('matches.challenger') : t('matches.player_a')} *
+                </Label>
                 <PlayerSelector
                   ref={playerASelectorRef}
                   value={formData.player_a_id}
@@ -296,7 +298,9 @@ export function ReportMatchDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t('matches.player_b')} *</Label>
+                <Label>
+                  {series?.format === 'SERIES_FORMAT_LADDER' ? t('matches.defender') : t('matches.player_b')} *
+                </Label>
                 <PlayerSelector
                   value={formData.player_b_id}
                   onPlayerSelected={handlePlayerBSelected}

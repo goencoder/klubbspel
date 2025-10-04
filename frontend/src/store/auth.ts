@@ -1,5 +1,6 @@
 import apiClient from '@/services/api'
 import type { AuthContext, CurrentUser } from '@/types/membership'
+import { registerSessionExpiredHandler } from '@/lib/sessionManager'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -8,6 +9,7 @@ interface AuthState {
   selectedClubId: string | null
   isLoading: boolean
   error: string | null
+  sessionExpired: boolean
 }
 
 interface AuthActions {
@@ -15,6 +17,10 @@ interface AuthActions {
   sendMagicLink: (email: string, returnUrl?: string) => Promise<void>
   validateToken: (token: string) => Promise<void>
   logout: () => void
+
+  // Session management
+  handleSessionExpired: () => void
+  dismissSessionExpired: () => void
 
   // Club selection
   selectClub: (clubId: string | null) => void
@@ -43,6 +49,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       selectedClubId: null,
       isLoading: false,
       error: null,
+      sessionExpired: false,
 
       // Authentication actions
       sendMagicLink: async (email: string, returnUrl?: string) => {
@@ -91,8 +98,23 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           user: null,
           selectedClubId: null,
           isLoading: false,
+          error: null,
+          sessionExpired: false
+        })
+      },
+
+      // Session management
+      handleSessionExpired: () => {
+        set({
+          user: null,
+          selectedClubId: null,
+          sessionExpired: true,
           error: null
         })
+      },
+
+      dismissSessionExpired: () => {
+        set({ sessionExpired: false })
       },
 
       // Club selection
@@ -235,6 +257,12 @@ export const useAuthContext = (): AuthContext => {
     isClubMember
   }
 }
+
+// Register the session expired handler with the session manager
+// This breaks the circular dependency between api.ts and auth store
+registerSessionExpiredHandler(() => {
+  useAuthStore.getState().handleSessionExpired()
+})
 
 // API header injection for authenticated requests
 export const useApiHeaders = () => {

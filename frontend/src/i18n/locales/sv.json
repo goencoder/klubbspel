@@ -62,6 +62,11 @@
       "cup": "Cup",
       "unknown": "Kommer snart"
     },
+    "ladderRulesLabel": "Stege regler",
+    "ladderClassic": "Klassisk stege (ingen straff)",
+    "ladderAggressive": "Aggressiv stege (straff vid förlust)",
+    "ladderClassicHelp": "Klassisk: Bara vinnaren klättrar uppåt",
+    "ladderAggressiveHelp": "Aggressiv: Förloraren faller nedåt",
     "setsToPlay": "Antal set att spela",
     "bestOf3": "Bäst av 3",
     "bestOf5": "Bäst av 5",
@@ -85,6 +90,16 @@
     "validation": {
       "start_before_end": "Startdatum måste vara före slutdatum",
       "club_required": "Klubb krävs för klubbexklusiva serier"
+    },
+    "rules": {
+      "viewRules": "Visa regler",
+      "title": "Regler",
+      "summary": "Sammanfattning",
+      "examples": "Exempel",
+      "scenario": "Scenario",
+      "result": "Resultat",
+      "loading": "Laddar regler...",
+      "error": "Kunde inte ladda regler"
     }
   },
   "players": {
@@ -134,6 +149,8 @@
     "reportNew": "Rapportera matcher",
     "player_a": "Spelare A",
     "player_b": "Spelare B",
+    "challenger": "Utmanare",
+    "defender": "Försvarare",
     "played_at": "Matchdatum",
     "played_at_date": "Datum",
     "played_at_time": "Klockslag",
@@ -358,7 +375,12 @@
     "loginRequired": "Du måste logga in för att skapa klubbar",
     "signIn": "Logga in",
     "signInToJoin": "Logga in för att gå med",
-    "signOut": "Logga ut"
+    "signOut": "Logga ut",
+    "sessionExpired": {
+      "title": "Din session har löpt ut",
+      "message": "Din inloggning har upphört att gälla. Vänligen logga in igen för att fortsätta.",
+      "button": "Gå till inloggning"
+    }
   },
   "profile": {
     "completion": {

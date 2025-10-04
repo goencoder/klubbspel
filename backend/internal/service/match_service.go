@@ -2,20 +2,34 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"math"
+	"sort"
 	"time"
 
 	"github.com/goencoder/klubbspel/backend/internal/repo"
 	pb "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// playerMatchStats holds statistics for a player across matches
+type playerMatchStats struct {
+	played    int32
+	won       int32
+	lost      int32
+	gamesWon  int32
+	gamesLost int32
+}
+
 type MatchService struct {
 	pb.UnimplementedMatchServiceServer
-	Matches *repo.MatchRepo
-	Players *repo.PlayerRepo
-	Series  *repo.SeriesRepo
+	Matches     *repo.MatchRepo
+	Players     *repo.PlayerRepo
+	Series      *repo.SeriesRepo
+	Leaderboard *repo.LeaderboardRepo
 }
 
 func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchRequest) (*pb.ReportMatchResponse, error) {
@@ -53,9 +67,266 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 		return nil, status.Error(codes.Internal, "MATCH_CREATE_FAILED")
 	}
 
+	// Recalculate and store leaderboard
+	var warnings []string
+	if err := s.RecalculateStandings(ctx, in.GetSeriesId()); err != nil {
+		log.Error().Err(err).Str("seriesID", in.GetSeriesId()).Msg("Failed to recalculate standings")
+		warnings = append(warnings, "Leaderboard recalculation failed; standings may be out of date.")
+	}
+
 	return &pb.ReportMatchResponse{
-		MatchId: match.ID.Hex(),
+		MatchId:  match.ID.Hex(),
+		Warnings: warnings,
 	}, nil
+}
+
+// RecalculateStandings recalculates and stores the leaderboard for a series
+func (s *MatchService) RecalculateStandings(ctx context.Context, seriesID string) error {
+	// Fetch series to determine format
+	series, err := s.Series.FindByID(ctx, seriesID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch series: %w", err)
+	}
+
+	// Get all matches in chronological order
+	matches, err := s.Matches.FindAllBySeriesChronological(ctx, seriesID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch matches: %w", err)
+	}
+
+	// Clear existing leaderboard
+	if err := s.Leaderboard.DeleteAllForSeries(ctx, seriesID); err != nil {
+		return fmt.Errorf("failed to clear leaderboard: %w", err)
+	}
+
+	if len(matches) == 0 {
+		return nil // No matches, nothing to calculate
+	}
+
+	now := time.Now()
+	format := pb.SeriesFormat(series.Format)
+
+	if format == pb.SeriesFormat_SERIES_FORMAT_LADDER {
+		// For ladder series, calculate positions based on ladder rules
+		return s.recalculateLadderStandings(ctx, seriesID, series.LadderRules, matches, now)
+	}
+
+	// For open series, calculate ELO ratings
+	return s.recalculateEloStandings(ctx, seriesID, matches, now)
+}
+
+// recalculate EloStandings calculates ELO ratings for all players and stores in leaderboard
+func (s *MatchService) recalculateEloStandings(ctx context.Context, seriesID string, matches []*repo.Match, now time.Time) error {
+	// Calculate ELO ratings from matches
+	eloRatings := make(map[string]int32)
+	matchStats := make(map[string]*playerMatchStats)
+
+	// Initialize all players at 1000 ELO
+	for _, match := range matches {
+		if _, exists := eloRatings[match.PlayerAID]; !exists {
+			eloRatings[match.PlayerAID] = 1000
+			matchStats[match.PlayerAID] = &playerMatchStats{}
+		}
+		if _, exists := eloRatings[match.PlayerBID]; !exists {
+			eloRatings[match.PlayerBID] = 1000
+			matchStats[match.PlayerBID] = &playerMatchStats{}
+		}
+
+		// Update match statistics
+		matchStats[match.PlayerAID].played++
+		matchStats[match.PlayerBID].played++
+		matchStats[match.PlayerAID].gamesWon += match.ScoreA
+		matchStats[match.PlayerAID].gamesLost += match.ScoreB
+		matchStats[match.PlayerBID].gamesWon += match.ScoreB
+		matchStats[match.PlayerBID].gamesLost += match.ScoreA
+
+		// Skip ties
+		if match.ScoreA == match.ScoreB {
+			continue
+		}
+
+		// Update ELO
+		ratingA := float64(eloRatings[match.PlayerAID])
+		ratingB := float64(eloRatings[match.PlayerBID])
+
+		newRatingA, newRatingB := calculateELO(ratingA, ratingB, match.ScoreA, match.ScoreB)
+
+		eloRatings[match.PlayerAID] = int32(newRatingA)
+		eloRatings[match.PlayerBID] = int32(newRatingB)
+
+		// Update win/loss
+		if match.ScoreA > match.ScoreB {
+			matchStats[match.PlayerAID].won++
+			matchStats[match.PlayerBID].lost++
+		} else {
+			matchStats[match.PlayerBID].won++
+			matchStats[match.PlayerAID].lost++
+		}
+	}
+
+	// Convert to slice and sort by rating
+	type playerRating struct {
+		playerID string
+		rating   int32
+		stats    *playerMatchStats
+	}
+
+	var ratings []playerRating
+	for playerID, rating := range eloRatings {
+		ratings = append(ratings, playerRating{
+			playerID: playerID,
+			rating:   rating,
+			stats:    matchStats[playerID],
+		})
+	}
+
+	// Sort by rating (highest first)
+	sort.Slice(ratings, func(i, j int) bool {
+		return ratings[i].rating > ratings[j].rating
+	})
+
+	// Store in leaderboard with ranks
+	for rank, pr := range ratings {
+		entry := &repo.LeaderboardEntry{
+			SeriesID:      seriesID,
+			PlayerID:      pr.playerID,
+			Rank:          int32(rank + 1),
+			Rating:        pr.rating,
+			MatchesPlayed: pr.stats.played,
+			MatchesWon:    pr.stats.won,
+			MatchesLost:   pr.stats.lost,
+			GamesWon:      pr.stats.gamesWon,
+			GamesLost:     pr.stats.gamesLost,
+			UpdatedAt:     now,
+		}
+
+		if err := s.Leaderboard.UpsertEntry(ctx, entry); err != nil {
+			return fmt.Errorf("failed to upsert leaderboard entry for player %s: %w", pr.playerID, err)
+		}
+	}
+
+	return nil
+}
+
+// recalculateLadderStandings calculates ladder positions and stores in leaderboard
+func (s *MatchService) recalculateLadderStandings(ctx context.Context, seriesID string, ladderRulesValue int32, matches []*repo.Match, now time.Time) error {
+	// Track positions: playerID -> position
+	positions := make(map[string]int32)
+	nextPosition := int32(1)
+
+	ladderRules := pb.LadderRules(ladderRulesValue)
+
+	// Track match statistics
+	matchStats := make(map[string]*playerMatchStats)
+
+	for _, match := range matches {
+		// Skip ties
+		if match.ScoreA == match.ScoreB {
+			continue
+		}
+
+		winnerID := match.PlayerAID
+		loserID := match.PlayerBID
+		if match.ScoreB > match.ScoreA {
+			winnerID = match.PlayerBID
+			loserID = match.PlayerAID
+		}
+
+		// Ensure players have positions
+		if _, exists := positions[winnerID]; !exists {
+			positions[winnerID] = nextPosition
+			nextPosition++
+		}
+		if _, exists := positions[loserID]; !exists {
+			positions[loserID] = nextPosition
+			nextPosition++
+		}
+
+		// Initialize stats if needed
+		if matchStats[match.PlayerAID] == nil {
+			matchStats[match.PlayerAID] = &playerMatchStats{}
+		}
+		if matchStats[match.PlayerBID] == nil {
+			matchStats[match.PlayerBID] = &playerMatchStats{}
+		}
+
+		// Update stats
+		matchStats[match.PlayerAID].played++
+		matchStats[match.PlayerBID].played++
+		matchStats[match.PlayerAID].gamesWon += match.ScoreA
+		matchStats[match.PlayerAID].gamesLost += match.ScoreB
+		matchStats[match.PlayerBID].gamesWon += match.ScoreB
+		matchStats[match.PlayerBID].gamesLost += match.ScoreA
+
+		if match.ScoreA > match.ScoreB {
+			matchStats[match.PlayerAID].won++
+			matchStats[match.PlayerBID].lost++
+		} else {
+			matchStats[match.PlayerBID].won++
+			matchStats[match.PlayerAID].lost++
+		}
+
+		winnerPos := positions[winnerID]
+		loserPos := positions[loserID]
+
+		// Apply ladder climbing rules
+		if winnerPos > loserPos {
+			// Lower-ranked player beats higher-ranked player - winner climbs
+			targetPos := loserPos
+
+			// Shift everyone between targetPos and winnerPos down by 1
+			for pid, pos := range positions {
+				if pos >= targetPos && pos < winnerPos && pid != winnerID {
+					positions[pid] = pos + 1
+				}
+			}
+
+			positions[winnerID] = targetPos
+		} else {
+			// Higher-ranked player wins - apply penalty rules
+			if ladderRules == pb.LadderRules_LADDER_RULES_AGGRESSIVE {
+				// Loser drops one position (swap with player below)
+				belowPos := loserPos + 1
+
+				// Find player at belowPos and swap
+				for pid, pos := range positions {
+					if pos == belowPos {
+						positions[pid] = loserPos
+						positions[loserID] = belowPos
+						break
+					}
+				}
+			}
+			// Classic rules: no penalty
+		}
+	}
+
+	// Store in leaderboard
+	for playerID, position := range positions {
+		stats := matchStats[playerID]
+		if stats == nil {
+			stats = &playerMatchStats{}
+		}
+
+		entry := &repo.LeaderboardEntry{
+			SeriesID:      seriesID,
+			PlayerID:      playerID,
+			Rank:          position,
+			Rating:        position, // For ladder, rating IS the position
+			MatchesPlayed: stats.played,
+			MatchesWon:    stats.won,
+			MatchesLost:   stats.lost,
+			GamesWon:      stats.gamesWon,
+			GamesLost:     stats.gamesLost,
+			UpdatedAt:     now,
+		}
+
+		if err := s.Leaderboard.UpsertEntry(ctx, entry); err != nil {
+			return fmt.Errorf("failed to upsert leaderboard entry for player %s: %w", playerID, err)
+		}
+	}
+
+	return nil
 }
 
 // validateTableTennisScore validates table tennis scoring rules
@@ -197,6 +468,12 @@ func (s *MatchService) ReportMatchV2(ctx context.Context, in *pb.ReportMatchV2Re
 		return nil, status.Error(codes.Internal, "MATCH_CREATE_FAILED")
 	}
 
+	// Recalculate and store leaderboard
+	if err := s.RecalculateStandings(ctx, in.GetSeriesId()); err != nil {
+		log.Error().Err(err).Str("seriesID", in.GetSeriesId()).Msg("Failed to recalculate standings")
+		// Don't fail the match creation, just log the error
+	}
+
 	return &pb.ReportMatchV2Response{
 		MatchId: match.ID.Hex(),
 	}, nil
@@ -308,6 +585,12 @@ func (s *MatchService) UpdateMatch(ctx context.Context, in *pb.UpdateMatchReques
 		return nil, status.Error(codes.Internal, "MATCH_UPDATE_FAILED")
 	}
 
+	// Recalculate and store leaderboard
+	if err := s.RecalculateStandings(ctx, updatedMatch.SeriesID); err != nil {
+		log.Error().Err(err).Str("seriesID", updatedMatch.SeriesID).Msg("Failed to recalculate standings")
+		// Don't fail the update, just log the error
+	}
+
 	// Get player names for response
 	players, err := s.Players.FindByIDs(ctx, []string{updatedMatch.PlayerAID, updatedMatch.PlayerBID})
 	if err != nil {
@@ -342,13 +625,50 @@ func (s *MatchService) DeleteMatch(ctx context.Context, in *pb.DeleteMatchReques
 		return nil, status.Error(codes.InvalidArgument, "MATCH_ID_REQUIRED")
 	}
 
+	// Get the match first to know which series to recalculate
+	match, err := s.Matches.FindByID(ctx, in.GetMatchId())
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "MATCH_NOT_FOUND")
+	}
+
 	// Delete the match
-	err := s.Matches.Delete(ctx, in.GetMatchId())
+	err = s.Matches.Delete(ctx, in.GetMatchId())
 	if err != nil {
 		return nil, status.Error(codes.Internal, "MATCH_DELETE_FAILED")
+	}
+
+	// Recalculate and store leaderboard
+	if err := s.RecalculateStandings(ctx, match.SeriesID); err != nil {
+		log.Error().Err(err).Str("seriesID", match.SeriesID).Msg("Failed to recalculate standings")
+		// Don't fail the delete, just log the error
 	}
 
 	return &pb.DeleteMatchResponse{
 		Success: true,
 	}, nil
+}
+
+// calculateELO computes new ELO ratings for two players based on match result
+func calculateELO(ratingA, ratingB float64, scoreA, scoreB int32) (newRatingA, newRatingB float64) {
+	const K = 32.0
+
+	// Calculate expected scores
+	expectedA := 1 / (1 + math.Pow(10, (ratingB-ratingA)/400))
+	expectedB := 1 / (1 + math.Pow(10, (ratingA-ratingB)/400))
+
+	// Determine actual scores
+	var actualA, actualB float64
+	if scoreA > scoreB {
+		actualA = 1
+		actualB = 0
+	} else {
+		actualA = 0
+		actualB = 1
+	}
+
+	// Calculate new ratings
+	newRatingA = ratingA + K*(actualA-expectedA)
+	newRatingB = ratingB + K*(actualB-expectedB)
+
+	return newRatingA, newRatingB
 }

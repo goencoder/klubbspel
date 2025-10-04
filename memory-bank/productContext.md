@@ -1,14 +1,16 @@
-# Product Context: Klubbspel v1.0.0
+# Product Context: Klubbspel v1.3.0 (In Development)
 
 ## Problem Statement and Solution
-Swedish table tennis clubs have historically lacked a free for all comprehensive, modern tournament management system. Klubbspel solves this by providing an end-to-end solution that handles the complete lifecycle of club tournaments with real-time rankings, mobile accessibility, and native Swedish language support.
+Swedish racket and paddle sport clubs (table tennis, tennis, badminton, squash, padel, pickleball, racquetball, beach tennis) have historically lacked a comprehensive, modern tournament management system. Klubbspel solves this by providing an end-to-end solution that handles the complete lifecycle of club tournaments with multiple ranking systems (ELO and Ladder), real-time rankings, mobile accessibility, and native Swedish language support.
 
 **Problems Solved:**
-- ✅ **Manual Tournament Management**: Eliminates error-prone spreadsheet tracking with automated ELO calculations and real-time updates
+- ✅ **Manual Tournament Management**: Eliminates error-prone spreadsheet tracking with automated ELO and ladder calculations with real-time updates
 - ✅ **Player Identity Management**: Resolves duplicate player issues with intelligent normalization and merging (handles Swedish name variants like Erik/Eric)
 - ✅ **Language Barriers**: Provides native Swedish interface with complete localization for Swedish clubs
-- ✅ **Real-time Rankings**: Delivers live leaderboards replacing outdated, manually-maintained rankings
-- ✅ **Match Result Integrity**: Ensures proper table tennis scoring validation preventing invalid match results
+- ✅ **Real-time Rankings**: Delivers live leaderboards with dual systems (ELO ratings and ladder positions) replacing outdated, manually-maintained rankings
+- ✅ **Match Result Integrity**: Ensures proper scoring validation across 8 different racket/paddle sports preventing invalid match results
+- ✅ **Multi-Sport Support**: Single platform serves 8 different racket/paddle sports (table tennis, tennis, badminton, squash, padel, pickleball, racquetball, beach tennis)
+- ✅ **Flexible Competition Formats**: Supports both ELO-based open play and ladder-based challenge systems with penalty variants
 - ✅ **Club Organization**: Centralizes member management and enables multi-club tournament coordination
 - ✅ **Mobile Access**: Responsive design allows match reporting and leaderboard viewing from any device
 - ✅ **Data Export**: Provides CSV export for external analysis and league reporting requirements
