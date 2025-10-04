@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   mongodb:
-    image: mongo:8
+    image: mongo:7
     ports:
       - "27017:27017"
     environment:
@@ -12,12 +12,11 @@ services:
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: |
-        mongosh -u root -p pingis123 --authenticationDatabase admin --quiet --eval "db.runCommand('ping').ok" || exit 1
-      interval: 5s
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 10s
+      retries: 5
+      start_period: 30s
 
   mailhog:
     image: mailhog/mailhog:v1.0.1

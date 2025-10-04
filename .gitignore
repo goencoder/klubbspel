@@ -78,4 +78,4 @@ third_party/
 # Coverage reports
 coverage/
 *.cover
-*.coverprofile
+*.coverprofile.playwright-mcp/

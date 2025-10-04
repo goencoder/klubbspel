@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/goencoder/klubbspel/backend/internal/repo"
@@ -193,13 +194,9 @@ func (s *MatchService) recalculateEloStandings(ctx context.Context, seriesID str
 	}
 
 	// Sort by rating (highest first)
-	for i := 0; i < len(ratings)-1; i++ {
-		for j := i + 1; j < len(ratings); j++ {
-			if ratings[j].rating > ratings[i].rating {
-				ratings[i], ratings[j] = ratings[j], ratings[i]
-			}
-		}
-	}
+	sort.Slice(ratings, func(i, j int) bool {
+		return ratings[i].rating > ratings[j].rating
+	})
 
 	// Store in leaderboard with ranks
 	for rank, pr := range ratings {
