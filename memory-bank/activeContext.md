@@ -1,9 +1,9 @@
 # Active Context: Klubbspel v1.2.0 (In Development)
 
 ## Project Status
-**Current Version**: v1.1.0 (Tennis support released)
-**Next Release**: v1.2.0 - Multi-sport expansion with 4 additional racket/paddle sports
-**Active Branch**: `fix/sport-scoring-improvements` (scoring flexibility improvements)
+**Current Version**: v1.2.0 (Multi-sport support with 8 sports released)
+**Next Release**: v1.3.0 - Ladder series format with architectural improvements
+**Active Branch**: `codex/implement-ladder-series-format` (PR #22 - Ready to merge and tag as v1.3.0)
 
 **Production Status**: Stable system serving Swedish clubs with comprehensive tournament management for table tennis and tennis.
 
@@ -11,13 +11,49 @@
 
 ## Recent Developments (October 2025)
 
-### v1.1.0 - Tennis Support
+### PR #22 - Ladder Series Format (October 4, 2025 - Ready for v1.3.0)
+**Major Feature**: Tournament series now support both ELO and ladder-based ranking systems
+
+**Implementation Complete**:
+✅ Backend ladder standings calculation with two variants (Classic, Aggressive)
+✅ Ladder penalty system for losing to lower-ranked players (Aggressive mode)
+✅ Series format selection (ELO/Ladder) with variant configuration
+✅ Complete UI implementation with ladder-specific leaderboards
+✅ Comprehensive Playwright UI tests verifying penalty mechanics
+✅ Session token expiration handling with proper error recovery
+✅ All PR review comments addressed (14 initial + 5 architectural fixes)
+
+**Architectural Improvements**:
+✅ Named struct refactoring: `playerMatchStats` replaces 7+ anonymous structs
+✅ Circular dependency eliminated: New `sessionManager.ts` module as mediator
+✅ Error handling improved: Cursor.Close errors properly handled
+✅ Warnings field added to ReportMatchResponse for graceful degradation
+✅ Code quality: 0 lint issues, all tests passing
+
+**Ladder Variants Implemented**:
+- **Classic**: No penalty - winners climb, losers maintain position
+- **Aggressive**: Penalty system - losers drop position when beaten by lower-ranked players
+
+**Testing Validation** (Comprehensive UI smoke testing completed):
+- Tested aggressive ladder penalty: Player losing to lower-ranked opponent drops position ✅
+- Tested downward challenge: Lower-ranked player beating higher-ranked swaps positions ✅
+- Verified match history: 3 matches recorded correctly ✅
+- Confirmed leaderboard stats: Win rates calculated accurately (67% vs 33%) ✅
+
+**Commits**:
+- e9e109b: "fix: Address PR review comments - refactor structs and fix circular dependency"
+- febbf98: "feat: Add session token expiration handling"
+- 1e6e8e9: "fix: Address PR review comments - improve code quality and error handling"
+
+**Status**: All code committed, pushed to origin, ready to merge and tag as v1.3.0
+
+### v1.1.0 - Tennis Support (Completed)
 - Added tennis as second supported sport
 - Fixed 3 critical bugs (501 error, icon imports, translation namespace)
 - Created CODEX_ADD_SPORTS.md comprehensive guide
 - Sport-specific icons: CircleDot (table tennis), Circle (tennis)
 
-### Current Work - Scoring Improvements (fix/sport-scoring-improvements branch)
+### Previous Work - Scoring Improvements (fix/sport-scoring-improvements branch - Merged)
 **Problem Identified**: User feedback revealed scoring limitations:
 - Only table tennis showed "Sets to Play" field (hidden for other sports)
 - Validation hints always showed "Best of 5" regardless of actual configuration
@@ -32,10 +68,12 @@
 ✅ TypeScript types updated with all new sports
 ✅ Translations added for bestOf7 (Swedish + English)
 
-### PR #21 - Four New Sports (Pending)
-**Sports Added**: Badminton, Squash, Padel, Pickleball
-**Status**: Code complete, testing in progress
+### v1.2.0 - Multi-Sport Support (Released - Merged in PR #21)
+**Sports Added**: Badminton, Squash, Padel, Pickleball, Racquetball, Beach Tennis
+**Status**: Released in v1.2.0
 **Icons**: Wind (badminton), Zap (squash), Swords (padel), CircleDot (pickleball)
+**Total Sports Supported**: 8 racket/paddle sports now available
+**Date**: Merged and tagged before ladder implementation
 
 ## Critical Technical Debt Identified
 
@@ -71,17 +109,17 @@ Cannot properly support these sports without refactoring:
 ## Active Development Focus
 
 ### Multi-Sport Framework
-**Status**: Architectural foundation established with Sport enum and MatchParticipant structure. Table tennis fully implemented as the primary sport.
-**Extension Points**: Ready for community contributions to add tennis, padel, or other racket sports.
-**Design**: Extensible service layer allows sport-specific validation and scoring rules.
+**Status**: Fully implemented with 8 racket/paddle sports supported (Table Tennis, Tennis, Badminton, Squash, Padel, Pickleball, Racquetball, Beach Tennis).
+**Extension Points**: Ready for community contributions to add more sports or implement sport-specific validation rules.
+**Design**: Extensible service layer with Sport enum and flexible scoring profiles (sets, scoreline, stroke card, weigh-in).
 
 ### Mobile Experience
 **Status**: Fully responsive web application optimized for mobile browsers.
 **Future Considerations**: Progressive Web App (PWA) capabilities or native mobile apps based on community feedback and usage patterns.
 
 ### Advanced Features
-**Status**: Core tournament functionality complete with ELO-based rankings and series management.
-**Extension Opportunities**: Bracket tournaments, advanced scheduling, and elimination formats can be added as community needs arise.
+**Status**: Core tournament functionality complete with dual ranking systems (ELO and Ladder with Classic/Aggressive variants), multi-sport support (8 sports), and comprehensive series management.
+**Extension Opportunities**: Bracket tournaments, advanced scheduling, elimination formats, and sport-specific validation rules can be added as community needs arise.
 
 ## Architecture Principles
 

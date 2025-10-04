@@ -84,6 +84,31 @@ func (s *Service) AuthorizedMethod(ctx context.Context) error {
     }
     // Authorization checks...
 }
+
+// Named Struct Pattern - Prefer named types over anonymous structs
+type playerMatchStats struct {
+    PlayerID      string
+    Name          string
+    Position      int
+    MatchesPlayed int
+    Wins          int
+    Losses        int
+    // Reusable definition improves maintainability
+}
+
+// Resource Cleanup Pattern - Proper error handling in defer
+func (r *Repo) FindAll(ctx context.Context) ([]*Entity, error) {
+    cursor, err := r.collection.Find(ctx, filter)
+    if err != nil {
+        return nil, err
+    }
+    defer func() {
+        if err := cursor.Close(ctx); err != nil {
+            log.Warn().Err(err).Msg("failed to close cursor")
+        }
+    }()
+    // Process results...
+}
 ```
 
 ### Frontend Patterns (TypeScript/React)
@@ -93,6 +118,20 @@ export function useMatchReporting(options: Options) {
     const [state, setState] = useState(initialState)
     // Complex state management encapsulated
     return { reportMatch, isLoading, error }
+}
+
+// Mediator Pattern - Breaking circular dependencies
+// sessionManager.ts - Mediator between API client and auth store
+let sessionExpiredHandler: (() => void) | null = null
+
+export function registerSessionExpiredHandler(handler: () => void) {
+    sessionExpiredHandler = handler
+}
+
+export function handleSessionExpired() {
+    if (sessionExpiredHandler) {
+        sessionExpiredHandler()
+    }
 }
 
 // Service Layer Pattern - API abstraction

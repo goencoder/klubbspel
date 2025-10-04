@@ -1,13 +1,21 @@
-# Progress: Klubbspel v1.0.0
+# Progress: Klubbspel v1.3.0 (In Development)
 
 ## Production Features Delivered
 
-### Complete Tournament Management System
-- **Series Creation**: Time-bound tournament series with configurable formats (best-of-3, best-of-5)
+### v1.3.0 - Ladder Series Format (Pending Release)
+- **Ranking Systems**: NEW - Dual ranking support with ELO-based ratings and ladder-based positions
+- **Ladder Variants**: NEW - Classic (no penalty) and Aggressive (penalty on loss to lower-ranked)
+- **Architectural Improvements**: Named struct refactoring, circular dependency elimination, enhanced error handling
+- **Session Management**: Token expiration handling with graceful error recovery
+
+### Complete Tournament Management System (v1.2.0 + v1.3.0)
+- **Series Creation**: Time-bound tournament series with configurable formats (best-of-3, best-of-5, best-of-7)
+- **Multi-Sport Support**: 8 racket/paddle sports fully supported (Table Tennis, Tennis, Badminton, Squash, Padel, Pickleball, Racquetball, Beach Tennis)
 - **Player Registration**: Intelligent player management with duplicate detection and normalization
 - **Club Management**: Multi-club support with member management and role-based admin permissions
-- **Match Reporting**: Full table tennis match reporting with comprehensive score validation
+- **Match Reporting**: Comprehensive match reporting with sport-specific scoring across all supported sports
 - **ELO Rating System**: Automatic calculation with real-time leaderboard updates
+- **Ladder System**: Position-based rankings with challenge mechanics and penalty rules
 - **Live Leaderboards**: Dynamic rankings with comprehensive player statistics and match history
 
 ### Data Management Excellence
@@ -28,11 +36,13 @@
 ### Technical Infrastructure
 - **API Layer**: Type-safe gRPC services with HTTP/JSON REST gateway for broad compatibility
 - **Authentication**: JWT-based authentication with role-based access control (RBAC)
+- **Session Management**: Token expiration handling with graceful error recovery
 - **Database**: MongoDB with proper indexing, validation, and query optimization
 - **Build System**: Reliable Make-based workflow with documented timing expectations
 - **Development Environment**: Fast host-based development with containerized MongoDB
 - **Comprehensive Testing**: Unit tests, integration tests, and UI tests with Playwright
 - **Audit Logging**: Track administrative actions for accountability and compliance
+- **Error Handling**: Structured error responses with warnings for graceful degradation
 
 ### Advanced Capabilities
 - **Match Reordering**: Chronological match ordering within tournament series
@@ -49,6 +59,8 @@
 - **Test Coverage**: Three-tier testing strategy ensures reliability and prevents regressions
 - **Documentation**: Extensive inline documentation and architectural decision records
 - **Code Reviews**: Consistent code organization following clean architecture principles
+- **Architectural Patterns**: Named types over anonymous structs, dependency injection, mediator pattern
+- **Error Handling**: Proper resource cleanup with deferred error checking
 
 ### Performance Optimizations
 - **Database Indexing**: Optimized MongoDB indexes for common query patterns
@@ -85,8 +97,9 @@
 Klubbspel v1.0.0 is designed with extensibility in mind. The following areas present excellent opportunities for community contributions:
 
 ### Feature Extensions
-- **Multi-Sport Support**: Tennis, padel, and other racket sports (framework ready)
-- **Tournament Brackets**: Elimination-style tournaments beyond round-robin
+- **Additional Sports**: Framework ready for expanding beyond current 8 racket/paddle sports
+- **Sport-Specific Validation**: Implement tailored scoring rules per sport (e.g., draws in squash, tiebreakers in tennis)
+- **Tournament Brackets**: Elimination-style tournaments beyond round-robin and ladder
 - **Advanced Scheduling**: Match scheduling with time slots and venue management
 - **Player Analytics**: Detailed performance metrics and trend visualization
 - **Notification Enhancements**: Email and in-app notifications for match reminders

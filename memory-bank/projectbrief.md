@@ -1,17 +1,20 @@
-# Project Brief: Klubbspel v1.0.0
+# Project Brief: Klubbspel v1.3.0 (In Development)
 
 ## Overview
-Klubbspel is a production-ready, open-source table tennis tournament management system designed for Swedish clubs. It provides comprehensive player management, tournament series organization, match reporting, and real-time ELO-based rankings. Built with modern technology stack (Go backend, React frontend, MongoDB), it delivers a scalable, type-safe, and internationally accessible platform with full Swedish and English language support.
+Klubbspel is a production-ready, open-source tournament management system for racket and paddle sports designed for Swedish clubs. It provides comprehensive player management, tournament series organization with dual ranking systems (ELO and Ladder), match reporting across 8 supported sports, and real-time leaderboards. Built with modern technology stack (Go backend, React frontend, MongoDB), it delivers a scalable, type-safe, and internationally accessible platform with full Swedish and English language support.
 
 ## Core Features
-- **Series Management**: Create and manage time-bound tournament series with configurable formats (best-of-3, best-of-5)
+- **Multi-Sport Support**: 8 racket/paddle sports (Table Tennis, Tennis, Badminton, Squash, Padel, Pickleball, Racquetball, Beach Tennis)
+- **Dual Ranking Systems**: ELO-based ratings and Ladder-based positions with Classic/Aggressive variants
+- **Series Management**: Create and manage time-bound tournament series with configurable formats (best-of-3, best-of-5, best-of-7)
 - **Player Registration**: Intelligent player management with duplicate detection, normalization, and merging capabilities
-- **Match Reporting**: Report table tennis matches with comprehensive scoring validation and rule enforcement
+- **Match Reporting**: Comprehensive match reporting with sport-specific scoring validation and rule enforcement
 - **ELO Rating System**: Automatic calculation and tracking of player ratings with real-time updates
+- **Ladder System**: Challenge-based rankings with penalty mechanics and position swapping
 - **Live Leaderboards**: Dynamic ranking displays with comprehensive statistics and match history
 - **Club Administration**: Multi-club support with member management, role-based access control
 - **Multi-language Support**: Complete Swedish/English internationalization including all error messages
-- **Authentication & Authorization**: Secure JWT-based user management with role-based permissions
+- **Authentication & Authorization**: Secure JWT-based user management with session expiration handling
 - **Data Export**: CSV export functionality for matches and leaderboards
 - **Mobile-Optimized**: Fully responsive interface designed for phones, tablets, and desktop
 
@@ -26,23 +29,25 @@ Klubbspel is a production-ready, open-source table tennis tournament management 
 
 ## Project Scope
 
-### Core Deliverables (v1.0.0)
-- ✅ Table tennis tournament management with full feature set
+### Core Deliverables (v1.3.0 - In Development)
+- ✅ Multi-sport tournament management with 8 racket/paddle sports (v1.2.0)
+- 🚧 Dual ranking systems: ELO ratings and Ladder positions (v1.3.0)
+- 🚧 Ladder variants: Classic (no penalty) and Aggressive (penalty-based) (v1.3.0)
 - ✅ Club-based organization structure with multi-club support
-- ✅ ELO rating calculations and live leaderboards
-- ✅ Match reporting with table tennis-specific validation
+- ✅ Match reporting with flexible scoring across all sports
 - ✅ Player merging and duplicate management system
+- ✅ Session expiration handling with graceful error recovery
 - ✅ CSV export for data analysis and reporting
 - ✅ Email notifications and communication infrastructure
 - ✅ Mobile-responsive web interface with modern UX
-- ✅ Multi-sport framework foundation (extensible architecture)
 - ✅ Comprehensive test coverage (unit, integration, UI)
 - ✅ Production deployment infrastructure
 - ✅ Security hardening and authentication system
 
 ### Extension Opportunities (Community Contributions Welcome)
-- Multi-sport implementation (tennis, padel - framework ready)
-- Native mobile applications (iOS/Android)
+- Sport-specific validation rules (draws in squash, tiebreakers in tennis, etc.)
+- Additional sports beyond current 8 racket/paddle sports
+- Native mobile applications (iOS/Android) or PWA features
 - Advanced tournament brackets and elimination formats
 - Payment processing and fee management
 - Enhanced analytics with data visualization
