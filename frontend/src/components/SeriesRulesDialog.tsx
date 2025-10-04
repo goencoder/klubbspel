@@ -37,6 +37,7 @@ export function SeriesRulesDialog({
       setRules(response.rules)
     } catch (err) {
       setError(t('series.rules.error'))
+      // Error logged for debugging - consider replacing with proper error tracking service in production
       // eslint-disable-next-line no-console
       console.error('Error fetching rules:', err)
     } finally {

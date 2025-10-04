@@ -103,7 +103,9 @@ message ReportMatchRequest {
 // Response after successfully reporting a match
 message ReportMatchResponse { 
   // ID of the created match record
-  string match_id = 1; 
+  string match_id = 1;
+  // Optional warnings (e.g., "Leaderboard recalculation failed; standings may be out of date.")
+  repeated string warnings = 2;
 }
 
 // V2 Request to report the result of a match with multi-sport support

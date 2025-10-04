@@ -1,4 +1,5 @@
 import { useAppStore } from '@/store'
+import { handleSessionExpired } from '@/lib/sessionManager'
 
 // Custom error class to identify cancelled requests
 export class RequestCancelledError extends Error {
@@ -142,10 +143,7 @@ class ApiClient {
         
         // Handle token expiration - trigger global session expiry
         if (apiError.code === 'INVALID_OR_EXPIRED_TOKEN') {
-          // Dynamically import to avoid circular dependency
-          import('@/store/auth').then(({ useAuthStore }) => {
-            useAuthStore.getState().handleSessionExpired()
-          })
+          handleSessionExpired()
         }
         
         throw Object.assign(new Error(apiError.message), apiError)

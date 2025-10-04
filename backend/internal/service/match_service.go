@@ -15,12 +15,21 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// playerMatchStats holds statistics for a player across matches
+type playerMatchStats struct {
+	played    int32
+	won       int32
+	lost      int32
+	gamesWon  int32
+	gamesLost int32
+}
+
 type MatchService struct {
 	pb.UnimplementedMatchServiceServer
-	Matches      *repo.MatchRepo
-	Players      *repo.PlayerRepo
-	Series       *repo.SeriesRepo
-	Leaderboard  *repo.LeaderboardRepo
+	Matches     *repo.MatchRepo
+	Players     *repo.PlayerRepo
+	Series      *repo.SeriesRepo
+	Leaderboard *repo.LeaderboardRepo
 }
 
 func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchRequest) (*pb.ReportMatchResponse, error) {
@@ -59,13 +68,15 @@ func (s *MatchService) ReportMatch(ctx context.Context, in *pb.ReportMatchReques
 	}
 
 	// Recalculate and store leaderboard
+	var warnings []string
 	if err := s.RecalculateStandings(ctx, in.GetSeriesId()); err != nil {
 		log.Error().Err(err).Str("seriesID", in.GetSeriesId()).Msg("Failed to recalculate standings")
-		// Don't fail the match creation, just log the error
+		warnings = append(warnings, "Leaderboard recalculation failed; standings may be out of date.")
 	}
 
 	return &pb.ReportMatchResponse{
-		MatchId: match.ID.Hex(),
+		MatchId:  match.ID.Hex(),
+		Warnings: warnings,
 	}, nil
 }
 
@@ -108,35 +119,17 @@ func (s *MatchService) RecalculateStandings(ctx context.Context, seriesID string
 func (s *MatchService) recalculateEloStandings(ctx context.Context, seriesID string, matches []*repo.Match, now time.Time) error {
 	// Calculate ELO ratings from matches
 	eloRatings := make(map[string]int32)
-	matchStats := make(map[string]*struct {
-		played int32
-		won    int32
-		lost   int32
-		gamesWon   int32
-		gamesLost  int32
-	})
+	matchStats := make(map[string]*playerMatchStats)
 
 	// Initialize all players at 1000 ELO
 	for _, match := range matches {
 		if _, exists := eloRatings[match.PlayerAID]; !exists {
 			eloRatings[match.PlayerAID] = 1000
-			matchStats[match.PlayerAID] = &struct {
-				played int32
-				won    int32
-				lost   int32
-				gamesWon   int32
-				gamesLost  int32
-			}{}
+			matchStats[match.PlayerAID] = &playerMatchStats{}
 		}
 		if _, exists := eloRatings[match.PlayerBID]; !exists {
 			eloRatings[match.PlayerBID] = 1000
-			matchStats[match.PlayerBID] = &struct {
-				played int32
-				won    int32
-				lost   int32
-				gamesWon   int32
-				gamesLost  int32
-			}{}
+			matchStats[match.PlayerBID] = &playerMatchStats{}
 		}
 
 		// Update match statistics
@@ -155,9 +148,9 @@ func (s *MatchService) recalculateEloStandings(ctx context.Context, seriesID str
 		// Update ELO
 		ratingA := float64(eloRatings[match.PlayerAID])
 		ratingB := float64(eloRatings[match.PlayerBID])
-		
+
 		newRatingA, newRatingB := calculateELO(ratingA, ratingB, match.ScoreA, match.ScoreB)
-		
+
 		eloRatings[match.PlayerAID] = int32(newRatingA)
 		eloRatings[match.PlayerBID] = int32(newRatingB)
 
@@ -175,15 +168,9 @@ func (s *MatchService) recalculateEloStandings(ctx context.Context, seriesID str
 	type playerRating struct {
 		playerID string
 		rating   int32
-		stats    *struct {
-			played int32
-			won    int32
-			lost   int32
-			gamesWon   int32
-			gamesLost  int32
-		}
+		stats    *playerMatchStats
 	}
-	
+
 	var ratings []playerRating
 	for playerID, rating := range eloRatings {
 		ratings = append(ratings, playerRating{
@@ -230,13 +217,7 @@ func (s *MatchService) recalculateLadderStandings(ctx context.Context, seriesID 
 	ladderRules := pb.LadderRules(ladderRulesValue)
 
 	// Track match statistics
-	matchStats := make(map[string]*struct {
-		played int32
-		won    int32
-		lost   int32
-		gamesWon   int32
-		gamesLost  int32
-	})
+	matchStats := make(map[string]*playerMatchStats)
 
 	for _, match := range matches {
 		// Skip ties
@@ -263,22 +244,10 @@ func (s *MatchService) recalculateLadderStandings(ctx context.Context, seriesID 
 
 		// Initialize stats if needed
 		if matchStats[match.PlayerAID] == nil {
-			matchStats[match.PlayerAID] = &struct {
-				played int32
-				won    int32
-				lost   int32
-				gamesWon   int32
-				gamesLost  int32
-			}{}
+			matchStats[match.PlayerAID] = &playerMatchStats{}
 		}
 		if matchStats[match.PlayerBID] == nil {
-			matchStats[match.PlayerBID] = &struct {
-				played int32
-				won    int32
-				lost   int32
-				gamesWon   int32
-				gamesLost  int32
-			}{}
+			matchStats[match.PlayerBID] = &playerMatchStats{}
 		}
 
 		// Update stats
@@ -336,13 +305,7 @@ func (s *MatchService) recalculateLadderStandings(ctx context.Context, seriesID 
 	for playerID, position := range positions {
 		stats := matchStats[playerID]
 		if stats == nil {
-			stats = &struct {
-				played int32
-				won    int32
-				lost   int32
-				gamesWon   int32
-				gamesLost  int32
-			}{}
+			stats = &playerMatchStats{}
 		}
 
 		entry := &repo.LeaderboardEntry{
@@ -709,4 +672,3 @@ func calculateELO(ratingA, ratingB float64, scoreA, scoreB int32) (newRatingA, n
 
 	return newRatingA, newRatingB
 }
-

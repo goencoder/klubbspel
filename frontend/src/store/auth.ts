@@ -1,5 +1,6 @@
 import apiClient from '@/services/api'
 import type { AuthContext, CurrentUser } from '@/types/membership'
+import { registerSessionExpiredHandler } from '@/lib/sessionManager'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -256,6 +257,12 @@ export const useAuthContext = (): AuthContext => {
     isClubMember
   }
 }
+
+// Register the session expired handler with the session manager
+// This breaks the circular dependency between api.ts and auth store
+registerSessionExpiredHandler(() => {
+  useAuthStore.getState().handleSessionExpired()
+})
 
 // API header injection for authenticated requests
 export const useApiHeaders = () => {

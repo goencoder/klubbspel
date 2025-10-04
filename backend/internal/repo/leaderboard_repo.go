@@ -14,7 +14,7 @@ type LeaderboardEntry struct {
 	SeriesID      string    `bson:"series_id"`
 	PlayerID      string    `bson:"player_id"`
 	Rank          int32     `bson:"rank"`
-	Rating        int32     `bson:"rating"`         // ELO rating or ladder position
+	Rating        int32     `bson:"rating"` // ELO rating or ladder position
 	MatchesPlayed int32     `bson:"matches_played"`
 	MatchesWon    int32     `bson:"matches_won"`
 	MatchesLost   int32     `bson:"matches_lost"`
@@ -92,7 +92,12 @@ func (r *LeaderboardRepo) FindBySeriesOrdered(ctx context.Context, seriesID stri
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		if err := cursor.Close(ctx); err != nil {
+			// Log error but don't fail the operation
+			_ = err
+		}
+	}()
 
 	var entries []*LeaderboardEntry
 	if err := cursor.All(ctx, &entries); err != nil {

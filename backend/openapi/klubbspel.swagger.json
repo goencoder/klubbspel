@@ -2560,6 +2560,13 @@
         "matchId": {
           "type": "string",
           "title": "ID of the created match record"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "Optional warnings (e.g., \"Leaderboard recalculation failed; standings may be out of date.\")"
         }
       },
       "title": "Response after successfully reporting a match"
