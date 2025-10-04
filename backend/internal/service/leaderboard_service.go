@@ -2,10 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"math"
-	"sort"
-	"time"
 
 	"github.com/goencoder/klubbspel/backend/internal/repo"
 	pb "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1"
@@ -14,196 +10,150 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const LEADERBOARD_VERSION = 6
-
 type LeaderboardService struct {
 	pb.UnimplementedLeaderboardServiceServer
-	Matches *repo.MatchRepo
-	Players *repo.PlayerRepo
+	Leaderboard *repo.LeaderboardRepo
+	Players     *repo.PlayerRepo
+	Matches     *MatchService // For fallback recalculation
 }
 
 func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeaderboardRequest) (*pb.GetLeaderboardResponse, error) {
 	log.Info().Str("seriesId", in.GetSeriesId()).Msg("GetLeaderboard called")
 
-	// Get all matches for the series (sorted chronologically for ELO calculation)
-	matches, err := s.Matches.FindBySeriesID(ctx, in.GetSeriesId())
+	// Read from pre-calculated leaderboard
+	leaderboardEntries, err := s.Leaderboard.FindBySeriesOrdered(ctx, in.GetSeriesId())
 	if err != nil {
-		log.Error().Str("seriesId", in.GetSeriesId()).Err(err).Msg("Failed to get matches")
+		log.Error().Str("seriesId", in.GetSeriesId()).Err(err).Msg("Failed to get leaderboard")
 		return nil, status.Error(codes.Internal, "LEADERBOARD_FETCH_FAILED")
 	}
-	log.Debug().Str("seriesId", in.GetSeriesId()).Int("matchCount", len(matches)).Msg("Retrieved matches")
 
-	// Collect all unique player IDs first
-	playerIDSet := make(map[string]bool)
-	for _, match := range matches {
-		playerIDSet[match.PlayerAID] = true
-		playerIDSet[match.PlayerBID] = true
+	if len(leaderboardEntries) == 0 {
+		// Fallback: Trigger recalculation if no leaderboard exists yet
+		if s.Matches != nil {
+			log.Info().Str("seriesId", in.GetSeriesId()).Msg("Leaderboard empty, triggering recalculation")
+			if err := s.Matches.RecalculateStandings(ctx, in.GetSeriesId()); err != nil {
+				log.Error().Str("seriesId", in.GetSeriesId()).Err(err).Msg("Fallback recalculation failed")
+				// Don't fail the request, just return empty leaderboard
+			} else {
+				// Recalculation succeeded, try fetching again
+				leaderboardEntries, err = s.Leaderboard.FindBySeriesOrdered(ctx, in.GetSeriesId())
+				if err != nil {
+					log.Error().Str("seriesId", in.GetSeriesId()).Err(err).Msg("Failed to fetch after recalculation")
+					return nil, status.Error(codes.Internal, "LEADERBOARD_FETCH_FAILED")
+				}
+				// If still empty after recalculation, series has no matches
+				if len(leaderboardEntries) == 0 {
+					return &pb.GetLeaderboardResponse{
+						Entries:         []*pb.LeaderboardEntry{},
+						StartCursor:     "",
+						EndCursor:       "",
+						HasNextPage:     false,
+						HasPreviousPage: false,
+						TotalPlayers:    0,
+					}, nil
+				}
+				// Continue with populated leaderboard
+			}
+		} else {
+			// No MatchService available, return empty
+			return &pb.GetLeaderboardResponse{
+				Entries:         []*pb.LeaderboardEntry{},
+				StartCursor:     "",
+				EndCursor:       "",
+				HasNextPage:     false,
+				HasPreviousPage: false,
+				TotalPlayers:    0,
+			}, nil
+		}
 	}
 
-	// Convert map keys to slice for batch lookup
-	playerIDs := make([]string, 0, len(playerIDSet))
-	for playerID := range playerIDSet {
-		playerIDs = append(playerIDs, playerID)
+	// Collect player IDs for name lookup
+	playerIDs := make([]string, len(leaderboardEntries))
+	for i, entry := range leaderboardEntries {
+		playerIDs[i] = entry.PlayerID
 	}
 
-	// Batch fetch all player names in a single database query
-	log.Info().Int("playerCount", len(playerIDs)).Msg("Batch looking up players by IDs")
+	// Batch fetch player names
 	playersMap, err := s.Players.FindByIDs(ctx, playerIDs)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to batch lookup players")
+		log.Error().Err(err).Msg("Failed to fetch players for leaderboard")
 		return nil, status.Error(codes.Internal, "LEADERBOARD_PLAYERS_FETCH_FAILED")
 	}
 
-	// Build player names map with fallback for missing players
-	playerNames := make(map[string]string)
-	for _, playerID := range playerIDs {
-		if player, exists := playersMap[playerID]; exists {
-			playerNames[playerID] = player.DisplayName
-			log.Info().Str("playerId", playerID).Str("displayName", player.DisplayName).Msg("Found player")
-		} else {
-			// If we can't find the player, use a fallback name
-			playerNames[playerID] = "Unknown Player"
-			log.Error().Str("playerId", playerID).Msg("Player not found in batch lookup")
-		}
-	}
-
-	// Calculate ratings and stats for each player
-	playerStats := make(map[string]*pb.LeaderboardEntry)
-
-	for _, match := range matches {
-		// Initialize players if not seen before
-		if _, exists := playerStats[match.PlayerAID]; !exists {
-			playerStats[match.PlayerAID] = &pb.LeaderboardEntry{
-				PlayerId:      match.PlayerAID,
-				PlayerName:    playerNames[match.PlayerAID], // Use real name
-				EloRating:     1000,                         // Initial rating
-				MatchesPlayed: 0,
-				MatchesWon:    0,
-				MatchesLost:   0,
-				GamesWon:      0,
-				GamesLost:     0,
-			}
-		}
-		if _, exists := playerStats[match.PlayerBID]; !exists {
-			playerStats[match.PlayerBID] = &pb.LeaderboardEntry{
-				PlayerId:      match.PlayerBID,
-				PlayerName:    playerNames[match.PlayerBID], // Use real name
-				EloRating:     1000,                         // Initial rating
-				MatchesPlayed: 0,
-				MatchesWon:    0,
-				MatchesLost:   0,
-				GamesWon:      0,
-				GamesLost:     0,
-			}
-		}
-
-		playerA := playerStats[match.PlayerAID]
-		playerB := playerStats[match.PlayerBID]
-
-		// Calculate ELO changes
-		newRatingA, newRatingB := calculateELO(float64(playerA.EloRating), float64(playerB.EloRating), match.ScoreA, match.ScoreB)
-
-		// Update ratings
-		playerA.EloRating = int32(newRatingA)
-		playerA.MatchesPlayed++
-		playerA.GamesWon += match.ScoreA
-		playerA.GamesLost += match.ScoreB
-		if match.ScoreA > match.ScoreB {
-			playerA.MatchesWon++
-		} else {
-			playerA.MatchesLost++
-		}
-
-		playerB.EloRating = int32(newRatingB)
-		playerB.MatchesPlayed++
-		playerB.GamesWon += match.ScoreB
-		playerB.GamesLost += match.ScoreA
-		if match.ScoreB > match.ScoreA {
-			playerB.MatchesWon++
-		} else {
-			playerB.MatchesLost++
-		}
-	}
-
-	// Convert to slice and sort by rating
+	// Build response entries
 	var entries []*pb.LeaderboardEntry
-	for _, stats := range playerStats {
+	for _, entry := range leaderboardEntries {
+		player, exists := playersMap[entry.PlayerID]
+		playerName := "Unknown Player"
+		if exists {
+			playerName = player.DisplayName
+		}
+
+		pbEntry := &pb.LeaderboardEntry{
+			PlayerId:      entry.PlayerID,
+			PlayerName:    playerName,
+			Rank:          entry.Rank,
+			EloRating:     entry.Rating,
+			MatchesPlayed: entry.MatchesPlayed,
+			MatchesWon:    entry.MatchesWon,
+			MatchesLost:   entry.MatchesLost,
+			GamesWon:      entry.GamesWon,
+			GamesLost:     entry.GamesLost,
+		}
+
 		// Calculate win rates
-		if stats.MatchesPlayed > 0 {
-			stats.WinRate = float32(stats.MatchesWon) / float32(stats.MatchesPlayed) * 100
+		if pbEntry.MatchesPlayed > 0 {
+			pbEntry.WinRate = float32(pbEntry.MatchesWon) / float32(pbEntry.MatchesPlayed) * 100
 		}
-		if stats.GamesWon+stats.GamesLost > 0 {
-			stats.GameWinRate = float32(stats.GamesWon) / float32(stats.GamesWon+stats.GamesLost) * 100
+		if pbEntry.GamesWon+pbEntry.GamesLost > 0 {
+			pbEntry.GameWinRate = float32(pbEntry.GamesWon) / float32(pbEntry.GamesWon+pbEntry.GamesLost) * 100
 		}
-		entries = append(entries, stats)
+
+		entries = append(entries, pbEntry)
 	}
 
-	// Sort by ELO rating (highest first)
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].EloRating > entries[j].EloRating
-	})
-
-	// Add ranks with overflow protection
-	for i, entry := range entries {
-		if i+1 > math.MaxInt32 {
-			return nil, fmt.Errorf("rank overflow: too many entries (%d)", i+1)
-		}
-		entry.Rank = int32(i + 1)
-	}
-
-	// Handle pagination with cursor support
+	// Handle pagination
 	pageSize := in.GetPageSize()
 	if pageSize == 0 {
 		pageSize = 20
 	}
 
-	// Apply pagination to entries based on cursors with overflow protection
-	if len(entries) > math.MaxInt32 {
-		return nil, fmt.Errorf("entries overflow: too many entries (%d)", len(entries))
-	}
 	totalPlayers := int32(len(entries))
 	startIdx := 0
 	endIdx := len(entries)
 
-	// Handle cursor_after (forward pagination)
+	// Apply cursor pagination
 	if cursorAfter := in.GetCursorAfter(); cursorAfter != "" {
 		for i, entry := range entries {
 			if entry.PlayerId == cursorAfter {
-				startIdx = i + 1 // Start after the cursor
+				startIdx = i + 1
 				break
 			}
 		}
 	}
-
-	// Handle cursor_before (backward pagination)
 	if cursorBefore := in.GetCursorBefore(); cursorBefore != "" {
 		for i, entry := range entries {
 			if entry.PlayerId == cursorBefore {
-				endIdx = i // End before the cursor
+				endIdx = i
 				break
 			}
 		}
 	}
 
-	// Apply page size limit
 	if endIdx-startIdx > int(pageSize) {
 		endIdx = startIdx + int(pageSize)
 	}
 
-	// Ensure we don't go out of bounds
 	if startIdx >= len(entries) {
-		startIdx = len(entries)
-		endIdx = len(entries)
-		entries = []*pb.LeaderboardEntry{} // Empty result
+		entries = []*pb.LeaderboardEntry{}
 	} else if endIdx > len(entries) {
-		endIdx = len(entries)
-		entries = entries[startIdx:endIdx]
+		entries = entries[startIdx:]
 	} else {
 		entries = entries[startIdx:endIdx]
 	}
 
 	var startCursor, endCursor string
-	hasNext := endIdx < len(entries) || (startIdx == 0 && len(entries) > int(pageSize))
+	hasNext := endIdx < int(totalPlayers)
 	hasPrev := startIdx > 0
 
 	if len(entries) > 0 {
@@ -218,30 +168,5 @@ func (s *LeaderboardService) GetLeaderboard(ctx context.Context, in *pb.GetLeade
 		HasNextPage:     hasNext,
 		HasPreviousPage: hasPrev,
 		TotalPlayers:    totalPlayers,
-		LastUpdated:     time.Now().Format(time.RFC3339),
 	}, nil
-}
-
-// Calculate ELO rating changes based on match result
-func calculateELO(ratingA, ratingB float64, scoreA, scoreB int32) (float64, float64) {
-	// K-factor for rating changes
-	const K = 32
-
-	// Expected scores
-	expectedA := 1 / (1 + math.Pow(10, (ratingB-ratingA)/400))
-	expectedB := 1 / (1 + math.Pow(10, (ratingA-ratingB)/400))
-
-	// Actual scores (1 for win, 0 for loss)
-	var actualA, actualB float64
-	if scoreA > scoreB {
-		actualA, actualB = 1, 0
-	} else {
-		actualA, actualB = 0, 1
-	}
-
-	// New ratings
-	newRatingA := ratingA + K*(actualA-expectedA)
-	newRatingB := ratingB + K*(actualB-expectedB)
-
-	return newRatingA, newRatingB
 }

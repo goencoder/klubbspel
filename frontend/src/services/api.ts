@@ -337,6 +337,9 @@ class ApiClient {
     if (params.ladderRules) {
       searchParams.append('ladder_rules', params.ladderRules)
     }
+    // Pass current language from app store to get localized rules
+    const currentLang = useAppStore.getState().language || 'sv'
+    searchParams.append('locale', currentLang)
     
     const query = searchParams.toString()
     return this.get<GetSeriesRulesResponse>(`/v1/series/rules${query ? `?${query}` : ''}`)

@@ -47,32 +47,17 @@ func (r *SeriesPlayerRepo) createIndexes(ctx context.Context) error {
 			Keys:    bson.D{{Key: "series_id", Value: 1}, {Key: "player_id", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
+		// Non-unique index on (series_id, position) for sorting queries
+		// Position is just a rank number, not a unique identifier
 		{
-			Keys:    bson.D{{Key: "series_id", Value: 1}, {Key: "position", Value: 1}},
-			Options: options.Index().SetUnique(true),
+			Keys: bson.D{{Key: "series_id", Value: 1}, {Key: "position", Value: 1}},
 		},
 	})
 	return err
 }
 
-// WithTransaction executes the provided callback within a MongoDB session transaction.
-func (r *SeriesPlayerRepo) WithTransaction(ctx context.Context, fn func(mongo.SessionContext) error) error {
-	session, err := r.db.Client().StartSession()
-	if err != nil {
-		return err
-	}
-	defer session.EndSession(ctx)
-
-	_, err = session.WithTransaction(ctx, func(sc mongo.SessionContext) (interface{}, error) {
-		if err := fn(sc); err != nil {
-			return nil, err
-		}
-		return nil, nil
-	})
-	return err
-}
-
 // EnsurePlayer ensures a ladder entry exists for the given series/player pair, creating it at the bottom if missing.
+// Uses a retry loop to handle race conditions when multiple players are added simultaneously.
 func (r *SeriesPlayerRepo) EnsurePlayer(ctx context.Context, seriesID, playerID string) (*SeriesPlayer, error) {
 	existing, err := r.FindBySeriesAndPlayer(ctx, seriesID, playerID)
 	if err == nil {
@@ -82,32 +67,46 @@ func (r *SeriesPlayerRepo) EnsurePlayer(ctx context.Context, seriesID, playerID 
 		return nil, err
 	}
 
-	// Determine next position (bottom of ladder).
-	var last SeriesPlayer
-	opts := options.FindOne().SetSort(bson.D{{Key: "position", Value: -1}})
-	position := int32(1)
-	if err := r.c.FindOne(ctx, bson.M{"series_id": seriesID}, opts).Decode(&last); err == nil {
-		position = last.Position + 1
-	}
-
-	now := time.Now().UTC()
-	sp := &SeriesPlayer{
-		ID:        primitive.NewObjectID(),
-		SeriesID:  seriesID,
-		PlayerID:  playerID,
-		Position:  position,
-		JoinedAt:  now,
-		UpdatedAt: now,
-	}
-
-	if _, err := r.c.InsertOne(ctx, sp); err != nil {
-		if mongo.IsDuplicateKeyError(err) {
-			return r.FindBySeriesAndPlayer(ctx, seriesID, playerID)
+	// Retry up to 5 times to handle race conditions on position allocation
+	maxRetries := 5
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Determine next position (bottom of ladder).
+		var last SeriesPlayer
+		opts := options.FindOne().SetSort(bson.D{{Key: "position", Value: -1}})
+		position := int32(1)
+		if err := r.c.FindOne(ctx, bson.M{"series_id": seriesID}, opts).Decode(&last); err == nil {
+			position = last.Position + 1
 		}
-		return nil, err
+
+		now := time.Now().UTC()
+		sp := &SeriesPlayer{
+			ID:        primitive.NewObjectID(),
+			SeriesID:  seriesID,
+			PlayerID:  playerID,
+			Position:  position,
+			JoinedAt:  now,
+			UpdatedAt: now,
+		}
+
+		if _, err := r.c.InsertOne(ctx, sp); err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				// Check if it's a duplicate on series_id + player_id (player already exists)
+				existing, findErr := r.FindBySeriesAndPlayer(ctx, seriesID, playerID)
+				if findErr == nil {
+					return existing, nil
+				}
+				// Otherwise it's a position conflict, retry with new position
+				if attempt < maxRetries-1 {
+					continue
+				}
+			}
+			return nil, err
+		}
+
+		return sp, nil
 	}
 
-	return sp, nil
+	return nil, fmt.Errorf("failed to ensure player after %d retries due to position conflicts", maxRetries)
 }
 
 // FindBySeriesOrdered returns all players for a series ordered by ascending position.
@@ -152,19 +151,23 @@ func (r *SeriesPlayerRepo) FindBySeriesAndPosition(ctx context.Context, seriesID
 	return &sp, nil
 }
 
-// ShiftRange increments positions for players within the inclusive range [start, end].
-func (r *SeriesPlayerRepo) ShiftRange(ctx context.Context, seriesID string, start, end int32, delta int32, now time.Time) error {
-	if start > end {
-		return nil
+// ShiftPlayersInRange increments positions for all players in the given range.
+// Used when a lower-ranked player climbs the ladder by beating a higher-ranked player.
+// Since position is no longer unique, we can update all players at once.
+func (r *SeriesPlayerRepo) ShiftPlayersInRange(ctx context.Context, seriesID string, minPosition, maxPosition int32, delta int32, now time.Time) error {
+	filter := bson.M{
+		"series_id": seriesID,
+		"position": bson.M{
+			"$gte": minPosition,
+			"$lt":  maxPosition,
+		},
 	}
 	update := bson.M{
 		"$inc": bson.M{"position": delta},
 		"$set": bson.M{"updated_at": now},
 	}
-	_, err := r.c.UpdateMany(ctx, bson.M{
-		"series_id": seriesID,
-		"position":  bson.M{"$gte": start, "$lte": end},
-	}, update)
+	
+	_, err := r.c.UpdateMany(ctx, filter, update)
 	return err
 }
 
@@ -192,3 +195,32 @@ func (r *SeriesPlayerRepo) TouchPlayer(ctx context.Context, seriesID, playerID s
 	})
 	return err
 }
+
+// DeleteAllForSeries removes all series_players entries for a given series.
+// Used when recalculating standings from scratch.
+func (r *SeriesPlayerRepo) DeleteAllForSeries(ctx context.Context, seriesID string) error {
+	_, err := r.c.DeleteMany(ctx, bson.M{"series_id": seriesID})
+	return err
+}
+
+// UpsertPlayer creates or updates a series player entry with the given position.
+func (r *SeriesPlayerRepo) UpsertPlayer(ctx context.Context, seriesID, playerID string, position int32, now time.Time) error {
+	filter := bson.M{
+		"series_id": seriesID,
+		"player_id": playerID,
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"position":   position,
+			"updated_at": now,
+		},
+		"$setOnInsert": bson.M{
+			"joined_at": now,
+		},
+	}
+	
+	opts := options.Update().SetUpsert(true)
+	_, err := r.c.UpdateOne(ctx, filter, update, opts)
+	return err
+}
+

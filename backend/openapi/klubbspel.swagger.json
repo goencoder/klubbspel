@@ -1242,6 +1242,13 @@
               "LADDER_RULES_AGGRESSIVE"
             ],
             "default": "LADDER_RULES_UNSPECIFIED"
+          },
+          {
+            "name": "locale",
+            "description": "Locale for translated rules (e.g., \"sv\", \"en\"). Defaults to server's DEFAULT_LOCALE if not specified.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [

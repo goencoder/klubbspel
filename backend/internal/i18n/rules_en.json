@@ -1,0 +1,87 @@
+{
+  "free_play": {
+    "title": "Free Play Rules",
+    "summary": "Play matches freely with any player. Rankings are determined by ELO rating.",
+    "rules": [
+      "Play matches against any player in the series",
+      "No position tracking - rankings based on ELO rating only",
+      "Winner gains ELO points, loser loses ELO points",
+      "ELO changes depend on rating difference between players",
+      "All matches count equally toward your rating"
+    ],
+    "examples": [
+      {
+        "scenario": "Higher-rated player (ELO 1500) beats lower-rated player (ELO 1200)",
+        "outcome": "Result: Winner gains ~8 points, loser loses ~8 points (small change due to expected outcome)"
+      },
+      {
+        "scenario": "Lower-rated player (ELO 1200) beats higher-rated player (ELO 1500)",
+        "outcome": "Result: Winner gains ~24 points, loser loses ~24 points (large change due to upset)"
+      }
+    ]
+  },
+  "ladder_classic": {
+    "title": "Classic Ladder Rules",
+    "summary": "Challenge any player to climb the ladder. Winner improves position, loser keeps their position (no penalty).",
+    "rules": [
+      "Players are ranked by position (1, 2, 3, etc.)",
+      "Play matches against any player regardless of position",
+      "Position determines ranking, not ELO",
+      "Winner with worse position takes the better player's position",
+      "All players between swap positions (shift down one)",
+      "Loser with worse position keeps their position (no penalty)",
+      "Loser with better position drops to where winner was",
+      "ELO is still calculated but doesn't affect ladder position"
+    ],
+    "examples": [
+      {
+        "scenario": "Player at position #3 beats player at position #1",
+        "outcome": "Winner → position #1, positions #1 and #2 → shift down (#2 and #3)"
+      },
+      {
+        "scenario": "Player at position #3 loses to player at position #1",
+        "outcome": "Loser keeps position #3 (no penalty), winner keeps position #1"
+      },
+      {
+        "scenario": "Player at position #2 beats player at position #1",
+        "outcome": "Winner → position #1, previous #1 → position #2"
+      },
+      {
+        "scenario": "Player at position #1 loses to player at position #3",
+        "outcome": "Winner → position #1, loser (#1) → drops to position #3, previous #2 → position #2"
+      }
+    ]
+  },
+  "ladder_aggressive": {
+    "title": "Aggressive Ladder Rules",
+    "summary": "Challenge any player to climb the ladder. Winner improves position, loser drops one position (penalty).",
+    "rules": [
+      "Players are ranked by position (1, 2, 3, etc.)",
+      "Play matches against any player regardless of position",
+      "Position determines ranking, not ELO",
+      "Winner with worse position takes the better player's position",
+      "All players between swap positions (shift down one)",
+      "Loser with worse position drops one additional position (penalty)",
+      "Player below loser moves up to fill the gap",
+      "ELO is still calculated but doesn't affect ladder position"
+    ],
+    "examples": [
+      {
+        "scenario": "Player at position #3 beats player at position #1",
+        "outcome": "Winner → position #1, positions #1 and #2 → shift down (#2 and #3)"
+      },
+      {
+        "scenario": "Player at position #3 loses to player at position #1",
+        "outcome": "Loser drops to position #4 (penalty), player at #4 → moves up to #3"
+      },
+      {
+        "scenario": "Player at position #2 beats player at position #1",
+        "outcome": "Winner → position #1, previous #1 → position #2"
+      },
+      {
+        "scenario": "Player at position #1 loses to player at position #3",
+        "outcome": "Winner → position #1, loser (#1) → drops to position #2, previous #2 → position #3"
+      }
+    ]
+  }
+}

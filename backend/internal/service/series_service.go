@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"time"
 
+	"github.com/goencoder/klubbspel/backend/internal/i18n"
 	"github.com/goencoder/klubbspel/backend/internal/repo"
 	pb "github.com/goencoder/klubbspel/backend/proto/gen/go/klubbspel/v1"
 	"google.golang.org/grpc/codes"
@@ -13,10 +13,9 @@ import (
 
 type SeriesService struct {
 	pb.UnimplementedSeriesServiceServer
-	Series        *repo.SeriesRepo
-	Matches       *repo.MatchRepo
-	Players       *repo.PlayerRepo
-	SeriesPlayers *repo.SeriesPlayerRepo
+	Series  *repo.SeriesRepo
+	Matches *repo.MatchRepo
+	Players *repo.PlayerRepo
 }
 
 var supportedSeriesSports = map[pb.Sport]struct{}{
@@ -273,114 +272,9 @@ func (s *SeriesService) GetLadderStandings(ctx context.Context, in *pb.GetLadder
 		return nil, status.Error(codes.InvalidArgument, "SERIES_ID_REQUIRED")
 	}
 
-	series, err := s.Series.FindByID(ctx, in.GetSeriesId())
-	if err != nil {
-		return nil, status.Error(codes.NotFound, "SERIES_NOT_FOUND")
-	}
-
-	if pb.SeriesFormat(series.Format) != pb.SeriesFormat_SERIES_FORMAT_LADDER {
-		return nil, status.Error(codes.FailedPrecondition, "SERIES_NOT_LADDER")
-	}
-
-	if s.SeriesPlayers == nil {
-		return nil, status.Error(codes.Internal, "LADDER_REPOSITORY_UNAVAILABLE")
-	}
-	if s.Players == nil {
-		return nil, status.Error(codes.Internal, "PLAYER_REPOSITORY_UNAVAILABLE")
-	}
-	if s.Matches == nil {
-		return nil, status.Error(codes.Internal, "MATCH_REPOSITORY_UNAVAILABLE")
-	}
-
-	ladderEntries, err := s.SeriesPlayers.FindBySeriesOrdered(ctx, in.GetSeriesId())
-	if err != nil {
-		return nil, status.Error(codes.Internal, "LADDER_FETCH_FAILED")
-	}
-
-	// Collect player IDs for name lookup.
-	playerIDs := make([]string, 0, len(ladderEntries))
-	for _, entry := range ladderEntries {
-		playerIDs = append(playerIDs, entry.PlayerID)
-	}
-
-	playersMap := map[string]*repo.Player{}
-	if len(playerIDs) > 0 {
-		playersMap, err = s.Players.FindByIDs(ctx, playerIDs)
-		if err != nil {
-			return nil, status.Error(codes.Internal, "LADDER_PLAYER_LOOKUP_FAILED")
-		}
-	}
-
-	// Prepare statistics from matches.
-	matches, err := s.Matches.FindBySeriesID(ctx, in.GetSeriesId())
-	if err != nil {
-		return nil, status.Error(codes.Internal, "LADDER_MATCH_FETCH_FAILED")
-	}
-
-	type ladderStats struct {
-		matchesPlayed int32
-		matchesWon    int32
-		lastMatch     time.Time
-	}
-
-	stats := make(map[string]*ladderStats)
-
-	for _, match := range matches {
-		// Ensure stats entries exist for both players participating in the match.
-		if _, ok := stats[match.PlayerAID]; !ok {
-			stats[match.PlayerAID] = &ladderStats{}
-		}
-		if _, ok := stats[match.PlayerBID]; !ok {
-			stats[match.PlayerBID] = &ladderStats{}
-		}
-
-		stats[match.PlayerAID].matchesPlayed++
-		stats[match.PlayerBID].matchesPlayed++
-
-		if match.ScoreA > match.ScoreB {
-			stats[match.PlayerAID].matchesWon++
-		} else {
-			stats[match.PlayerBID].matchesWon++
-		}
-
-		if match.PlayedAt.After(stats[match.PlayerAID].lastMatch) {
-			stats[match.PlayerAID].lastMatch = match.PlayedAt
-		}
-		if match.PlayedAt.After(stats[match.PlayerBID].lastMatch) {
-			stats[match.PlayerBID].lastMatch = match.PlayedAt
-		}
-	}
-
-	response := &pb.GetLadderStandingsResponse{}
-
-	for _, entry := range ladderEntries {
-		name := "Unknown Player"
-		if player, ok := playersMap[entry.PlayerID]; ok {
-			name = player.DisplayName
-		}
-
-		stat := stats[entry.PlayerID]
-
-		ladderEntry := &pb.LadderEntry{
-			PlayerId:      entry.PlayerID,
-			PlayerName:    name,
-			Position:      entry.Position,
-			MatchesPlayed: 0,
-			MatchesWon:    0,
-		}
-
-		if stat != nil {
-			ladderEntry.MatchesPlayed = stat.matchesPlayed
-			ladderEntry.MatchesWon = stat.matchesWon
-			if !stat.lastMatch.IsZero() {
-				ladderEntry.LastMatchAt = timestamppb.New(stat.lastMatch)
-			}
-		}
-
-		response.Entries = append(response.Entries, ladderEntry)
-	}
-
-	return response, nil
+	// Ladder standings are no longer stored separately
+	// Use the leaderboard service instead for all series types
+	return nil, status.Error(codes.Unimplemented, "LADDER_STANDINGS_DEPRECATED")
 }
 
 func normalizeSeriesSport(sport pb.Sport) (pb.Sport, error) {
@@ -430,30 +324,34 @@ func (s *SeriesService) GetSeriesRules(ctx context.Context, in *pb.GetSeriesRule
 		format = pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY
 	}
 
+	// Get locale from request, default to Swedish
+	locale := in.GetLocale()
+	if locale == "" {
+		locale = "sv"
+	}
+	// Normalize locale to supported values
+	if locale != "sv" && locale != "en" {
+		locale = "sv" // Default to Swedish
+	}
+
 	var rules *pb.RulesDescription
 
 	switch format {
 	case pb.SeriesFormat_SERIES_FORMAT_OPEN_PLAY:
+		rulesContent, err := i18n.GetFreePlayRules(locale)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "FAILED_TO_LOAD_RULES")
+		}
 		rules = &pb.RulesDescription{
-			Title:   "Free Play Rules",
-			Summary: "Play matches freely with any player. Rankings are determined by ELO rating.",
-			Rules: []string{
-				"Play matches against any player in the series",
-				"No position tracking - rankings based on ELO rating only",
-				"Winner gains ELO points, loser loses ELO points",
-				"ELO changes depend on rating difference between players",
-				"All matches count equally toward your rating",
-			},
-			Examples: []*pb.RuleExample{
-				{
-					Scenario: "Higher-rated player (ELO 1500) beats lower-rated player (ELO 1200)",
-					Outcome:  "Winner gains ~8 points, loser loses ~8 points (small change due to expected outcome)",
-				},
-				{
-					Scenario: "Lower-rated player (ELO 1200) beats higher-rated player (ELO 1500)",
-					Outcome:  "Winner gains ~24 points, loser loses ~24 points (large change due to upset)",
-				},
-			},
+			Title:   rulesContent.Title,
+			Summary: rulesContent.Summary,
+			Rules:   rulesContent.Rules,
+		}
+		for _, ex := range rulesContent.Examples {
+			rules.Examples = append(rules.Examples, &pb.RuleExample{
+				Scenario: ex.Scenario,
+				Outcome:  ex.Outcome,
+			})
 		}
 
 	case pb.SeriesFormat_SERIES_FORMAT_LADDER:
@@ -462,73 +360,22 @@ func (s *SeriesService) GetSeriesRules(ctx context.Context, in *pb.GetSeriesRule
 			ladderRules = pb.LadderRules_LADDER_RULES_CLASSIC
 		}
 
-		if ladderRules == pb.LadderRules_LADDER_RULES_AGGRESSIVE {
-			rules = &pb.RulesDescription{
-				Title:   "Aggressive Ladder Rules",
-				Summary: "Challenge any player to climb the ladder. Winner improves position, loser drops one position (penalty).",
-				Rules: []string{
-					"Players are ranked by position (1, 2, 3, etc.)",
-					"Play matches against any player regardless of position",
-					"Position determines ranking, not ELO",
-					"Winner with worse position takes the better player's position",
-					"All players between swap positions (shift down one)",
-					"Loser with worse position drops one additional position (penalty)",
-					"Player below loser moves up to fill the gap",
-					"ELO is still calculated but doesn't affect ladder position",
-				},
-				Examples: []*pb.RuleExample{
-					{
-						Scenario: "Player at position #3 beats player at position #1",
-						Outcome:  "Winner → position #1, positions #1 and #2 → shift down (#2 and #3)",
-					},
-					{
-						Scenario: "Player at position #3 loses to player at position #1",
-						Outcome:  "Loser drops to position #4 (penalty), player at #4 → moves up to #3",
-					},
-					{
-						Scenario: "Player at position #2 beats player at position #1",
-						Outcome:  "Winner → position #1, previous #1 → position #2",
-					},
-					{
-						Scenario: "Player at position #1 loses to player at position #3",
-						Outcome:  "Winner → position #1, loser (#1) → drops to position #2, previous #2 → position #3",
-					},
-				},
-			}
-		} else {
-			// LADDER_RULES_CLASSIC
-			rules = &pb.RulesDescription{
-				Title:   "Classic Ladder Rules",
-				Summary: "Challenge any player to climb the ladder. Winner improves position, loser keeps their position (no penalty).",
-				Rules: []string{
-					"Players are ranked by position (1, 2, 3, etc.)",
-					"Play matches against any player regardless of position",
-					"Position determines ranking, not ELO",
-					"Winner with worse position takes the better player's position",
-					"All players between swap positions (shift down one)",
-					"Loser with worse position keeps their position (no penalty)",
-					"Loser with better position drops to where winner was",
-					"ELO is still calculated but doesn't affect ladder position",
-				},
-				Examples: []*pb.RuleExample{
-					{
-						Scenario: "Player at position #3 beats player at position #1",
-						Outcome:  "Winner → position #1, positions #1 and #2 → shift down (#2 and #3)",
-					},
-					{
-						Scenario: "Player at position #3 loses to player at position #1",
-						Outcome:  "Loser keeps position #3 (no penalty), winner keeps position #1",
-					},
-					{
-						Scenario: "Player at position #2 beats player at position #1",
-						Outcome:  "Winner → position #1, previous #1 → position #2",
-					},
-					{
-						Scenario: "Player at position #1 loses to player at position #3",
-						Outcome:  "Winner → position #1, loser (#1) → drops to position #3, previous #2 → position #2",
-					},
-				},
-			}
+		isAggressive := ladderRules == pb.LadderRules_LADDER_RULES_AGGRESSIVE
+		rulesContent, err := i18n.GetLadderRules(locale, isAggressive)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "FAILED_TO_LOAD_RULES")
+		}
+
+		rules = &pb.RulesDescription{
+			Title:   rulesContent.Title,
+			Summary: rulesContent.Summary,
+			Rules:   rulesContent.Rules,
+		}
+		for _, ex := range rulesContent.Examples {
+			rules.Examples = append(rules.Examples, &pb.RuleExample{
+				Scenario: ex.Scenario,
+				Outcome:  ex.Outcome,
+			})
 		}
 
 	default:

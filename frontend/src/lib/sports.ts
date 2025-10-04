@@ -13,7 +13,10 @@ export const SUPPORTED_SPORTS: Sport[] = [
 ]
 
 export const DEFAULT_SERIES_FORMAT: SeriesFormat = 'SERIES_FORMAT_OPEN_PLAY'
-export const SUPPORTED_SERIES_FORMATS: SeriesFormat[] = [DEFAULT_SERIES_FORMAT]
+export const SUPPORTED_SERIES_FORMATS: SeriesFormat[] = [
+  DEFAULT_SERIES_FORMAT,
+  'SERIES_FORMAT_LADDER'
+]
 
 /**
  * Returns the i18n translation key for a given sport.

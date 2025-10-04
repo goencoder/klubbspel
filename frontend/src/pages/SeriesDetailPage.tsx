@@ -271,6 +271,7 @@ export function SeriesDetailPage() {
             showExport={true}
             title={t('series.leaderboard')}
             description={t('leaderboard.description', 'Current rankings and statistics for this series')}
+            hideRank={series.format === 'SERIES_FORMAT_LADDER'}
           />
         </TabsContent>
       </Tabs>

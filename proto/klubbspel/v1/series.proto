@@ -215,6 +215,8 @@ message GetSeriesRulesRequest {
   SeriesFormat format = 1;
   // Ladder rules variant (only used if format is SERIES_FORMAT_LADDER)
   LadderRules ladder_rules = 2;
+  // Locale for translated rules (e.g., "sv", "en"). Defaults to server's DEFAULT_LOCALE if not specified.
+  string locale = 3;
 }
 
 // Response containing human-readable rules
