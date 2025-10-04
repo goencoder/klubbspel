@@ -375,7 +375,12 @@
     "loginRequired": "You must be logged in to create clubs",
     "signIn": "Sign In",
     "signInToJoin": "Sign In to Join",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "sessionExpired": {
+      "title": "Your session has expired",
+      "message": "Your login has expired. Please sign in again to continue.",
+      "button": "Go to Login"
+    }
   },
   "profile": {
     "completion": {

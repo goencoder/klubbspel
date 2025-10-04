@@ -139,6 +139,15 @@ class ApiClient {
           message: errorData.message || response.statusText,
           details: errorData.details
         }
+        
+        // Handle token expiration - trigger global session expiry
+        if (apiError.code === 'INVALID_OR_EXPIRED_TOKEN') {
+          // Dynamically import to avoid circular dependency
+          import('@/store/auth').then(({ useAuthStore }) => {
+            useAuthStore.getState().handleSessionExpired()
+          })
+        }
+        
         throw Object.assign(new Error(apiError.message), apiError)
       }
 

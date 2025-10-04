@@ -375,7 +375,12 @@
     "loginRequired": "Du måste logga in för att skapa klubbar",
     "signIn": "Logga in",
     "signInToJoin": "Logga in för att gå med",
-    "signOut": "Logga ut"
+    "signOut": "Logga ut",
+    "sessionExpired": {
+      "title": "Din session har löpt ut",
+      "message": "Din inloggning har upphört att gälla. Vänligen logga in igen för att fortsätta.",
+      "button": "Gå till inloggning"
+    }
   },
   "profile": {
     "completion": {

@@ -8,6 +8,7 @@ interface AuthState {
   selectedClubId: string | null
   isLoading: boolean
   error: string | null
+  sessionExpired: boolean
 }
 
 interface AuthActions {
@@ -15,6 +16,10 @@ interface AuthActions {
   sendMagicLink: (email: string, returnUrl?: string) => Promise<void>
   validateToken: (token: string) => Promise<void>
   logout: () => void
+
+  // Session management
+  handleSessionExpired: () => void
+  dismissSessionExpired: () => void
 
   // Club selection
   selectClub: (clubId: string | null) => void
@@ -43,6 +48,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       selectedClubId: null,
       isLoading: false,
       error: null,
+      sessionExpired: false,
 
       // Authentication actions
       sendMagicLink: async (email: string, returnUrl?: string) => {
@@ -91,8 +97,23 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           user: null,
           selectedClubId: null,
           isLoading: false,
+          error: null,
+          sessionExpired: false
+        })
+      },
+
+      // Session management
+      handleSessionExpired: () => {
+        set({
+          user: null,
+          selectedClubId: null,
+          sessionExpired: true,
           error: null
         })
+      },
+
+      dismissSessionExpired: () => {
+        set({ sessionExpired: false })
       },
 
       // Club selection

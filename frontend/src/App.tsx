@@ -1,5 +1,6 @@
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { Layout } from '@/components/Layout'
+import { SessionExpiredModal } from '@/components/SessionExpiredModal'
 import { Toaster } from '@/components/ui/sonner'
 import { ClubDetailPage } from '@/pages/ClubDetailPage'
 import { ClubsPage } from '@/pages/ClubsPage'
@@ -45,6 +46,7 @@ function App() {
             <Route path="/rules-test" element={<RulesTestPage />} />
           </Routes>
         </Layout>
+        <SessionExpiredModal />
         <Toaster position="top-right" />
       </Router>
     </LanguageProvider>
