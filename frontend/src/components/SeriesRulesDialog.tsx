@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
-import apiClient from '@/services/api'
+import { apiClient } from '@/services/api'
 import type { RulesDescription, SeriesFormat, LadderRules } from '@/types/api'
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react'
 
